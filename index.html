@@ -115,12 +115,25 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .hud-right{display:flex;gap:8px}
 .hud-btn{width:38px;height:38px;border-radius:13px;border:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(0,0,0,.4);background:linear-gradient(170deg,rgba(255,255,255,.04) 0%,rgba(0,0,0,.25) 100%);color:var(--text-2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity var(--dur-tap) var(--ease-press),transform var(--dur-tap) var(--ease-press);box-shadow:0 1px 3px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05)}
 .hud-btn:active{opacity:.55;transform:scale(.91)}
+.undo-btn{position:relative;width:auto;height:34px;padding:0 14px;gap:6px;font-size:13px;border:1px solid rgba(251,191,36,.45);background:linear-gradient(180deg,rgba(251,191,36,.18) 0%,rgba(251,191,36,.06) 100%);border-radius:100px;box-shadow:0 2px 8px rgba(251,191,36,.12),inset 0 1px 0 rgba(255,255,255,.08)}
+.undo-btn:disabled{opacity:.2;pointer-events:none}
+.undo-btn .undo-label{font-size:13px;font-weight:900;color:#fbbf24;letter-spacing:.3px}
+.undo-count{min-width:20px;height:20px;border-radius:10px;background:#fbbf24;color:#1a1000;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(251,191,36,.3)}
 .cur-score-wrap{flex-shrink:0;text-align:center;padding:2px 0 8px}
 .cur-score{font-size:52px;font-weight:800;letter-spacing:-2.5px;line-height:1;background:linear-gradient(170deg,#F5F0E8 15%,#D4B870 55%,#A07828 90%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none}
 .cur-score.bump{animation:scoreBump var(--dur-score) var(--ease-out) both}
 @keyframes scoreBump{0%{transform:scale(1)}45%{transform:scale(1.07)}100%{transform:scale(1)}}
-.streak-badge{display:inline-flex;align-items:center;gap:5px;background:var(--gold-dim);border:1px solid rgba(245,200,66,.18);border-radius:100px;padding:3px 12px;font-size:12px;font-weight:700;color:var(--gold);opacity:0;transform:translateY(2px);transition:opacity var(--dur-select) var(--ease-io),transform var(--dur-select) var(--ease-out);margin-top:3px;letter-spacing:.2px}
+.cur-score.bump-big{animation:scoreBumpBig 280ms var(--ease-out) both}
+@keyframes scoreBumpBig{0%{transform:scale(1)}35%{transform:scale(1.14)}100%{transform:scale(1)}}
+.cur-score.bump-mega{animation:scoreBumpMega 320ms var(--ease-out) both}
+@keyframes scoreBumpMega{0%{transform:scale(1)}30%{transform:scale(1.22)}60%{transform:scale(.97)}100%{transform:scale(1)}}
+.streak-badge{display:inline-flex;align-items:center;gap:5px;background:var(--gold-dim);border:1px solid rgba(245,200,66,.18);border-radius:100px;padding:3px 12px;font-size:12px;font-weight:700;color:var(--gold);opacity:0;transform:translateY(2px);transition:opacity var(--dur-select) var(--ease-io),transform var(--dur-select) var(--ease-out),background .2s,border-color .2s,font-size .2s,padding .2s;margin-top:3px;letter-spacing:.2px}
 .streak-badge.show{opacity:1;transform:translateY(0)}
+.streak-badge.s3{font-size:14px;padding:4px 14px;background:rgba(251,191,36,.18);border-color:rgba(251,191,36,.35);color:#fbbf24}
+.streak-badge.s4{font-size:15px;padding:5px 16px;background:rgba(103,232,249,.15);border-color:rgba(103,232,249,.35);color:#67E8F9}
+.streak-badge.s5{font-size:16px;padding:5px 18px;background:rgba(249,168,212,.15);border-color:rgba(249,168,212,.35);color:#F9A8D4}
+.streak-badge.streak-pop{animation:streakPop 250ms var(--ease-out) both}
+@keyframes streakPop{0%{transform:scale(.7)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
 .board-area{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:0 0 0;min-height:0;contain:layout}
 .board-outer{width:100%;max-width:100%}
 /* ── 보드 프레임: 1단 레이어 — 가장 깊고 무거운 바깥틀 ── */
@@ -173,8 +186,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   z-index:7;
 }
 .cell.preview-valid::after{background:rgba(99,179,237,.08)}
-.cell.preview-invalid{background:rgba(220,140,130,.12);box-shadow:inset 0 0 0 1px rgba(220,140,130,.28)}
-.cell.preview-invalid::after{background:rgba(220,140,130,.06)}
+.cell.preview-invalid::before{content:'';position:absolute;inset:4px;border-radius:5px;background:rgba(220,38,38,.55);pointer-events:none;z-index:2}
 /* 성공 배치: 단단한 안착 — 짧은 scale snap + opacity pop */
 .cell.spawn-in{animation:cellSettle 90ms cubic-bezier(0.12,0,0,1) both}
 @keyframes cellSettle{
@@ -371,10 +383,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   line-height:1;
   text-shadow:0 0 20px currentColor,0 2px 12px rgba(0,0,0,.9);
 }
-.combo-word.bravo    {color:#fff}        /* 1단계: 흰색 */
-.combo-word.great    {color:#67E8F9}     /* 2단계: 시안 */
-.combo-word.excellent{color:#F5C842}     /* 3단계: 골드 */
-.combo-word.perfect  {color:#F9A8D4}     /* 4단계: 핑크 */
+.combo-word.bravo    {color:#fff;font-size:clamp(36px,9vw,48px)}
+.combo-word.great    {color:#67E8F9;font-size:clamp(42px,11vw,56px)}
+.combo-word.excellent{color:#F5C842;font-size:clamp(48px,13vw,64px)}
+.combo-word.perfect  {color:#FFD700;font-size:clamp(52px,14vw,70px)}
 /* 하단 박스: "2X 연속 성공!" — 시안 배경 박스 */
 .combo-sub{
   background:rgba(99,179,237,.92);
@@ -594,9 +606,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       <span id="phase-badge" style="font-size:16px;line-height:1"></span>
     </div>
     <div class="hud-right">
-      <div class="hud-coins"><span>🪙</span><span class="coin-display" id="hud-coin-val">0</span></div>
-      <button class="hud-btn" id="mute-btn" onclick="toggleMute()" title="음소거">🔊</button>
-      <button class="hud-btn" onclick="confirmQuit()" title="로비">🏠</button>
+      <button class="hud-btn undo-btn" id="undo-btn" onclick="undoPlace()" title="되돌리기"><span style="font-size:14px">↩️</span><span class="undo-label">되돌리기</span><span class="undo-count" id="undo-count">3</span></button>
+      <button class="hud-btn" onclick="confirmQuit()" title="메뉴">🏠</button>
     </div>
   </div>
   <div class="cur-score-wrap">
@@ -613,8 +624,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   <div class="modal-overlay" id="quit-overlay">
     <div class="modal-card" style="text-align:center">
       <div style="font-size:36px;margin-bottom:8px">🥔</div>
-      <div style="font-size:16px;font-weight:800;margin-bottom:6px">게임을 그만둘까요?</div>
-      <div style="font-size:12px;color:var(--text-3);margin-bottom:18px">진행 중인 게임이 사라집니다</div>
+      <div style="font-size:16px;font-weight:800;margin-bottom:6px">일시정지</div>
+      <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">진행 중인 게임이 사라집니다</div>
+      <button class="modal-btn secondary" id="mute-btn" onclick="toggleMute()" style="width:100%;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px"><span id="mute-icon">🔊</span><span id="mute-label">사운드 ON</span></button>
       <div style="display:flex;gap:8px">
         <button class="modal-btn secondary" onclick="cancelQuit()">계속하기</button>
         <button class="modal-btn danger" onclick="doQuit()">그만두기</button>
@@ -806,7 +818,8 @@ return{
   startBGM(){},   // BGM 제거됨
   stopBGM(){},    // BGM 제거됨
   setMute(v){muted=v;if(master)master.gain.value=v?0:.14;
-    document.getElementById('mute-btn').textContent=v?'🔇':'🔊'},
+    const icon=document.getElementById('mute-icon');if(icon)icon.textContent=v?'🔇':'🔊';
+    const lbl=document.getElementById('mute-label');if(lbl)lbl.textContent=v?'사운드 OFF':'사운드 ON'},
   isMuted(){return muted},
 
   sfx:{
@@ -903,7 +916,7 @@ function updateLobby(){
   }
 }
 function startNewGame(){Sound.sfx.uiClick();Sound.resumeCtx();showScreen('s-play');resetGame();Sound.startBGM()}
-function confirmQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay').classList.add('on')}
+function confirmQuit(){Sound.sfx.uiClick();const m=Sound.isMuted();const icon=document.getElementById('mute-icon');if(icon)icon.textContent=m?'🔇':'🔊';const lbl=document.getElementById('mute-label');if(lbl)lbl.textContent=m?'사운드 OFF':'사운드 ON';document.getElementById('quit-overlay').classList.add('on')}
 function cancelQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay').classList.remove('on')}
 function doQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay').classList.remove('on');Sound.stopBGM();endGameToResult()}
 function retryGame(){Sound.sfx.uiClick();showScreen('s-play');resetGame();Sound.startBGM()}
@@ -993,17 +1006,70 @@ function weightedPick(){const phase=getPhase(),table=WEIGHT_OVERRIDE[phase];cons
 function weightedPickSmall(){const pool=SPAWN_POOL.filter(p=>p.size<=3);return pool[Math.floor(Math.random()*pool.length)]}
 
 // ═══ GAME STATE ═══
-const GRID=9,PTS_PER_BLOCK=1,PTS_PER_CLEAR=20,COMBO_BONUS=[0,0,60,150,280,450,660];
-function streakBonus(n){const t=[0,0,30,80,160,280];if(n<t.length)return t[n];return 280+(n-5)*150}
+const GRID=9,PTS_PER_BLOCK=1,PTS_PER_CLEAR=20,COMBO_BONUS=[0,0,80,200,380,600,900];
+function streakBonus(n){const t=[0,0,50,120,240,400];if(n<t.length)return t[n];return 400+(n-5)*200}
 let board=[],pieces=[],selIdx=null,score=0,best=0,streak=0,maxStreak=0,totalClears=0;
 let dragIdx=-1,dragActive=false,prevHover=[],cellEls=[],_boardFilled=0;
 let extendUsed=false,isTouchDrag=false,gameActive=false;
+// ═══ UNDO SYSTEM ═══
+let _undoLeft=3,_undoStack=null;
+function saveUndoState(){
+  _undoStack={
+    board:board.map(r=>[...r]),
+    pieces:pieces.map(p=>({shape:p.shape.map(c=>[...c]),face:p.face,used:p.used})),
+    score,streak,maxStreak,totalClears,_boardFilled,
+    totalTurns,recentClearTurns
+  };
+}
+function undoPlace(){
+  if(!gameActive||_undoLeft<=0||!_undoStack)return;
+  _undoLeft--;
+  // restore state
+  board=_undoStack.board.map(r=>[...r]);
+  pieces=_undoStack.pieces.map(p=>({shape:p.shape.map(c=>[...c]),face:p.face,used:p.used}));
+  score=_undoStack.score;streak=_undoStack.streak;
+  maxStreak=_undoStack.maxStreak;totalClears=_undoStack.totalClears;
+  _boardFilled=_undoStack._boardFilled;
+  totalTurns=_undoStack.totalTurns;
+  recentClearTurns=_undoStack.recentClearTurns;
+  // re-render
+  renderBoard();selIdx=null;renderTray();
+  document.getElementById('score-el').textContent=score.toLocaleString();
+  document.getElementById('best-el').textContent=best.toLocaleString();
+  showStreakUI();updateUndoUI();
+  Sound.sfx.uiClick();haptic('light');
+  _undoStack=null; // 연속 undo 방지
+}
+function updateUndoUI(){
+  const btn=document.getElementById('undo-btn');
+  const cnt=document.getElementById('undo-count');
+  if(btn)btn.disabled=_undoLeft<=0||!_undoStack;
+  if(cnt)cnt.textContent=_undoLeft;
+}
+function resetUndo(){_undoLeft=3;_undoStack=null;updateUndoUI()}
 Storage.get('pw2_best',val=>{best=+(val||0)});
 
 function initBoard(){board=Array.from({length:GRID},()=>Array(GRID).fill(null))}
 function randPiece(){const picked=weightedPick(),cells=normalizeShape(picked.cells);return{shape:cells,face:Math.floor(Math.random()*POTATOES.length),used:false}}
 function randSmallPiece(){const picked=weightedPickSmall(),cells=normalizeShape(picked.cells);return{shape:cells,face:Math.floor(Math.random()*POTATOES.length),used:false}}
-function newSet(){pieces=[randPiece(),randPiece(),randPiece()];selIdx=null;renderTray()}
+// 초반 친화적 블록 풀 — 배치하기 쉽고 라인 완성에 유리한 조각
+const EARLY_FRIENDLY=['Dot3H','Dot3V','Sq2','Dot2H','Dot2V','L_NE','L_NW','L_SE','J_NE','J_NW','J_SE','T_N','T_S','T_E','T_W'];
+const EARLY_FILLER=['Joe','Dot2H','Dot2V','Diag2a','Diag2b','Dot3H','Dot3V'];
+function randEarlyPiece(pool){const p=pool[Math.floor(Math.random()*pool.length)];const db=PIECE_DB.find(d=>d.id===p);if(!db)return randPiece();return{shape:normalizeShape(db.cells),face:Math.floor(Math.random()*POTATOES.length),used:false}}
+function newSet(){
+  if(totalTurns<=3){
+    // 첫 2세트: 라인빌더 1개 보장 + 쉬운 조합
+    const linePiece=randEarlyPiece(EARLY_FRIENDLY);
+    const fill1=randEarlyPiece(EARLY_FILLER);
+    const fill2=randEarlyPiece(EARLY_FILLER);
+    pieces=[linePiece,fill1,fill2];
+    // 셔플
+    for(let i=2;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pieces[i],pieces[j]]=[pieces[j],pieces[i]]}
+  }else{
+    pieces=[randPiece(),randPiece(),randPiece()];
+  }
+  selIdx=null;renderTray();
+}
 function isSectionAlt(r,c){const br=Math.floor(r/3),bc=Math.floor(c/3);const idx=br*3+bc+1;return idx===2||idx===4||idx===6||idx===8}
 function buildBoard(){const el=document.getElementById('board');el.innerHTML='';cellEls=[];for(let r=0;r<GRID;r++){cellEls[r]=[];for(let c=0;c<GRID;c++){const d=document.createElement('div');d.className='cell'+(isSectionAlt(r,c)?' section-alt':'');d.dataset.r=r;d.dataset.c=c;el.appendChild(d);cellEls[r][c]=d}}}
 function renderCell(r,c){const el=cellEls[r][c],v=board[r][c];const alt=isSectionAlt(r,c)?' section-alt':'';if(v!==null){el.className='cell filled'+alt;el.dataset.r=r;el.dataset.c=c;el.innerHTML=`<div class="block-inner"></div><div class="potato-wrap">${POTATOES[v]}</div>`}else{el.className='cell'+alt;el.dataset.r=r;el.dataset.c=c;el.innerHTML=''}}
@@ -1013,7 +1079,7 @@ let _trayPieceIds=[null,null,null];
 function renderTray(){for(let i=0;i<3;i++){const slot=document.getElementById('slot-'+i),p=pieces[i],isUsed=!p||p.used,isSel=selIdx===i;slot.classList.toggle('used',isUsed);slot.classList.toggle('selected',!isUsed&&isSel);if(isUsed){slot.innerHTML='';_trayPieceIds[i]=null;continue}if(_trayPieceIds[i]!==p){slot.innerHTML='';slot.appendChild(makePieceGrid(p.shape,15,p.face));_trayPieceIds[i]=p}}}
 function canPlace(shape,sr,sc){return shape.every(([dr,dc])=>{const r=sr+dr,c=sc+dc;return r>=0&&r<GRID&&c>=0&&c<GRID&&board[r][c]===null})}
 function shapeAnchor(shape,hr,hc){const maxR=Math.max(...shape.map(([r])=>r)),maxC=Math.max(...shape.map(([,c])=>c));return[hr-Math.round(maxR/2),hc-Math.round(maxC/2)]}
-function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!canPlace(p.shape,sr,sc))return false;// ── 블록 착지 ──
+function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!canPlace(p.shape,sr,sc))return false;saveUndoState();// ── 블록 착지 ──
   p.shape.forEach(([dr,dc])=>{
     const r=sr+dr,c=sc+dc;
     board[r][c]=p.face;_boardFilled++;renderCell(r,c);
@@ -1033,6 +1099,10 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
     pts+=COMBO_BONUS[Math.min(numLines,COMBO_BONUS.length-1)]||numLines*60;
     pts+=streakBonus(streak);
     if(numLines>=2)Sound.sfx.multiClear(numLines);else Sound.sfx.clear();
+    // 첫 클리어 보너스 강조
+    if(totalClears===numLines&&totalTurns<=6){
+      pts+=50; // 첫 클리어 보너스
+    }
     if(streak>=2)Sound.sfx.streak(streak);
     // 클리어 햅틱: 강도 3단계
     setTimeout(()=>{
@@ -1040,9 +1110,21 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
       else if(numLines>=2)haptic('medium');  // 2줄+: 중간
       else                haptic('light');   // 1줄: 가볍게
     },55);
-    // 3콤보 이상: 추가 햅틱 pulse
-    if(streak>=3) setTimeout(()=>haptic('medium'),180);
-  }else{streak=0;recentClearTurns=Math.min(3,recentClearTurns+1)}addScore(pts);showStreakUI();renderTray();const sr2=sr+Math.floor(Math.max(...p.shape.map(([r])=>r))/2),sc2=sc+Math.floor(Math.max(...p.shape.map(([,c])=>c))/2);if(sr2>=0&&sr2<GRID&&sc2>=0&&sc2<GRID){const rect=cellEls[sr2][sc2].getBoundingClientRect();const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;spawnLabel('+'+pts,cx,cy,numLines>0?'#F5C842':'rgba(247,250,252,0.7)',numLines>0?22:15);if(numLines>0)triggerClearFX(cx,cy,numLines,cleared.removed)}if(numLines>=2)haptic('success');if(pieces.every(p=>p.used))setTimeout(newSet,180);setTimeout(checkGameOver,300);return true}
+    // 3콤보 이상 또는 3줄+: 추가 햅틱 pulse
+    if(streak>=3||numLines>=3) setTimeout(()=>haptic('medium'),180);
+    if(numLines>=4) setTimeout(()=>haptic('heavy'),300);
+  }else{
+    const hadStreak=streak>=2;
+    streak=0;recentClearTurns=Math.min(3,recentClearTurns+1);
+    if(hadStreak){
+      // 콤보 끊김 — 부드럽게 사라지는 피드백
+      const bar=document.getElementById('streak-bar');
+      bar.style.transition='opacity .4s ease,transform .4s ease';
+      bar.classList.remove('show');
+    }
+  }addScore(pts,numLines);showStreakUI();renderTray();const sr2=sr+Math.floor(Math.max(...p.shape.map(([r])=>r))/2),sc2=sc+Math.floor(Math.max(...p.shape.map(([,c])=>c))/2);if(sr2>=0&&sr2<GRID&&sc2>=0&&sc2<GRID){const rect=cellEls[sr2][sc2].getBoundingClientRect();const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;const labelSize=numLines>=4?32:numLines>=3?28:numLines>=2?24:numLines>=1?20:15;
+const labelColor=numLines>=3?'#FFD700':numLines>=1?'#F5C842':'rgba(247,250,252,0.7)';
+spawnLabel('+'+pts,cx,cy,labelColor,labelSize);if(numLines>0)triggerClearFX(cx,cy,numLines,cleared.removed)}if(numLines>=2)haptic('success');if(pieces.every(p=>p.used))setTimeout(newSet,180);setTimeout(checkGameOver,300);updateUndoUI();return true}
 function clearLines(){const toRemove=[],seen=new Uint8Array(GRID*GRID);function mark(r,c){const idx=r*GRID+c;if(!seen[idx]){seen[idx]=1;toRemove.push([r,c])}}let rowCount=0,colCount=0,boxCount=0;for(let r=0;r<GRID;r++)if(board[r].every(v=>v!==null)){rowCount++;for(let c=0;c<GRID;c++)mark(r,c)}for(let c=0;c<GRID;c++)if(board.every(row=>row[c]!==null)){colCount++;for(let r=0;r<GRID;r++)mark(r,c)}for(let br=0;br<3;br++)for(let bc=0;bc<3;bc++){let full=true;outer:for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)if(board[r][c]===null){full=false;break outer}if(full){boxCount++;for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)mark(r,c)}}if(!toRemove.length)return{lines:0,cells:0};_boardFilled-=toRemove.length;
   // stagger: 좌→우, 위→아래 순서로 슈르르 사라짐
   // 각 셀마다 거리 기반 delay (최대 200ms)
@@ -1068,30 +1150,46 @@ function clearLines(){const toRemove=[],seen=new Uint8Array(GRID*GRID);function 
       el.dataset.r=r;el.dataset.c=c;el.innerHTML='';
     }
   },totalDur);return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:toRemove}}
-function addScore(pts){const prevPhase=getPhase();score+=pts;if(score>best){best=score;Storage.set('pw2_best',best)}const newPhase=getPhase();if(newPhase>prevPhase){haptic('success');updatePhaseBadge(newPhase)}const sv=document.getElementById('score-el');if(pts>0){sv.classList.remove('bump');requestAnimationFrame(()=>sv.classList.add('bump'));setTimeout(()=>sv.classList.remove('bump'),280)}sv.textContent=score.toLocaleString();document.getElementById('best-el').textContent=best.toLocaleString()}
+function addScore(pts,numLines){const prevPhase=getPhase();score+=pts;if(score>best){best=score;Storage.set('pw2_best',best)}const newPhase=getPhase();if(newPhase>prevPhase){haptic('success');updatePhaseBadge(newPhase)}const sv=document.getElementById('score-el');if(pts>0){const cls=numLines>=4?'bump-mega':numLines>=3?'bump-big':'bump';sv.classList.remove('bump','bump-big','bump-mega');requestAnimationFrame(()=>sv.classList.add(cls));const dur=numLines>=4?320:numLines>=3?280:180;setTimeout(()=>sv.classList.remove(cls),dur)}sv.textContent=score.toLocaleString();document.getElementById('best-el').textContent=best.toLocaleString()}
 const PHASE_LABELS=['','🔥','⚡','💀'];function updatePhaseBadge(phase){const badge=document.getElementById('phase-badge');if(badge){badge.textContent=PHASE_LABELS[phase]||'';badge.style.animation='none';requestAnimationFrame(()=>badge.style.animation='scoreBump var(--dur-score) var(--ease-out) both')}}
-function showStreakUI(){const bar=document.getElementById('streak-bar'),el=document.getElementById('streak-el');if(streak>=2){bar.classList.add('show');el.textContent='×'+streak}else bar.classList.remove('show')}
+function showStreakUI(){
+  const bar=document.getElementById('streak-bar'),el=document.getElementById('streak-el');
+  bar.classList.remove('s3','s4','s5');
+  if(streak>=2){
+    bar.classList.add('show');
+    const labels=['','','×'+streak,'🔥 ×'+streak,'⚡ ×'+streak,'💀 ×'+streak];
+    el.textContent=streak>=6?'💀 ×'+streak:labels[Math.min(streak,5)];
+    if(streak>=5)bar.classList.add('s5');
+    else if(streak>=4)bar.classList.add('s4');
+    else if(streak>=3)bar.classList.add('s3');
+    // pop animation
+    bar.classList.remove('streak-pop');
+    requestAnimationFrame(()=>bar.classList.add('streak-pop'));
+    setTimeout(()=>bar.classList.remove('streak-pop'),260);
+  }else{bar.classList.remove('show')}
+}
 // ── 클리어 이펙트 ────────────────────────────────────────────────
 const STAR_CHARS=['★','◆','✦','·'];
 
 function triggerClearFX(cx, cy, numLines, removed){
   if(numLines>=2) showComboBanner(cx, cy, numLines);
 
-  // 보드 진동
+  // 보드 진동 — 줄 수에 따라 강도 차등
   const bf=document.getElementById('board-frame-el')||document.querySelector('.board-frame');
   if(bf){
-    const cls=numLines>=2?'shaking-heavy':'shaking';
+    const cls=numLines>=3?'shaking-heavy':'shaking';
     bf.classList.remove('shaking','shaking-heavy');
     requestAnimationFrame(()=>{
       bf.classList.add(cls);
-      setTimeout(()=>bf.classList.remove(cls),numLines>=2?380:260);
+      setTimeout(()=>bf.classList.remove(cls),numLines>=3?420:numLines>=2?320:220);
     });
   }
 
-  // 흰빛 flash
+  // 흰빛 flash — 줄 수에 따라 크기 차등
+  const flashSize=numLines>=4?220:numLines>=3?180:140;
   const flash=document.createElement('div');
   flash.className='clear-flash';
-  flash.style.cssText=`left:${cx}px;top:${cy}px;`;
+  flash.style.cssText=`left:${cx}px;top:${cy}px;width:${flashSize}px;height:${flashSize}px;`;
   document.body.appendChild(flash);
   setTimeout(()=>flash.remove(),450);
 
@@ -1526,7 +1624,7 @@ function extendDiamond(){if(extendUsed)return;if(!spendCoins(200)){showToast('�
 function extendAd(){if(extendUsed)return;extendUsed=true;Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');const adOv=document.getElementById('ad-overlay'),adTimer=document.getElementById('ad-timer');adOv.classList.add('on');let count=3;adTimer.textContent=count;const iv=setInterval(()=>{count--;if(count<=0){clearInterval(iv);adOv.classList.remove('on');Sound.sfx.extend();haptic('success');pieces=[randSmallPiece(),randSmallPiece(),randSmallPiece()];selIdx=null;renderTray();Sound.startBGM();gameActive=true;setTimeout(checkGameOver,400)}else adTimer.textContent=count},1e3)}
 function showToast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('phone').appendChild(el);setTimeout(()=>el.remove(),2100)}
 
-function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;recentClearTurns=0;totalTurns=0;extendUsed=false;gameActive=true;document.getElementById('score-el').textContent='0';document.getElementById('best-el').textContent=best.toLocaleString();document.getElementById('streak-bar').classList.remove('show');const badge=document.getElementById('phase-badge');if(badge)badge.textContent='';document.getElementById('quit-overlay').classList.remove('on');initBoard();renderBoard();clearPreview();newSet();updateCoinUI()}
+function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;recentClearTurns=0;totalTurns=0;extendUsed=false;gameActive=true;document.getElementById('score-el').textContent='0';document.getElementById('best-el').textContent=best.toLocaleString();document.getElementById('streak-bar').classList.remove('show');const badge=document.getElementById('phase-badge');if(badge)badge.textContent='';document.getElementById('quit-overlay').classList.remove('on');initBoard();renderBoard();clearPreview();newSet();updateCoinUI();resetUndo()}
 
 let eventsAttached=false;
 function start(){buildBoard();initBoard();renderBoard();if(!eventsAttached){attachEvents();eventsAttached=true}Storage.get('pw2_muted',val=>{if(val==='1')Sound.setMute(true)});loadCoins(()=>{loadWeekly(()=>{updateLobby();showScreen('s-lobby')})})}
