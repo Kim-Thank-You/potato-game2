@@ -87,18 +87,18 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 /* Guide Popup */
 .guide-overlay{position:absolute;inset:0;z-index:310;background:rgba(6,8,18,.88);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 200ms var(--ease-io);padding:20px}
 .guide-overlay.on{opacity:1;pointer-events:all}
-.guide-card{background:var(--surface);border:1px solid var(--border2);border-radius:22px;padding:24px 20px;width:min(360px,90vw);max-height:80vh;overflow-y:auto;animation:cardSlide var(--dur-card) var(--ease-out) both;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
-.guide-card h2{font-size:17px;font-weight:900;color:#fbbf24;text-align:center;margin-bottom:16px;letter-spacing:.3px}
-.guide-section{margin-bottom:18px}
-.guide-section-title{font-size:13px;font-weight:800;color:#fff;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08)}
-.guide-section-title.gold{color:#fbbf24}
-.guide-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:12px;line-height:1.6;color:rgba(255,255,255,.75)}
-.guide-row .guide-icon{flex-shrink:0;font-size:14px;line-height:1.5}
+.guide-card{background:linear-gradient(170deg,#111628,var(--surface));border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:28px 22px 22px;width:min(360px,90vw);max-height:80vh;overflow-y:auto;animation:cardSlide var(--dur-card) var(--ease-out) both;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;box-shadow:0 16px 48px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4)}
+.guide-card h2{font-size:18px;font-weight:900;color:#fbbf24;text-align:center;margin-bottom:20px;letter-spacing:.3px;text-shadow:0 2px 8px rgba(251,191,36,.15)}
+.guide-section{margin-bottom:20px}
+.guide-section-title{font-size:12px;font-weight:800;color:rgba(255,255,255,.55);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06);letter-spacing:1px;text-transform:uppercase}
+.guide-section-title.gold{color:rgba(251,191,36,.7)}
+.guide-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;font-size:13px;line-height:1.65;color:rgba(255,255,255,.7)}
+.guide-row .guide-icon{flex-shrink:0;font-size:15px;line-height:1.5;opacity:.85}
 .guide-row .guide-txt{flex:1}
 .guide-row.red .guide-txt{color:#f87171;font-weight:700}
-.guide-row.gold .guide-txt{color:#fbbf24}
-.guide-close-btn{width:100%;padding:14px;border-radius:14px;border:none;background:#ffffff0f;border:1px solid rgba(255,255,255,.08);color:#ffffffa6;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px;transition:transform .08s ease}
-.guide-close-btn:active{transform:scale(.96)}
+.guide-row.gold .guide-txt{color:rgba(251,191,36,.85)}
+.guide-close-btn{width:100%;padding:15px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(175deg,rgba(255,255,255,.06),rgba(255,255,255,.02));color:rgba(255,255,255,.7);font-size:14px;font-weight:800;cursor:pointer;margin-top:14px;transition:transform .08s ease;letter-spacing:.3px}
+.guide-close-btn:active{transform:scale(.96);opacity:.6}
 
 /* Start Button */
 .start-btn{width:100%;padding:16px;border-radius:18px;border:1px solid rgba(255,255,255,.45);background:linear-gradient(180deg,rgba(255,213,79,.95),rgba(251,191,36,.92) 40%,rgba(232,168,23,.95));box-shadow:inset 0 2px 1px rgba(255,255,255,.6),inset 0 -1px 2px rgba(0,0,0,.1),0 4px 14px #fbbf2459,0 1px 3px rgba(255,255,255,.15);color:#1a1000;font-size:18px;font-weight:900;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;cursor:pointer;position:relative;overflow:hidden;transition:transform .08s ease;display:block;letter-spacing:.3px}
@@ -425,41 +425,43 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   z-index:5;
   overflow:visible;
 }
-/* ── 블록: rotate + scale + opacity — 순수 transform만 ── */
+/* ── 블록: 절제된 회전 + 축소 + dissolve ── */
 .cell.clearing .block-inner{
   transform-origin:center center;
-  animation:blockSpin 440ms linear forwards;
+  animation:blockSpin 380ms cubic-bezier(0.22,0.61,0.36,1) forwards;
 }
 @keyframes blockSpin{
   0%  {opacity:1;  transform:rotate(0deg) scale(1)}
-  100%{opacity:0;  transform:rotate(400deg) scale(.06)}
+  60% {opacity:.5; transform:rotate(180deg) scale(.45)}
+  85% {opacity:.15;transform:rotate(260deg) scale(.22)}
+  100%{opacity:0;  transform:rotate(290deg) scale(.18)}
 }
 /* ── 감자: 블록보다 빨리 페이드 ── */
 .cell.clearing .potato-wrap{
   transform-origin:center center;
-  animation:potatoSpin 440ms linear forwards;
+  animation:potatoSpin 380ms cubic-bezier(0.22,0.61,0.36,1) forwards;
 }
 @keyframes potatoSpin{
   0%  {opacity:1;  transform:rotate(0deg) scale(1)}
-  50% {opacity:0;  transform:rotate(200deg) scale(.50)}
-  100%{opacity:0;  transform:rotate(400deg) scale(.06)}
+  40% {opacity:0;  transform:rotate(120deg) scale(.5)}
+  100%{opacity:0;  transform:rotate(290deg) scale(.18)}
 }
 /* ── 백화: ::after가 서서히 흰색으로 덮음 ── */
 .cell.clearing .block-inner::after{
-  animation:blockWhiten 440ms linear forwards !important;
+  animation:blockWhiten 380ms cubic-bezier(0.22,0.61,0.36,1) forwards !important;
   background:transparent !important;
   border-radius:inherit;
 }
 @keyframes blockWhiten{
   0%  {background:rgba(255,252,240,0)}
-  40% {background:rgba(255,252,240,.3)}
-  70% {background:rgba(255,252,240,.7)}
+  35% {background:rgba(255,252,240,.25)}
+  70% {background:rgba(255,252,240,.65)}
   100%{background:rgba(255,252,240,1)}
 }
 /* warm 오버레이 제거 */
 .cell.clearing::before{display:none}
 
-/* 저사양/reduced-motion: 무한반복 애니메이션 비활성화 */
+/* 저사양/reduced-motion: 애니메이션 경량화 */
 @media (prefers-reduced-motion: reduce) {
   .cell.preview-clear { animation: none }
   .cell.preview-clear::after { animation: none }
@@ -469,6 +471,24 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   .cell.clearing .block-inner::after { animation: none !important }
   .combo-banner { animation: none; opacity: 1 }
   .board-frame.shaking, .board-frame.shaking-heavy { animation: none }
+}
+/* JS _lowPerf 감지 시 적용되는 클래스 */
+.low-perf .cell.clearing .block-inner{
+  animation-duration:260ms !important;
+}
+.low-perf .cell.clearing .potato-wrap{
+  animation-duration:260ms !important;
+}
+.low-perf .cell.clearing .block-inner::after{
+  animation-duration:260ms !important;
+}
+.low-perf .board-frame.shaking{animation-duration:.2s !important}
+.low-perf .board-frame.shaking-heavy{animation-duration:.28s !important}
+.low-perf .cell.filled.preview-clear .block-inner{
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.5),inset 0 -2px 0 rgba(0,0,0,.1) !important;
+}
+.low-perf .cell.preview-place{
+  box-shadow:none !important;
 }
 
 </style>
@@ -1038,7 +1058,7 @@ function clearLines(){const toRemove=[],seen=new Uint8Array(GRID*GRID);function 
     const pw=el.querySelector('.potato-wrap');if(pw)pw.style.animationDelay=dStr;
     el.classList.add('clearing');
   });
-  const totalDur=440+120;
+  const totalDur=(window._lowPerf?260:380)+120;
   setTimeout(()=>{
     for(const[r,c]of toRemove){
       board[r][c]=null;
@@ -1147,6 +1167,7 @@ function triggerClearFX(cx, cy, numLines, removed){
       else{
         const avg=samples.reduce((a,b)=>a+b,0)/samples.length;
         window._lowPerf=avg>33;
+        document.body.classList.toggle('low-perf',window._lowPerf);
         timer=setTimeout(measure,INTERVAL);
       }
     }
@@ -1345,10 +1366,10 @@ function _ghostRenderLoop(){
   if(!dragActive){_ghostLoopId=0;return}
   _ghostLoopId=requestAnimationFrame(_ghostRenderLoop);
 
-  // LERP — 즉각 반응, 최소 끈적함
+  // LERP — 자연스러운 추종, 달라붙지 않게
   const dx=_ghostTargetX-_ghostRenderX;
   const dy=_ghostTargetY-_ghostRenderY;
-  const lerp=0.55;
+  const lerp=0.48;
   _ghostRenderX+=dx*lerp;
   _ghostRenderY+=dy*lerp;
   if(Math.abs(dx)<0.5)_ghostRenderX=_ghostTargetX;
@@ -1501,7 +1522,7 @@ function showGameOver(){gameActive=false;Sound.sfx.gameOver();Sound.stopBGM();ha
 function skipExtend(){Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');showResultScreen()}
 
 // ═══ EXTEND ═══
-function extendDiamond(){if(extendUsed)return;if(!spendCoins(200)){showToast('코인이 부족합니다!');return}extendUsed=true;Sound.sfx.extend();haptic('success');document.getElementById('gameover-overlay').classList.remove('on');let bestRow=-1,bestCount=-1;for(let r=0;r<GRID;r++){const count=board[r].filter(v=>v!==null).length;if(count>bestCount){bestCount=count;bestRow=r}}if(bestRow>=0){for(let c=0;c<GRID;c++)if(board[bestRow][c]!==null)cellEls[bestRow][c].classList.add('clearing');setTimeout(()=>{for(let c=0;c<GRID;c++){board[bestRow][c]=null;const el=cellEls[bestRow][c];el.className='cell'+(isSectionAlt(bestRow,c)?' section-alt':'');el.dataset.r=bestRow;el.dataset.c=c;el.innerHTML=''}if(pieces.every(p=>p.used))newSet();Sound.startBGM();gameActive=true;setTimeout(checkGameOver,400)},560)}}
+function extendDiamond(){if(extendUsed)return;if(!spendCoins(200)){showToast('코인이 부족합니다!');return}extendUsed=true;Sound.sfx.extend();haptic('success');document.getElementById('gameover-overlay').classList.remove('on');let bestRow=-1,bestCount=-1;for(let r=0;r<GRID;r++){const count=board[r].filter(v=>v!==null).length;if(count>bestCount){bestCount=count;bestRow=r}}if(bestRow>=0){for(let c=0;c<GRID;c++)if(board[bestRow][c]!==null)cellEls[bestRow][c].classList.add('clearing');setTimeout(()=>{for(let c=0;c<GRID;c++){board[bestRow][c]=null;const el=cellEls[bestRow][c];el.className='cell'+(isSectionAlt(bestRow,c)?' section-alt':'');el.dataset.r=bestRow;el.dataset.c=c;el.innerHTML=''}if(pieces.every(p=>p.used))newSet();Sound.startBGM();gameActive=true;setTimeout(checkGameOver,400)},500)}}
 function extendAd(){if(extendUsed)return;extendUsed=true;Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');const adOv=document.getElementById('ad-overlay'),adTimer=document.getElementById('ad-timer');adOv.classList.add('on');let count=3;adTimer.textContent=count;const iv=setInterval(()=>{count--;if(count<=0){clearInterval(iv);adOv.classList.remove('on');Sound.sfx.extend();haptic('success');pieces=[randSmallPiece(),randSmallPiece(),randSmallPiece()];selIdx=null;renderTray();Sound.startBGM();gameActive=true;setTimeout(checkGameOver,400)}else adTimer.textContent=count},1e3)}
 function showToast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('phone').appendChild(el);setTimeout(()=>el.remove(),2100)}
 
