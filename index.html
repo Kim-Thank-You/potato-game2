@@ -1,4 +1,20 @@
 <!DOCTYPE html>
+<!--
+  감자팡팡 (Potato Woodoku) v5 — 2026-04-17
+  [초기 통합 정비]
+  - BGM 완전 제거 (startBGM/stopBGM 호출 포함)
+  - 애니메이션 금기 규칙 위반 3건 저사양 모드에서 비활성화
+  - _adBoostLeft 날짜 기반 영속화 (pw2_boost_YYYY-MM-DD)
+  - extendAd interval 취소 경로 추가
+  - P1-A 하드웨어 힌트 즉시 감지 실제 구현
+  - P1-C iOS 드래그 가드 실제 구현
+  - 데드코드 정리 (getRankReward, COMBO_BONUS 폴백)
+  - pw2_muted 타입 일관화 ('1' 또는 null)
+  [QA 라운드 추가 수정]
+  - P0-HIGH-1 결과 화면 "⚠ 미검증 점수" 문구 제거 (버프 적용 시에만 표시)
+  - P0-HIGH-2 PERFECT 콤보 배너 분기 버그 수정 (levels[5] 추가)
+  - P0-MED-1 드래그 실패 후 합성 click으로 슬롯 자동 재선택 방지
+-->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -31,12 +47,12 @@
   --ease-io:cubic-bezier(0.4,0,0.2,1);
   --ease-press:cubic-bezier(0.2,0.8,0.2,1);
 }
-:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px)}
+:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px)}
 *,*:before,*:after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 html,body{width:100%;height:100%;overscroll-behavior:none;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
 body{font-family:'Plus Jakarta Sans',-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text-1);display:flex;align-items:center;justify-content:center}
 body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(99,179,237,0.05) 0%,transparent 65%)}
-.phone{position:fixed;inset:0;width:100%;height:100dvh;height:var(--tg-viewport-stable-height,100dvh);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);z-index:1}
+.phone{position:fixed;inset:0;width:100%;height:100dvh;height:var(--tg-viewport-stable-height,100dvh);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);z-index:1}
 @media(min-width:600px){body{background:#060810}.phone{position:relative;inset:auto;width:390px;height:min(820px,95dvh);border-radius:40px;border:1px solid var(--border2);box-shadow:0 0 0 1px rgba(0,0,0,.5),0 32px 80px rgba(0,0,0,.8)}}
 
 /* ═══ SCREENS ═══ */
@@ -165,7 +181,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 @keyframes streakPop{0%{transform:scale(.7)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
 .goal-hint{font-size:11px;font-weight:700;color:rgba(251,191,36,.5);letter-spacing:.3px;margin-top:2px;height:16px;transition:opacity .3s ease}
 .goal-hint.achieved{color:rgba(74,222,128,.7)}
-.board-area{flex:1;display:flex;align-items:center;justify-content:center;padding:0;min-height:0;contain:layout;overflow:hidden}
+.board-area{flex:1;display:flex;align-items:center;justify-content:center;padding:0 clamp(4px,1.2vw,8px);min-height:0;contain:layout;overflow:hidden}
 .board-outer{width:var(--board-size,100%);max-width:var(--board-size,100%)}
 /* ── 보드 프레임: 1단 레이어 — 가장 깊고 무거운 바깥틀 ── */
 .board-frame{background:transparent;border-radius:12px;padding:0;border:none;box-shadow:none;position:relative}
@@ -206,9 +222,22 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .cell.filled.preview-clear .block-inner::after{
   background:rgba(255,252,240,.50) !important;
 }
-/* 빈 셀은 미세한 링만 */
+/* 빈 셀 클리어 예상 — 블록 크기만큼만 (셀 테두리 보존) */
 .cell.preview-clear:not(.filled){
-  box-shadow:inset 0 0 0 1px rgba(255,240,180,.12);
+  background:var(--cell-empty) !important;
+  box-shadow:inset 0 4px 10px rgba(0,0,0,.65),inset 4px 0 8px rgba(0,0,0,.4) !important;
+}
+.cell.section-alt.preview-clear:not(.filled){
+  background:var(--cell-alt) !important;
+}
+.cell.preview-clear:not(.filled)::after{
+  content:'';
+  position:absolute;
+  inset:5px;
+  border-radius:2px;
+  background:rgba(255,210,40,0.75);
+  pointer-events:none;
+  z-index:4;
 }
 /* 착수 위치 표시 — 화이트 배경 */
 .cell.preview-place{
@@ -219,19 +248,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .cell.preview-valid::after{background:rgba(99,179,237,.08)}
 .cell.preview-invalid::before{content:'';position:absolute;inset:4px;border-radius:5px;background:rgba(220,38,38,.55);pointer-events:none;z-index:2}
 /* 성공 배치: 단단한 안착 — 짧은 scale snap + opacity pop */
-.cell.spawn-in{animation:cellSettle 90ms cubic-bezier(0.12,0,0,1) both}
-@keyframes cellSettle{
-  0%  {opacity:0;transform:scale(.88)}
-  45% {opacity:1;transform:scale(1.025)}
-  100%{opacity:1;transform:scale(1)}
-}
-/* 착지 하이라이트: 블록 위에 순간 warm glow */
-.cell.landing .block-inner{animation:blockLand 140ms ease-out both}
-@keyframes blockLand{
-  0%  {box-shadow:inset 0 2px 0 rgba(255,255,255,.28),inset 0 -2px 0 rgba(0,0,0,.30),inset 0 0 0 1px rgba(60,34,12,.15)}
-  40% {box-shadow:inset 0 2px 0 rgba(255,255,255,.38),inset 0 -2px 0 rgba(0,0,0,.30),inset 0 0 0 1px rgba(60,34,12,.15)}
-  100%{box-shadow:inset 0 2px 0 rgba(255,255,255,.28),inset 0 -2px 0 rgba(0,0,0,.30),inset 0 0 0 1px rgba(60,34,12,.15)}
-}
+/* 착지 애니메이션 제거됨 — 블록이 그냥 자연스럽게 나타남 */
 /* cellFade replaced by cellGlow */
 
 .cell.shake{animation:cellNudge 70ms var(--ease-press) both}
@@ -501,10 +518,16 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   z-index:5;
   overflow:visible;
 }
-/* ── 블록: 절제된 회전 + 축소 + dissolve ── */
+/* ── 블록: 절제된 회전 + 축소 + dissolve ──
+   will-change: clearing 클래스 붙는 순간 GPU 레이어 승격 (첫 프레임 드롭 방지)
+   contain:paint: 회전/축소가 인접 셀로 paint 번지는 것 차단
+   backface-visibility:hidden: GPU 렌더링 힌트 (안드로이드 크롬 최적화) */
 .cell.clearing .block-inner{
   transform-origin:center center;
-  animation:blockSpin 380ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  animation:blockSpin 750ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  will-change:transform,opacity;
+  contain:paint;
+  backface-visibility:hidden;
 }
 @keyframes blockSpin{
   0%  {opacity:1;  transform:rotate(0deg) scale(1)}
@@ -515,24 +538,27 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 /* ── 감자: 블록보다 빨리 페이드 ── */
 .cell.clearing .potato-wrap{
   transform-origin:center center;
-  animation:potatoSpin 380ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  animation:potatoSpin 750ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  will-change:transform,opacity;
+  backface-visibility:hidden;
 }
 @keyframes potatoSpin{
   0%  {opacity:1;  transform:rotate(0deg) scale(1)}
   40% {opacity:0;  transform:rotate(120deg) scale(.5)}
   100%{opacity:0;  transform:rotate(290deg) scale(.18)}
 }
-/* ── 백화: ::after가 서서히 흰색으로 덮음 ── */
+/* ── 백화: 미리 흰 배경 깔아두고 opacity만 페이드인 ──
+   기존: background rgba() 변화 (매 프레임 paint 발생 — 저사양 렉 원인 1순위)
+   개선: background 고정 + opacity 애니메이션 (GPU 합성만, paint 0회) */
 .cell.clearing .block-inner::after{
-  animation:blockWhiten 380ms cubic-bezier(0.22,0.61,0.36,1) forwards !important;
-  background:transparent !important;
+  animation:blockWhiten 750ms cubic-bezier(0.22,0.61,0.36,1) forwards !important;
+  background:rgba(255,252,240,1) !important;
   border-radius:inherit;
+  opacity:0;
 }
 @keyframes blockWhiten{
-  0%  {background:rgba(255,252,240,0)}
-  35% {background:rgba(255,252,240,.25)}
-  70% {background:rgba(255,252,240,.65)}
-  100%{background:rgba(255,252,240,1)}
+  0%  {opacity:0}
+  100%{opacity:1}
 }
 /* warm 오버레이 제거 */
 .cell.clearing::before{display:none}
@@ -550,13 +576,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 }
 /* JS _lowPerf 감지 시 적용되는 클래스 */
 .low-perf .cell.clearing .block-inner{
-  animation-duration:260ms !important;
+  animation-duration:500ms !important;
 }
 .low-perf .cell.clearing .potato-wrap{
-  animation-duration:260ms !important;
+  animation-duration:500ms !important;
 }
 .low-perf .cell.clearing .block-inner::after{
-  animation-duration:260ms !important;
+  animation-duration:500ms !important;
 }
 .low-perf .board-frame.shaking{animation-duration:.2s !important}
 .low-perf .board-frame.shaking-heavy{animation-duration:.28s !important}
@@ -566,6 +592,16 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .low-perf .cell.preview-place{
   box-shadow:none !important;
 }
+/* ── 저사양 모드: 게임 외부 화면의 고비용 효과 비활성화 ───────── */
+/* backdrop-filter blur는 GPU 비용이 높아 저사양에서는 불투명 fallback */
+.low-perf .result-weekly-card{
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
+  background:linear-gradient(165deg,#3b2f63,#2e2550) !important;
+}
+/* box-shadow 값 보간 애니메이션은 저사양에서 중단 (정적 상태 유지) */
+.low-perf .start-btn{animation:none !important}
+.low-perf .undo-btn.flash{animation:none !important}
 
 </style>
 </head>
@@ -742,7 +778,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
           <div class="res-final" id="r-final">0</div>
           <div class="res-unit">점</div>
         </div>
-        <div class="res-sub" id="r-base">⚠ 미검증 점수 — 서버 확인 전</div>
+        <div class="res-sub" id="r-base" style="display:none"></div>
       </div>
 
       <!-- 주간 기록 카드 -->
@@ -822,23 +858,73 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 })();
 function fixVH(){const tg=window.Telegram?.WebApp;const h=tg?.viewportStableHeight||tg?.viewportHeight||window.innerHeight;document.documentElement.style.setProperty('--tg-viewport-stable-height',h+'px');fitBoard()}
 function fitBoard(){
-  // 가용 높이에서 HUD+점수+트레이+여백을 빼고 보드 최대 크기 결정
-  const vh=window.Telegram?.WebApp?.viewportStableHeight||window.innerHeight;
-  const vw=window.innerWidth;
-  const hudH=52;   // hud + padding
-  const scoreH=72; // score + streak + goal hint
-  const trayH=130; // tray + padding
-  const safeTop=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sat')||'0')||0;
-  const safeBot=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab')||'0')||0;
-  const available=vh-hudH-scoreH-trayH-safeTop-safeBot-8;
-  // 보드는 정사각형 → 가로/세로 중 작은 쪽에 맞춤
-  const maxSize=Math.min(available,vw);
-  const size=Math.max(200,Math.floor(maxSize));
+  // ── 보드 최대 크기 계산 ──────────────────────────────────────
+  // 전략: 가로는 계산, 세로는 실측 (flex:1이 이미 남은 공간 자동 계산)
+  // 목표: 어떤 기기에서도 9x9 셀이 잘리지 않음 (절대 명령)
+
+  const phone=document.querySelector('.phone');
+  const boardArea=document.querySelector('.board-area');
+  const hud=document.querySelector('.hud');
+  const scoreWrap=document.querySelector('.cur-score-wrap');
+  const tray=document.querySelector('.tray');
+
+  // 안전 폴백: 초기 렌더 전이라 DOM이 없으면 conservative 계산
+  if(!phone||!boardArea){
+    const vw=window.innerWidth,vh=window.innerHeight;
+    const fallback=Math.max(200,Math.min(vw-32,vh-300));
+    document.documentElement.style.setProperty('--board-size',fallback+'px');
+    return;
+  }
+
+  // ── 가로 계산 ──
+  // .phone 실제 가용 폭 (padding 이미 반영된 content box)
+  const phoneW=phone.clientWidth;
+  // .board-area 좌우 padding 읽기 (현재 8px*2=16px이지만 변경돼도 자동 반영)
+  const baStyle=getComputedStyle(boardArea);
+  const baPadL=parseFloat(baStyle.paddingLeft)||0;
+  const baPadR=parseFloat(baStyle.paddingRight)||0;
+  const availableW=phoneW-baPadL-baPadR;
+
+  // ── 세로 계산 ──
+  // 방법 1: board-area 실측 (이미 flex:1로 할당된 공간)
+  // 방법 2: phone 전체 - hud - scoreWrap - tray 계산
+  // 두 값 중 작은 쪽 사용 (이중 검증)
+  const phoneH=phone.clientHeight;
+  const hudH=hud?hud.offsetHeight:0;
+  const scoreH=scoreWrap?scoreWrap.offsetHeight:0;
+  const trayH=tray?tray.offsetHeight:0;
+  const calcH=phoneH-hudH-scoreH-trayH-8; // 8px 추가 안전여백
+  const measuredH=boardArea.clientHeight;
+  // 둘 중 더 작은 값 (더 안전한 값)
+  const availableH=measuredH>0?Math.min(calcH,measuredH):calcH;
+
+  // ── 최종 크기 결정 (가로/세로 중 작은 쪽) ──
+  const maxSize=Math.min(availableW,availableH);
+  // 최소 200, 최대 phoneW-16 (절대 phone 밖으로 못 나가도록)
+  const size=Math.max(200,Math.min(Math.floor(maxSize),phoneW-16));
   document.documentElement.style.setProperty('--board-size',size+'px');
+
+  // ── 이중 검증: 적용 후 실측해서 초과 시 재조정 ──
+  requestAnimationFrame(()=>{
+    const boardOuter=document.querySelector('.board-outer');
+    if(!boardOuter)return;
+    const rect=boardOuter.getBoundingClientRect();
+    const phoneRect=phone.getBoundingClientRect();
+    // 보드가 phone의 좌우 경계를 넘으면 강제 축소
+    const overflowL=phoneRect.left-rect.left;
+    const overflowR=rect.right-phoneRect.right;
+    const overflow=Math.max(overflowL,overflowR,0);
+    if(overflow>0){
+      const adjusted=size-Math.ceil(overflow*2)-4;
+      document.documentElement.style.setProperty('--board-size',Math.max(200,adjusted)+'px');
+    }
+  });
 }
 fixVH();
 window.addEventListener('resize',()=>{fixVH();_strideW=0;_strideH=0});
 window.addEventListener('orientationchange',()=>{setTimeout(()=>{fixVH();_strideW=0;_strideH=0},200)});
+// 웹폰트 로딩 완료 후 재계산 (Plus Jakarta Sans 스와핑 대응)
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>{fitBoard();_strideW=0;_strideH=0}).catch(()=>{})}
 
 function haptic(type){
   // Telegram WebApp HapticFeedback — iOS/Android 무음 무관 작동
@@ -865,7 +951,11 @@ function haptic(type){
   }catch(e){}
 }
 
-const Storage={get(key,cb){try{const cs=window.Telegram?.WebApp?.CloudStorage;if(cs){cs.getItem(key,(err,val)=>cb(err?null:val));return}}catch(e){}cb(localStorage.getItem(key))},set(key,val){try{const cs=window.Telegram?.WebApp?.CloudStorage;if(cs){cs.setItem(key,String(val));return}}catch(e){}localStorage.setItem(key,String(val))}};
+const Storage={
+  get(key,cb){try{const cs=window.Telegram?.WebApp?.CloudStorage;if(cs){cs.getItem(key,(err,val)=>cb(err?null:val));return}}catch(e){}cb(localStorage.getItem(key))},
+  set(key,val){try{const cs=window.Telegram?.WebApp?.CloudStorage;if(cs){cs.setItem(key,String(val));return}}catch(e){}localStorage.setItem(key,String(val))},
+  remove(key){try{const cs=window.Telegram?.WebApp?.CloudStorage;if(cs){cs.removeItem(key);return}}catch(e){}localStorage.removeItem(key)}
+};
 
 // ═══ SOUND ENGINE — 숲속 힐링 ═══
 const Sound=(()=>{
@@ -929,8 +1019,7 @@ function chime(freq,dest,vol,time,dur){
 
 return{
   resumeCtx(){resume()},
-  startBGM(){},   // BGM 제거됨
-  stopBGM(){},    // BGM 제거됨
+  /* BGM 완전 제거됨 — Sound.startBGM/stopBGM 호출 전체 삭제 (2026-04-17) */
   setMute(v){muted=v;if(master)master.gain.value=v?0:.14;
     const icon=document.getElementById('mute-icon');if(icon)icon.textContent=v?'🔇':'🔊';
     const lbl=document.getElementById('mute-label');if(lbl)lbl.textContent=v?'사운드 OFF':'사운드 ON'},
@@ -985,7 +1074,16 @@ return{
   }
 }
 })();
-function toggleMute(){const next=!Sound.isMuted();Sound.setMute(next);Storage.set('pw2_muted',next?'1':'0')}
+function toggleMute(){
+  const next=!Sound.isMuted();
+  Sound.setMute(next);
+  // 음소거 ON일 때만 '1' 저장, OFF면 키 제거 (pw2_muted 타입 = '1' 또는 null)
+  if(next)Storage.set('pw2_muted','1');
+  else Storage.remove('pw2_muted');
+  // 모달의 라벨도 즉시 갱신 (confirmQuit에서 한 번 세팅하지만 토글 중 변경 시 반영)
+  const icon=document.getElementById('mute-icon');if(icon)icon.textContent=next?'🔇':'🔊';
+  const lbl=document.getElementById('mute-label');if(lbl)lbl.textContent=next?'사운드 OFF':'사운드 ON';
+}
 
 // ═══ COIN SYSTEM ═══
 let coinBalance=0;
@@ -1063,14 +1161,15 @@ function closeMilestonePopup(){
   const ov=document.getElementById('milestone-overlay');
   ov.classList.remove('on');
 }
-function getRankReward(pct){return 0}
-function getTop10Cut(){return 8000}// simulated
+// TODO(server): 실서비스 전 /api/leaderboard/cutoff API로 교체 필요 (backend-requirements.md §2.2)
+//                현재는 고정값 8000 시뮬레이션
+function getTop10Cut(){return 8000}
 let weeklyBest=0;
 function loadWeekly(cb){Storage.get('pw2_wk_'+getWeekKey(),val=>{weeklyBest=+(val||0);if(cb)cb()})}
 function saveWeekly(sc){if(sc>weeklyBest){weeklyBest=sc;Storage.set('pw2_wk_'+getWeekKey(),weeklyBest)}}
 
 // ═══ SCREEN MANAGEMENT ═══
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='s-play')requestAnimationFrame(()=>fitBoard())}
 function updateLobby(){
   document.getElementById('best-el').textContent=best.toLocaleString();
   updateCoinUI();
@@ -1110,13 +1209,15 @@ function updateLobby(){
     tierGoal.textContent='🔥 첫 번째 도전을 시작하세요!';
     tierSub.textContent='9×9 보드에 블록을 배치하여 행·열·3×3 박스를 채워 클리어!';
   }
+  // 버프 카운터 UI 동기화 (loadAdBoost 이후 반영)
+  if(_scoreMultiplier===1)resetAdDouble();
 }
-function startNewGame(){Sound.sfx.uiClick();Sound.resumeCtx();showScreen('s-play');resetGame();Sound.startBGM()}
+function startNewGame(){Sound.sfx.uiClick();Sound.resumeCtx();showScreen('s-play');resetGame()}
 function confirmQuit(){Sound.sfx.uiClick();const m=Sound.isMuted();const icon=document.getElementById('mute-icon');if(icon)icon.textContent=m?'🔇':'🔊';const lbl=document.getElementById('mute-label');if(lbl)lbl.textContent=m?'사운드 OFF':'사운드 ON';document.getElementById('quit-overlay').classList.add('on')}
 function cancelQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay').classList.remove('on')}
-function doQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay').classList.remove('on');Sound.stopBGM();endGameToResult()}
-function retryGame(){Sound.sfx.uiClick();_scoreMultiplier=1;showScreen('s-play');resetGame();Sound.startBGM()}
-function goToLobby(){Sound.sfx.uiClick();Sound.stopBGM();resetAdDouble();updateLobby();showScreen('s-lobby')}
+function doQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay').classList.remove('on');endGameToResult()}
+function retryGame(){Sound.sfx.uiClick();showScreen('s-play');resetGame()}
+function goToLobby(){Sound.sfx.uiClick();cancelExtendAd();resetAdDouble();updateLobby();showScreen('s-lobby')}
 function openGuide(){document.getElementById('guide-overlay').classList.add('on')}
 function closeGuide(){document.getElementById('guide-overlay').classList.remove('on')}
 
@@ -1138,12 +1239,32 @@ function showResultScreen(){
   const buffEl=document.getElementById('r-buff');
   if(_scoreMultiplier>1){buffEl.style.display='';buffEl.textContent='광고 2배 버프 적용'}else{buffEl.style.display='none'}
   // Score card
-  document.getElementById('r-final').textContent=finalScore.toLocaleString();
+  // 점수 카운트업 애니메이션
+  const finalEl=document.getElementById('r-final');
+  finalEl.textContent='0';
+  const dur=Math.min(1800, Math.max(800, finalScore/3));
+  const start=performance.now();
+  function countUp(now){
+    // P1-1 fix: 결과 화면을 이탈했거나 요소가 사라지면 루프 즉시 중단
+    const screen=document.getElementById('s-result');
+    if(!finalEl.isConnected||!screen||!screen.classList.contains('active'))return;
+    const elapsed=now-start;
+    const prog=Math.min(elapsed/dur,1);
+    // ease-out 커브
+    const eased=1-Math.pow(1-prog,3);
+    finalEl.textContent=Math.floor(finalScore*eased).toLocaleString();
+    if(prog<1)requestAnimationFrame(countUp);
+    else finalEl.textContent=finalScore.toLocaleString();
+  }
+  requestAnimationFrame(countUp);
   const baseEl=document.getElementById('r-base');
   if(_scoreMultiplier>1){
+    baseEl.style.display='';
     baseEl.textContent='기본 '+score.toLocaleString()+' × '+_scoreMultiplier+'배 적용';
   }else{
-    baseEl.textContent='⚠ 미검증 점수 — 서버 확인 전';
+    // 버프 없을 때는 sub 문구 숨김 (서버 연동 후 "순위 갱신 완료" 등으로 활용 가능)
+    baseEl.style.display='none';
+    baseEl.textContent='';
   }
   // Weekly card
   document.getElementById('w-best').textContent=weeklyBest>0?weeklyBest.toLocaleString()+'점':'—';
@@ -1176,6 +1297,22 @@ function showResultScreen(){
 // ═══ 광고 점수 2배 버프 (로비) ═══
 let _scoreMultiplier=1;
 let _adBoostLeft=5;
+// _adBoostLeft 영속화: YYYY-MM-DD 키로 저장, 날짜 바뀌면 자동으로 5 리셋
+// (서버 도입 전까지의 임시 방편 — 로컬 시간대 기준이라 VPN/시간조작 시 우회 가능)
+function getAdBoostKey(){
+  const d=new Date();
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return 'pw2_boost_'+y+'-'+m+'-'+day;
+}
+function loadAdBoost(cb){
+  Storage.get(getAdBoostKey(),val=>{
+    // val이 null/undefined/''이면 새 날 → 5로 초기화
+    if(val===null||val===undefined||val==='')_adBoostLeft=5;
+    else _adBoostLeft=Math.max(0,Math.min(5,+val));
+    if(cb)cb();
+  });
+}
+function saveAdBoost(){Storage.set(getAdBoostKey(),_adBoostLeft)}
 function adDoubleScore(){
   if(_scoreMultiplier>1||_adBoostLeft<=0)return;
   const card=document.getElementById('ad-double-btn');
@@ -1184,10 +1321,11 @@ function adDoubleScore(){
   const hint=document.getElementById('ad-hint');
   card.querySelector('.ad-title').textContent='광고 로딩 중...';
   sub.textContent='잠시만 기다려주세요';
-  // 광고 시뮬레이션 (실제 광고 SDK 연동 시 교체)
+  // 광고 시뮬레이션 (실제 광고 SDK 연동 시 /api/ad/verify 로 교체)
   setTimeout(()=>{
     _scoreMultiplier=2;
     _adBoostLeft--;
+    saveAdBoost();
     tgl.classList.add('on');
     card.querySelector('.ad-title').textContent='광고 보고 이번 판 점수 2배!';
     sub.textContent='남은 부스터: '+_adBoostLeft+'/5회';
@@ -1240,6 +1378,8 @@ let dragIdx=-1,dragActive=false,prevHover=[],cellEls=[],_boardFilled=0;
 let extendUsed=false,isTouchDrag=false,gameActive=false;
 // ═══ UNDO SYSTEM ═══
 let _undoLeft=3,_undoStack=null;
+// P0-3 fix: 진행 중인 clearing 애니메이션 타임아웃 추적 (undo 시 취소하기 위함)
+const _activeClearTimers=new Set();
 function saveUndoState(){
   _undoStack={
     board:board.map(r=>[...r]),
@@ -1251,6 +1391,15 @@ function saveUndoState(){
 function undoPlace(){
   if(!gameActive||_undoLeft<=0||!_undoStack)return;
   _undoLeft--;
+  // P0-3 fix: 진행 중인 clearing 애니메이션 타임아웃 모두 취소
+  //           → 750ms 뒤에 el.className을 덮어써서 복원된 블록이 사라지는 버그 방지
+  _activeClearTimers.forEach(id=>clearTimeout(id));
+  _activeClearTimers.clear();
+  // 모든 셀에서 clearing 관련 클래스/인라인 스타일 강제 제거
+  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){
+    const el=cellEls[r][c];if(!el)continue;
+    el.classList.remove('clearing','landing','shake','preview-valid','preview-invalid','preview-clear','preview-place');
+  }
   // restore state
   board=_undoStack.board.map(r=>[...r]);
   pieces=_undoStack.pieces.map(p=>({shape:p.shape.map(c=>[...c]),face:p.face,used:p.used}));
@@ -1259,7 +1408,7 @@ function undoPlace(){
   _boardFilled=_undoStack._boardFilled;
   totalTurns=_undoStack.totalTurns;
   recentClearTurns=_undoStack.recentClearTurns;
-  // re-render
+  // re-render (clearing 클래스 제거 후여서 블록 완전히 복원됨)
   renderBoard();selIdx=null;renderTray();
   document.getElementById('score-el').textContent=score.toLocaleString();
   document.getElementById('best-el').textContent=best.toLocaleString();
@@ -1324,8 +1473,7 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
     const r=sr+dr,c=sc+dc;
     board[r][c]=p.face;_boardFilled++;renderCell(r,c);
     const el=cellEls[r][c];
-    el.classList.add('spawn-in','landing');
-    setTimeout(()=>{el.classList.remove('spawn-in');el.classList.remove('landing')},160);
+    // 착지 애니메이션 제거됨 (블록은 renderCell에서 즉시 그려짐)
   });
   // 착지 햅틱 — 블록 크기에 따라 강도 조절
   haptic(p.shape.length>=5?'medium':'light');
@@ -1336,7 +1484,8 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
     streak++;maxStreak=Math.max(maxStreak,streak);totalClears+=numLines;
     recentClearTurns=0;
     pts+=numCells*PTS_PER_CLEAR;
-    pts+=COMBO_BONUS[Math.min(numLines,COMBO_BONUS.length-1)]||numLines*60;
+    // COMBO_BONUS[6]=900이 최대치. 7라인 이상도 900으로 clamp (현재 룰).
+    pts+=COMBO_BONUS[Math.min(numLines,COMBO_BONUS.length-1)];
     pts+=streakBonus(streak);
     if(numLines>=2)Sound.sfx.multiClear(numLines);else Sound.sfx.clear();
     // 첫 클리어 보너스 강조
@@ -1368,28 +1517,22 @@ spawnLabel('+'+pts,cx,cy,labelColor,labelSize);if(numLines>0)triggerClearFX(cx,c
 function clearLines(){const toRemove=[],seen=new Uint8Array(GRID*GRID);function mark(r,c){const idx=r*GRID+c;if(!seen[idx]){seen[idx]=1;toRemove.push([r,c])}}let rowCount=0,colCount=0,boxCount=0;for(let r=0;r<GRID;r++)if(board[r].every(v=>v!==null)){rowCount++;for(let c=0;c<GRID;c++)mark(r,c)}for(let c=0;c<GRID;c++)if(board.every(row=>row[c]!==null)){colCount++;for(let r=0;r<GRID;r++)mark(r,c)}for(let br=0;br<3;br++)for(let bc=0;bc<3;bc++){let full=true;outer:for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)if(board[r][c]===null){full=false;break outer}if(full){boxCount++;for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)mark(r,c)}}if(!toRemove.length)return{lines:0,cells:0};_boardFilled-=toRemove.length;
   // ★ 핵심: board 데이터를 즉시 비움 → checkGameOver가 언제 실행되든 정확한 판정
   for(const[r,c]of toRemove){board[r][c]=null}
-  // stagger: 좌→우, 위→아래 순서로 슈르르 사라짐
-  const origin=toRemove[0];
-  const maxDist=Math.max(...toRemove.map(([r,c])=>Math.abs(r-origin[0])+Math.abs(c-origin[1])));
+  // stagger 제거: 모든 셀 동시 트리거 (GPU 레이어 일괄 생성이 더 효율적)
   toRemove.forEach(([r,c])=>{
-    const dist=Math.abs(r-origin[0])+Math.abs(c-origin[1]);
-    const delay=maxDist>0?(dist/maxDist)*120:0;
     const el=cellEls[r][c];
-    const dStr=delay+'ms';
-    el.style.animationDelay=dStr;
-    const bi=el.querySelector('.block-inner');if(bi)bi.style.animationDelay=dStr;
-    const pw=el.querySelector('.potato-wrap');if(pw)pw.style.animationDelay=dStr;
     el.classList.add('clearing');
   });
-  const totalDur=(window._lowPerf?260:380)+120;
-  setTimeout(()=>{
+  const totalDur=(window._lowPerf?500:750)+30;
+  const _timerId=setTimeout(()=>{
+    _activeClearTimers.delete(_timerId);
     for(const[r,c]of toRemove){
       const el=cellEls[r][c];
-      el.style.animationDelay='';
       el.className='cell'+(isSectionAlt(r,c)?' section-alt':'');
       el.dataset.r=r;el.dataset.c=c;el.innerHTML='';
     }
-  },totalDur);return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:toRemove}}
+  },totalDur);
+  _activeClearTimers.add(_timerId);
+  return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:toRemove}}
 function addScore(pts,numLines){const prevPhase=getPhase();score+=pts;if(score>best){best=score;Storage.set('pw2_best',best)}const newPhase=getPhase();if(newPhase>prevPhase){haptic('success');updatePhaseBadge(newPhase)}const sv=document.getElementById('score-el');if(pts>0){const cls=numLines>=4?'bump-mega':numLines>=3?'bump-big':'bump';sv.classList.remove('bump','bump-big','bump-mega');requestAnimationFrame(()=>sv.classList.add(cls));const dur=numLines>=4?320:numLines>=3?280:180;setTimeout(()=>sv.classList.remove(cls),dur)}sv.textContent=score.toLocaleString();document.getElementById('best-el').textContent=best.toLocaleString();updateGoalHint()}
 function updateGoalHint(){
   const el=document.getElementById('goal-hint');if(!el)return;
@@ -1453,20 +1596,28 @@ function triggerClearFX(cx, cy, numLines, removed){
   const step=low?3:2;
 
   // 파티클 데이터: 클리어된 셀 위치에서 직접 발사
+  // 행/열 분석 → 방향별 파티클
+  const rowCnt={},colCnt={};
+  removed.forEach(([r,c])=>{rowCnt[r]=(rowCnt[r]||0)+1;colCnt[c]=(colCnt[c]||0)+1});
+  const fullRows=new Set(Object.keys(rowCnt).filter(r=>rowCnt[r]>=9).map(Number));
+  const fullCols=new Set(Object.keys(colCnt).filter(c=>colCnt[c]>=9).map(Number));
+
   const pts=[];
   removed.forEach(([r,c],idx)=>{
-    if(idx%step!==0) return; // 모든 셀이 아닌 일부만
-    // stride 캐시로 픽셀 좌표 계산
+    if(idx%step!==0) return;
     const px=_originLeft+c*_strideW+_strideW/2;
     const py=_originTop +r*_strideH+_strideH/2;
-    const sc=STAR_CHARS[idx%STAR_CHARS.length];
-    pts.push({x:px, y:py, char:sc, i:idx});
+    const char=STAR_CHARS[idx%STAR_CHARS.length];
+    // 방향 결정: 행 클리어=좌→우, 열 클리어=위→아래, 둘다=방사
+    let dir='r';
+    if(fullRows.has(r)&&!fullCols.has(c)) dir='h';
+    else if(fullCols.has(c)&&!fullRows.has(r)) dir='v';
+    pts.push({x:px,y:py,char,i:idx,dir});
   });
 
-  // DocumentFragment 1회 append
   const frag=document.createDocumentFragment();
   const elems=[];
-  pts.forEach(({x,y,char,i})=>{
+  pts.forEach(({x,y,char})=>{
     const p=document.createElement('div');
     p.className='star-particle';
     p.textContent=char;
@@ -1476,17 +1627,27 @@ function triggerClearFX(cx, cy, numLines, removed){
   });
   document.body.appendChild(frag);
 
-  // 애니메이션 — rAF 일괄
   requestAnimationFrame(()=>{
-    pts.forEach(({i},idx)=>{
+    pts.forEach(({i,dir},idx)=>{
       const el=elems[idx];
-      const dur=420+Math.random()*160;
+      const dur=400+Math.random()*150;
       const rot=(Math.random()-.5)*240;
-      // 셀 위치에서 위로 튀어오르며 흩어짐
-      const ang=(Math.random()-.5)*Math.PI*1.4 - Math.PI/2; // 주로 위쪽
-      const sp=35+Math.random()*45;
-      const tx=Math.cos(ang)*sp;
-      const ty=Math.sin(ang)*sp;
+      let tx,ty;
+      if(dir==='h'){
+        // 좌→우 (행 클리어)
+        tx=60+Math.random()*60;
+        ty=(Math.random()-.5)*30;
+      } else if(dir==='v'){
+        // 위→아래 (열 클리어)
+        tx=(Math.random()-.5)*30;
+        ty=60+Math.random()*60;
+      } else {
+        // 방사
+        const ang=(Math.random()-.5)*Math.PI*1.4-Math.PI/2;
+        const sp=35+Math.random()*45;
+        tx=Math.cos(ang)*sp;
+        ty=Math.sin(ang)*sp;
+      }
       const kf=[
         {transform:'translate(-50%,-50%) scale(.3)',opacity:1,offset:0},
         {transform:`translate(calc(-50% + ${tx}px),calc(-50% + ${ty}px)) scale(1.1)`,opacity:1,offset:.3},
@@ -1504,8 +1665,16 @@ function triggerClearFX(cx, cy, numLines, removed){
 }
 
 // 성능 감지 — 초기 + 주기적 재측정
+// P1-A fix: 하드웨어 힌트 + 실측 2단계 (첫 ~100ms 동안 저사양도 경량 경로 적용)
 (function detectPerf(){
-  window._lowPerf=false; // 초기값 명시 — undefined 방지
+  // P1-A: 하드웨어 힌트로 즉시 추정 — 첫 6프레임 실측 전에도 저사양 경로 적용됨
+  // deviceMemory: Chrome/Edge에서만 제공 (Safari 미지원 — undefined로 건너뜀)
+  // hardwareConcurrency: 대부분 브라우저 지원, 코어 수 반환
+  const mem=navigator.deviceMemory;     // GB 단위 (없으면 undefined)
+  const cpu=navigator.hardwareConcurrency; // 논리 코어 (없으면 undefined)
+  const hwLowPerf=(typeof mem==='number'&&mem<4)||(typeof cpu==='number'&&cpu<=4);
+  window._lowPerf=!!hwLowPerf;
+  document.body.classList.toggle('low-perf',window._lowPerf);
   const SAMPLES=6,INTERVAL=4000;
   let samples=[],rafId=0,timer=0;
   function measure(){
@@ -1516,7 +1685,8 @@ function triggerClearFX(cx, cy, numLines, removed){
       if(++count<SAMPLES)rafId=requestAnimationFrame(tick);
       else{
         const avg=samples.reduce((a,b)=>a+b,0)/samples.length;
-        window._lowPerf=avg>33;
+        // 하드웨어 힌트로 저사양 판정된 기기는 실측이 잠깐 빨라도 유지 (실측 좋을 때만 해제되지 않도록)
+        window._lowPerf=avg>33||hwLowPerf;
         document.body.classList.toggle('low-perf',window._lowPerf);
         timer=setTimeout(measure,INTERVAL);
       }
@@ -1528,23 +1698,24 @@ function triggerClearFX(cx, cy, numLines, removed){
 
 
 // ── 콤보 단계 배너 ─────────────────────────────────────────────
-// numLines 기준: 2=BRAVO, 3=GREAT, 4=EXCELLENT, 5+=PERFECT
+// intensity 기준: 2=NICE!, 3=GREAT!, 4=EXCELLENT!, 5+=PERFECT!
 // 렉 방지: 이전 배너가 있으면 즉시 제거 후 새 배너
 let _comboBannerEl = null;
 function showComboBanner(cx, cy, numLines){
   if(_comboBannerEl){ _comboBannerEl.remove(); _comboBannerEl=null; }
 
   // 우도쿠 원작: 위=NICE!/GREAT! 큰 글씨, 아래=시안 박스 "2X 연속 성공!"
-  // numLines 기준 + streak 보정으로 강도 결정
+  // intensity = max(numLines, floor(streak/2)+1)
+  //   2 → NICE!, 3 → GREAT!, 4 → EXCELLENT!, 5+ → PERFECT!
   const intensity=Math.max(numLines, Math.floor(streak/2)+1);
   const levels=[
     null,null,
-    {word:'NICE!',     cls:'bravo',     sub:'COMBO'},
-    {word:'GREAT!',    cls:'great',     sub:'GREAT COMBO'},
-    {word:'EXCELLENT!',cls:'excellent', sub:'EXCELLENT'},
+    {word:'NICE!',     cls:'bravo',     sub:'COMBO'},         // [2]
+    {word:'GREAT!',    cls:'great',     sub:'GREAT COMBO'},   // [3]
+    {word:'EXCELLENT!',cls:'excellent', sub:'EXCELLENT'},     // [4]
+    {word:'PERFECT!',  cls:'perfect',   sub:'PERFECT'},       // [5+]
   ];
-  const lv=levels[Math.min(intensity,levels.length-1)]
-    || {word:'PERFECT!',cls:'perfect',sub:'PERFECT'};
+  const lv=levels[Math.min(intensity,levels.length-1)];
   if(!lv)return;
 
   const boardEl=document.getElementById('board');
@@ -1711,36 +1882,61 @@ let _lastHitKey='',_prevHitKey='',_ghostLastHaptic=0;
 let _dragAnchorOffX=0,_dragAnchorOffY=0;
 let _dragRows=0,_dragCols=0;
 let _ghostEl=null;
+// P0-MED-1 fix: 드래그 종료 직후 브라우저가 합성하는 click 이벤트를 억제하기 위한 타임스탬프
+//               touchend/mouseup 시점을 기록 → click 핸들러에서 350ms 이내면 무시
+let _suppressClickUntil=0;
 
+// 거리 기반 LERP — 멀면 빠르게, 가까우면 부드럽게
 function _ghostRenderLoop(){
-  // 더 이상 사용하지 않음 — moveGhost에서 직접 갱신
-  _ghostLoopId=0;
+  if(!dragActive){_ghostLoopId=0;return}
+  _ghostLoopId=requestAnimationFrame(_ghostRenderLoop);
+
+  const dx=_ghostTargetX-_ghostRenderX;
+  const dy=_ghostTargetY-_ghostRenderY;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+  // 저사양: 하한 0.40, 고사양: 하한 0.22 / 최대 0.55
+  const base=window._lowPerf?0.40:0.22;
+  const lerp=base+Math.min(dist/100,1)*0.33;
+  _ghostRenderX+=dx*lerp;
+  _ghostRenderY+=dy*lerp;
+  if(Math.abs(dx)<0.5)_ghostRenderX=_ghostTargetX;
+  if(Math.abs(dy)<0.5)_ghostRenderY=_ghostTargetY;
+
+  if(!_ghostEl)_ghostEl=document.getElementById('ghost');
+  _ghostEl.style.transform=`translate3d(${_ghostRenderX}px,${_ghostRenderY}px,0)`;
+
+  // preview: hit 바뀔 때만 업데이트
+  if(_ghostShape){
+    const hk=_ghostHit?_ghostHit.join(','):'';
+    if(hk!==_lastHitKey){
+      _lastHitKey=hk;
+      if(_ghostHit&&hk!==_prevHitKey){
+        _prevHitKey=hk;
+        const now=performance.now();
+        if(!_ghostLastHaptic||now-_ghostLastHaptic>80){_ghostLastHaptic=now;haptic('light')}
+      }
+      if(_ghostHit){const[hr2,hc2]=_ghostHit,[sr2,sc2]=shapeAnchor(_ghostShape,hr2,hc2);showPreview(_ghostShape,sr2,sc2)}
+      else clearPreview();
+    }
+  }
 }
 
 function moveGhost(cx,cy,shape,hit){
   if(!dragActive)return;
+  // target만 갱신 — 실제 이동은 rAF 루프에서 lerp
+  _ghostTargetX=cx+_dragAnchorOffX;
+  _ghostTargetY=cy+_dragAnchorOffY;
+  _ghostShape=shape;
+  _ghostHit=hit;
   if(!_ghostEl)_ghostEl=document.getElementById('ghost');
-  // 즉시 위치 갱신 — 지연 0
-  const gx=cx+_dragAnchorOffX;
-  const gy=cy+_dragAnchorOffY;
-  _ghostEl.style.transform=`translate3d(${gx}px,${gy}px,0)`;
   _ghostEl.classList.toggle('on-board',!!hit);
-  // preview 갱신
-  const hk=hit?hit.join(','):'';
-  if(hk!==_lastHitKey){
-    _lastHitKey=hk;
-    if(hit&&hk!==_prevHitKey){
-      _prevHitKey=hk;
-      const now=performance.now();
-      if(!_ghostLastHaptic||now-_ghostLastHaptic>80){_ghostLastHaptic=now;haptic('light')}
-    }
-    if(hit){const[hr2,hc2]=hit,[sr2,sc2]=shapeAnchor(shape,hr2,hc2);showPreview(shape,sr2,sc2)}
-    else{clearPreview()}
-  }
+  if(!_ghostLoopId)_ghostLoopId=requestAnimationFrame(_ghostRenderLoop);
 }
 
 function hideGhost(){
+  cancelAnimationFrame(_ghostLoopId);_ghostLoopId=0;
   _prevHitKey='';_lastHitKey='';_ghostLastHaptic=0;
+  _ghostShape=null;_ghostHit=null;
   if(!_ghostEl)_ghostEl=document.getElementById('ghost');
   _ghostEl.classList.remove('visible','on-board');
 }
@@ -1766,7 +1962,9 @@ function onUp(e){
   const ghostCenterX=cx+_dragAnchorOffX+_dragCols*cw/2;
   const ghostCenterY=cy+_dragAnchorOffY+_dragRows*ch/2;
   const hit=cellAt(ghostCenterX,ghostCenterY);
+  let attemptedPlace=false;
   if(hit){
+    attemptedPlace=true;
     const[hr,hc]=hit,[sr,sc]=shapeAnchor(p.shape,hr,hc);
     if(!doPlace(dragIdx,sr,sc)){
       haptic('error');Sound.sfx.invalid();
@@ -1775,6 +1973,9 @@ function onUp(e){
       setTimeout(()=>sl.classList.remove('invalid-nudge'),110);
     }
   }
+  // P0-MED-1 fix: 드래그 궤적이 보드까지 닿았을 때만 합성 click 억제.
+  //               단순 탭(움직임 없음)은 click 핸들러에 그대로 위임 → 슬롯 선택 기능 유지.
+  if(attemptedPlace)_suppressClickUntil=performance.now()+350;
   dragActive=false;dragIdx=-1;selIdx=null;isTouchDrag=false;_lastPreviewKey='';renderTray();
 }
 
@@ -1819,28 +2020,124 @@ function slotDown(e,idx){
   g.classList.remove('on-board');
   requestAnimationFrame(()=>g.classList.add('visible'));
 }
-function attachEvents(){for(let i=0;i<3;i++){const slot=document.getElementById('slot-'+i),ii=i;slot.addEventListener('touchstart',e=>{isTouchDrag=true;e.preventDefault();slotDown(e,ii)},{passive:false});slot.addEventListener('mousedown',e=>{isTouchDrag=false;slotDown(e,ii)});slot.addEventListener('click',()=>{if(!dragActive&&gameActive){if(pieces[ii]?.used)return;selIdx=selIdx===ii?null:ii;renderTray()}})}const boardEl=document.getElementById('board');boardEl.addEventListener('click',e=>{if(dragActive||!gameActive||selIdx===null)return;measureBoard();const hit=cellAt(e.clientX,e.clientY);if(!hit)return;const[hr,hc]=hit,p=pieces[selIdx];if(!p||p.used)return;const[sr,sc]=shapeAnchor(p.shape,hr,hc);if(!doPlace(selIdx,sr,sc)){haptic('error');Sound.sfx.invalid();p.shape.forEach(([dr,dc])=>{const rr=sr+dr,cc=sc+dc;if(rr>=0&&rr<GRID&&cc>=0&&cc<GRID){cellEls[rr][cc].classList.add('shake');setTimeout(()=>cellEls[rr][cc].classList.remove('shake'),210)}})}else{selIdx=null;renderTray()}});boardEl.addEventListener('mousemove',e=>{if(dragActive||selIdx===null||!gameActive)return;const hit=cellAt(e.clientX,e.clientY);if(!hit){clearPreview();return}const[hr,hc]=hit,p=pieces[selIdx];if(!p||p.used){clearPreview();return}const[sr,sc]=shapeAnchor(p.shape,hr,hc);showPreview(p.shape,sr,sc)});boardEl.addEventListener('mouseleave',()=>{if(!dragActive)clearPreview()});document.addEventListener('touchmove',onMove,{passive:false});document.addEventListener('touchend',onUp,{passive:false});document.addEventListener('touchcancel',onCancel,{passive:true});document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp)}
+function attachEvents(){
+  // ─── 트레이 슬롯 이벤트 ────────────────────────────────────
+  for(let i=0;i<3;i++){
+    const slot=document.getElementById('slot-'+i),ii=i;
+    slot.addEventListener('touchstart',e=>{isTouchDrag=true;e.preventDefault();slotDown(e,ii)},{passive:false});
+    slot.addEventListener('mousedown',e=>{isTouchDrag=false;slotDown(e,ii)});
+    slot.addEventListener('click',()=>{
+      // P0-MED-1 fix: 드래그 종료 직후 합성 click을 무시 (의도하지 않은 슬롯 재선택 방지)
+      if(performance.now()<_suppressClickUntil)return;
+      if(!dragActive&&gameActive){
+        if(pieces[ii]?.used)return;
+        selIdx=selIdx===ii?null:ii;renderTray();
+      }
+    });
+  }
+  // ─── 보드 이벤트 ───────────────────────────────────────────
+  const boardEl=document.getElementById('board');
+  boardEl.addEventListener('click',e=>{
+    // P0-MED-1 fix: 드래그 종료 직후 합성 click을 무시 (실패한 드래그 위치에서 의도치 않은 탭 배치 방지)
+    if(performance.now()<_suppressClickUntil)return;
+    if(dragActive||!gameActive||selIdx===null)return;
+    measureBoard();
+    const hit=cellAt(e.clientX,e.clientY);if(!hit)return;
+    const[hr,hc]=hit,p=pieces[selIdx];if(!p||p.used)return;
+    const[sr,sc]=shapeAnchor(p.shape,hr,hc);
+    if(!doPlace(selIdx,sr,sc)){
+      haptic('error');Sound.sfx.invalid();
+      p.shape.forEach(([dr,dc])=>{
+        const rr=sr+dr,cc=sc+dc;
+        if(rr>=0&&rr<GRID&&cc>=0&&cc<GRID){
+          cellEls[rr][cc].classList.add('shake');
+          setTimeout(()=>cellEls[rr][cc].classList.remove('shake'),210);
+        }
+      });
+    }else{selIdx=null;renderTray()}
+  });
+  boardEl.addEventListener('mousemove',e=>{
+    if(dragActive||selIdx===null||!gameActive)return;
+    const hit=cellAt(e.clientX,e.clientY);
+    if(!hit){clearPreview();return}
+    const[hr,hc]=hit,p=pieces[selIdx];
+    if(!p||p.used){clearPreview();return}
+    const[sr,sc]=shapeAnchor(p.shape,hr,hc);
+    showPreview(p.shape,sr,sc);
+  });
+  boardEl.addEventListener('mouseleave',()=>{if(!dragActive)clearPreview()});
+  // ─── Document-level 드래그 이벤트 ──────────────────────────
+  document.addEventListener('touchmove',onMove,{passive:false});
+  document.addEventListener('touchend',onUp,{passive:false});
+  document.addEventListener('touchcancel',onCancel,{passive:true});
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('mouseup',onUp);
+}
 
 function checkGameOver(){if(!gameActive)return;const available=pieces.filter(p=>!p.used);if(!available.length)return;const canAny=available.some(p=>{for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)if(canPlace(p.shape,r,c))return true;return false});if(!canAny)setTimeout(showGameOver,350)}
-function showGameOver(){gameActive=false;Sound.sfx.gameOver();Sound.stopBGM();haptic('error');if(!extendUsed){document.getElementById('ext-diamond').disabled=coinBalance<200;document.getElementById('gameover-overlay').classList.add('on')}else{showResultScreen()}}
+function showGameOver(){gameActive=false;Sound.sfx.gameOver();haptic('error');if(!extendUsed){document.getElementById('ext-diamond').disabled=coinBalance<200;document.getElementById('gameover-overlay').classList.add('on')}else{showResultScreen()}}
 function skipExtend(){Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');showResultScreen()}
 
 // ═══ EXTEND ═══
 function extendDiamond(){if(extendUsed)return;if(!spendCoins(200)){showToast('코인이 부족합니다!');return}extendUsed=true;Sound.sfx.extend();haptic('success');document.getElementById('gameover-overlay').classList.remove('on');let bestRow=-1,bestCount=-1;for(let r=0;r<GRID;r++){const count=board[r].filter(v=>v!==null).length;if(count>bestCount){bestCount=count;bestRow=r}}if(bestRow>=0){// ★ board 즉시 비움
 for(let c=0;c<GRID;c++)if(board[bestRow][c]!==null){cellEls[bestRow][c].classList.add('clearing');board[bestRow][c]=null}
-const clearDur=(window._lowPerf?260:380)+120;
-setTimeout(()=>{for(let c=0;c<GRID;c++){const el=cellEls[bestRow][c];el.className='cell'+(isSectionAlt(bestRow,c)?' section-alt':'');el.dataset.r=bestRow;el.dataset.c=c;el.innerHTML=''}},clearDur);
-setTimeout(()=>{if(pieces.every(p=>p.used))newSet();Sound.startBGM();gameActive=true;setTimeout(checkGameOver,50)},clearDur+50)}}
-function extendAd(){if(extendUsed)return;extendUsed=true;Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');const adOv=document.getElementById('ad-overlay'),adTimer=document.getElementById('ad-timer');adOv.classList.add('on');let count=3;adTimer.textContent=count;const iv=setInterval(()=>{count--;if(count<=0){clearInterval(iv);adOv.classList.remove('on');Sound.sfx.extend();haptic('success');pieces=[randSmallPiece(),randSmallPiece(),randSmallPiece()];selIdx=null;renderTray();Sound.startBGM();gameActive=true;setTimeout(checkGameOver,400)}else adTimer.textContent=count},1e3)}
+const clearDur=(window._lowPerf?500:750)+30;
+const _t=setTimeout(()=>{_activeClearTimers.delete(_t);for(let c=0;c<GRID;c++){const el=cellEls[bestRow][c];el.className='cell'+(isSectionAlt(bestRow,c)?' section-alt':'');el.dataset.r=bestRow;el.dataset.c=c;el.innerHTML=''}},clearDur);
+_activeClearTimers.add(_t);
+setTimeout(()=>{if(pieces.every(p=>p.used))newSet();gameActive=true;setTimeout(checkGameOver,50)},clearDur+50)}}
+// extendAd: 광고 시뮬레이션 중 취소 가능하도록 interval을 모듈 변수로 보관
+let _extendAdTimer=null;
+function cancelExtendAd(){
+  if(_extendAdTimer){clearInterval(_extendAdTimer);_extendAdTimer=null}
+  const adOv=document.getElementById('ad-overlay');
+  if(adOv)adOv.classList.remove('on');
+  // 광고 카운트다운 중이었다면 extendUsed를 복구 (아직 보상 미지급)
+  if(extendUsed&&!gameActive)extendUsed=false;
+}
+function extendAd(){if(extendUsed)return;extendUsed=true;Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');const adOv=document.getElementById('ad-overlay'),adTimer=document.getElementById('ad-timer');adOv.classList.add('on');let count=3;adTimer.textContent=count;_extendAdTimer=setInterval(()=>{count--;if(count<=0){clearInterval(_extendAdTimer);_extendAdTimer=null;adOv.classList.remove('on');Sound.sfx.extend();haptic('success');
+  // P0-2 fix: 새 피스 지급 후 배치 가능한지 확인, 불가능하면 가장 찬 줄 비워 공간 확보
+  pieces=[randSmallPiece(),randSmallPiece(),randSmallPiece()];selIdx=null;
+  // 배치 가능성 검증: 어느 피스 하나라도 놓을 수 있어야 함
+  const anyPlaceable=pieces.some(p=>{for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)if(canPlace(p.shape,r,c))return true;return false});
+  if(!anyPlaceable){
+    // 가장 찬 줄 찾아서 비우기 (extendDiamond와 동일 패턴)
+    let bestRow=-1,bestCount=-1;
+    for(let r=0;r<GRID;r++){const cnt=board[r].filter(v=>v!==null).length;if(cnt>bestCount){bestCount=cnt;bestRow=r}}
+    if(bestRow>=0){
+      for(let c=0;c<GRID;c++)if(board[bestRow][c]!==null){cellEls[bestRow][c].classList.add('clearing');board[bestRow][c]=null}
+      const clearDur=(window._lowPerf?500:750)+30;
+      const _t2=setTimeout(()=>{_activeClearTimers.delete(_t2);for(let c=0;c<GRID;c++){const el=cellEls[bestRow][c];el.className='cell'+(isSectionAlt(bestRow,c)?' section-alt':'');el.dataset.r=bestRow;el.dataset.c=c;el.innerHTML=''}},clearDur);
+      _activeClearTimers.add(_t2);
+      renderTray();gameActive=true;
+      setTimeout(checkGameOver,clearDur+100);
+      return;
+    }
+  }
+  renderTray();gameActive=true;setTimeout(checkGameOver,400)
+}else adTimer.textContent=count},1e3)}
 function showToast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('phone').appendChild(el);setTimeout(()=>el.remove(),2100)}
 
-function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;recentClearTurns=0;totalTurns=0;extendUsed=false;gameActive=true;document.getElementById('score-el').textContent='0';document.getElementById('best-el').textContent=best.toLocaleString();document.getElementById('streak-bar').classList.remove('show');const badge=document.getElementById('phase-badge');if(badge)badge.textContent='';document.getElementById('quit-overlay').classList.remove('on');initBoard();renderBoard();clearPreview();newSet();updateCoinUI();resetUndo();updateGoalHint()}
+function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;recentClearTurns=0;totalTurns=0;extendUsed=false;gameActive=true;
+  // P0-1 fix: 신규 게임 진입 시 점수 2배 버프 상태 초기화 (startNewGame 누락 방지)
+  _scoreMultiplier=1;resetAdDouble();
+  // P0-3 fix: 이전 게임의 clearing 타임아웃이 새 게임에 영향 주지 않도록 정리
+  _activeClearTimers.forEach(id=>clearTimeout(id));_activeClearTimers.clear();
+  // 광고 카운트다운이 진행 중이었다면 취소 (뒤로가기/재시작 경로 안전)
+  cancelExtendAd();
+  document.getElementById('score-el').textContent='0';document.getElementById('best-el').textContent=best.toLocaleString();document.getElementById('streak-bar').classList.remove('show');const badge=document.getElementById('phase-badge');if(badge)badge.textContent='';document.getElementById('quit-overlay').classList.remove('on');initBoard();renderBoard();clearPreview();newSet();updateCoinUI();resetUndo();updateGoalHint()}
 
 let eventsAttached=false;
-function start(){buildBoard();initBoard();renderBoard();if(!eventsAttached){attachEvents();eventsAttached=true}Storage.get('pw2_muted',val=>{if(val==='1')Sound.setMute(true)});loadCoins(()=>{loadWeekly(()=>{updateLobby();showScreen('s-lobby')})})}
+function start(){buildBoard();initBoard();renderBoard();if(!eventsAttached){attachEvents();eventsAttached=true}Storage.get('pw2_muted',val=>{if(val==='1')Sound.setMute(true)});loadCoins(()=>{loadWeekly(()=>{loadAdBoost(()=>{updateLobby();showScreen('s-lobby')})})})}
 
 document.addEventListener('touchstart',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
-document.addEventListener('touchmove',e=>{if(!e.target.closest('#board,#tray,.piece-slot,.lobby-scroll,.result-scroll,.guide-card'))e.preventDefault()},{passive:false});
+// P1-C fix: iOS 드래그 씹힘 방어 — dragActive 중에는 preventDefault 금지, e.target null 가드
+document.addEventListener('touchmove',e=>{
+  // 드래그 중일 때는 onMove가 별도로 preventDefault를 처리하므로 이중 호출 금지
+  if(dragActive)return;
+  // iOS Safari에서 e.target이 null인 경우(removed DOM 등)에 대한 안전 가드
+  if(!e.target||typeof e.target.closest!=='function')return;
+  if(!e.target.closest('#board,#tray,.piece-slot,.lobby-scroll,.result-scroll,.guide-card'))e.preventDefault();
+},{passive:false});
 document.addEventListener('touchstart',function unlock(){Sound.resumeCtx();document.removeEventListener('touchstart',unlock)},{once:true});
 document.addEventListener('DOMContentLoaded',start);
 </script>
