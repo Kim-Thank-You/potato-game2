@@ -324,18 +324,44 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .pc.on{background:linear-gradient(145deg,var(--block-light),var(--block) 55%,var(--block-dark));border-top:2px solid rgba(255,255,255,0.42);border-left:1.5px solid rgba(255,255,255,0.18);border-bottom:2px solid rgba(0,0,0,0.45);border-right:1.5px solid rgba(0,0,0,0.32);box-shadow:0 2px 7px rgba(0,0,0,0.55),0 1px 2px rgba(0,0,0,0.35);position:relative;border-radius:4px}
 .pc.on svg{position:absolute;inset:0;width:100%;height:100%}
 #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;visibility:hidden;opacity:0;will-change:transform;backface-visibility:hidden;contain:layout style}
+#ghost.visible{visibility:visible;opacity:.92}
 #ghost.on-board{opacity:1}
-#ghost.visible{visibility:visible;opacity:.9}
-/* ═══ v6 토스 스타일 Ghost 배치 예고 ═══
-   scale 1.015의 미세 반응만 — "여기 놓을 수 있어"를 조용히 확인시켜줌
-   듀레이션 80ms로 단축 (빠른 반응) */
+/* ═══ v6 iOS 홈스크린 스타일 드래그 Ghost ═══
+   원칙:
+   - 드래그 시작 시 scale 1.0 → 1.12 살짝 떠오름 (pop-in)
+   - 드래그 중 drop-shadow로 공중 부양감
+   - 유효 위치 진입 시 scale 1.12 → 1.08 (살짝 안착, 안정감)
+   - 드래그 종료(성공 착지) 시 bounce back — 1.08 → 0.95 → 1 spring
+*/
 #ghost > .piece-grid{
   transform: scale(1);
-  transition: transform 80ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 120ms cubic-bezier(0.34, 1.2, 0.64, 1);  /* 진입 시 살짝 오버슈트 */
   will-change: transform;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35)) drop-shadow(0 2px 4px rgba(0,0,0,0.25));
 }
-#ghost.on-board > .piece-grid{
-  transform: scale(1.015);
+/* 드래그 시작 — visible 상태가 되면 scale 1.12로 떠오름 */
+#ghost.visible > .piece-grid{
+  transform: scale(1.12);
+}
+/* 유효 위치 진입 — 살짝 가라앉음 (안착 대비) */
+#ghost.visible.on-board > .piece-grid{
+  transform: scale(1.08);
+  transition: transform 80ms cubic-bezier(0.4, 0, 0.2, 1);  /* on-board는 더 빠른 전환 */
+}
+/* ═══ 착지 bounce: 유효 위치 drop 시 spring-back ═══ */
+#ghost.dropping > .piece-grid{
+  animation: ghostDrop 180ms cubic-bezier(0.34, 1.35, 0.64, 1) forwards;
+}
+@keyframes ghostDrop{
+  0%   { transform: scale(1.08); }
+  45%  { transform: scale(0.94); }  /* 눌림 */
+  75%  { transform: scale(1.03); }  /* 살짝 튕김 */
+  100% { transform: scale(1.00); }  /* 안착 */
+}
+/* 무효 반환 시 빠른 축소 페이드 */
+#ghost.returning > .piece-grid{
+  transform: scale(1.0);
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .float-label{position:fixed;pointer-events:none;z-index:500;font-size:16px;font-weight:800;animation:labelRise 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;white-space:nowrap;letter-spacing:-.3px;transform-origin:center center}
 /* 토스 스타일: 오버슈트 없음, 부드러운 상승 + 페이드아웃 */
@@ -630,51 +656,62 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   overflow:visible;
 }
 /* ── 블록: 절제된 회전 + 축소 + dissolve ──
-/* ═══ v6 토스 스타일 라인 클리어: Pop & Vanish ═══
-   원칙: 셀 자체가 peak moment를 가지고 터지듯 사라짐
-   20% 지점 peak(scale 1.12 + 밝기 강화) → 나머지는 빠른 소멸
-   "내가 없앴다"는 감각을 확실히 주되, 주변 요란함 없음 */
+/* ═══ v6 Royal Match 스타일 클리어 ═══
+   설계: 세계 매출 1위 Royal Match의 "조각조각 흩어지는 고급 도파민" 모션
+   - 두 번의 peak (8% 기척 + 28% 진짜 peak)
+   - 미세 rotate로 "조각 흩어짐" 연출
+   - blockFlash 이중 ping (기척 + peak)
+   - 450ms / 비대칭 easing (진입 스냅, 퇴장 부드러움) */
 .cell.clearing .block-inner{
   transform-origin:center center;
-  animation: blockDissolve 280ms cubic-bezier(0.34, 0, 0.25, 1) forwards;
+  animation: blockDissolve 450ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards;
   will-change: transform, opacity;
   contain: paint;
   backface-visibility: hidden;
 }
 @keyframes blockDissolve{
-  /* 0-20%: Pop — 순간적으로 살짝 커지며 밝아짐 (peak moment) */
-  0%   { opacity: 1; transform: scale(1);    }
-  20%  { opacity: 1; transform: scale(1.12); }
-  /* 20-60%: Shrink — 빠르게 축소되며 투명해지기 시작 */
-  60%  { opacity: 0.5; transform: scale(0.4); }
-  /* 60-100%: Vanish — 완전히 소멸, 마지막은 거의 보이지 않음 */
-  100% { opacity: 0; transform: scale(0.1); }
+  /* 0-8%: 기척 — 숨 들이쉬듯 살짝 커지며 준비 */
+  0%   { opacity: 1.00; transform: scale(1)    rotate(0);    }
+  8%   { opacity: 1.00; transform: scale(1.08) rotate(0);    }
+  /* 8-28%: 진짜 Peak — 크게 부풀며 살짝 기울어짐 (조각 들뜸) */
+  28%  { opacity: 0.95; transform: scale(1.18) rotate(-2deg);}
+  /* 28-55%: 조각 흩어짐 — 부드럽게 수축하며 반대로 기울어짐 */
+  55%  { opacity: 0.55; transform: scale(0.70) rotate(3deg); }
+  /* 55-85%: Fade through — 더 수축, 더 투명 */
+  85%  { opacity: 0.15; transform: scale(0.40) rotate(-2deg);}
+  /* 85-100%: Exit — 조용히 소멸 */
+  100% { opacity: 0.00; transform: scale(0.20) rotate(0);    }
 }
-/* ── 감자: 블록 peak 직후 빠르게 사라짐 ── */
+/* ── 감자(potato): 블록보다 먼저 사라지되 같은 기울임 ── */
 .cell.clearing .potato-wrap{
   transform-origin:center center;
-  animation: potatoDissolve 280ms cubic-bezier(0.34, 0, 0.25, 1) forwards;
+  animation: potatoDissolve 450ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards;
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
 @keyframes potatoDissolve{
-  0%   { opacity: 1; transform: scale(1);    }
-  20%  { opacity: 1; transform: scale(1.15); }  /* 감자는 조금 더 튐 */
-  50%  { opacity: 0; transform: scale(0.3);  }
-  100% { opacity: 0; transform: scale(0);    }
+  0%   { opacity: 1.00; transform: scale(1)    rotate(0);    }
+  8%   { opacity: 1.00; transform: scale(1.10) rotate(0);    }
+  28%  { opacity: 0.85; transform: scale(1.20) rotate(-3deg);}
+  50%  { opacity: 0.30; transform: scale(0.65) rotate(4deg); }  /* 감자는 더 일찍 투명 */
+  80%  { opacity: 0.02; transform: scale(0.35) rotate(-2deg);}
+  100% { opacity: 0.00; transform: scale(0.15) rotate(0);    }
 }
-/* ── 백화(flash): Peak 순간에만 강하게, 그 후 즉시 꺼짐 ── */
+/* ── Flash 이중 ping: 기척(8%) + Peak(28%) 두 번 섬광 ── */
 .cell.clearing .block-inner::after{
-  animation: blockFlash 280ms cubic-bezier(0.34, 0, 0.25, 1) forwards !important;
+  animation: blockFlash 450ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards !important;
   background: rgba(255,252,240,1) !important;
   border-radius: inherit;
   opacity: 0;
 }
 @keyframes blockFlash{
-  0%   { opacity: 0;    }
-  20%  { opacity: 0.85; }   /* Peak와 동기화 — "터지는" 순간 흰빛 */
-  45%  { opacity: 0;    }   /* 빠르게 꺼짐 */
-  100% { opacity: 0;    }
+  0%   { opacity: 0.00; }
+  8%   { opacity: 0.35; }   /* 첫 ping: 기척 단계 (부드러운 반짝) */
+  18%  { opacity: 0.10; }   /* 잠시 어두워짐 — 대비 효과 */
+  28%  { opacity: 0.85; }   /* 두 번째 ping: Peak 순간 섬광 (강렬) */
+  45%  { opacity: 0.30; }   /* 빠르게 사그라듦 */
+  70%  { opacity: 0.05; }
+  100% { opacity: 0.00; }
 }
 /* warm 오버레이 제거 */
 .cell.clearing::before{display:none}
@@ -691,25 +728,29 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   .board-frame.shaking, .board-frame.shaking-medium, .board-frame.shaking-heavy, .board-frame.shaking-epic { animation: none }
 }
 /* JS _lowPerf 감지 시 적용되는 경량 오버라이드 */
-/* v6 토스 스타일 저사양: Pop 강도 약간 낮추되 peak 유지 */
+/* v6 Royal Match 저사양: 4단계로 간결, rotate 제거해 GPU 절감 */
 .low-perf .cell.clearing .block-inner{
-  animation: blockDissolveLite 220ms cubic-bezier(0.34, 0, 0.25, 1) forwards !important;
+  animation: blockDissolveLite 380ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards !important;
 }
 .low-perf .cell.clearing .potato-wrap{
-  animation: potatoDissolveLite 220ms cubic-bezier(0.34, 0, 0.25, 1) forwards !important;
+  animation: potatoDissolveLite 380ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards !important;
 }
 .low-perf .cell.clearing .block-inner::after{
-  animation: blockFlash 220ms cubic-bezier(0.34, 0, 0.25, 1) forwards !important;
+  animation: blockFlash 380ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards !important;
 }
 @keyframes blockDissolveLite{
-  0%   { opacity: 1; transform: scale(1);    }
-  20%  { opacity: 1; transform: scale(1.08); }  /* peak 살짝 더 작게 */
-  100% { opacity: 0; transform: scale(0.2);  }
+  0%   { opacity: 1.00; transform: scale(1);    }
+  10%  { opacity: 1.00; transform: scale(1.08); }
+  28%  { opacity: 0.90; transform: scale(1.15); }
+  70%  { opacity: 0.35; transform: scale(0.55); }
+  100% { opacity: 0.00; transform: scale(0.25); }
 }
 @keyframes potatoDissolveLite{
-  0%   { opacity: 1; transform: scale(1);    }
-  20%  { opacity: 1; transform: scale(1.10); }
-  100% { opacity: 0; transform: scale(0.15); }
+  0%   { opacity: 1.00; transform: scale(1);    }
+  10%  { opacity: 0.95; transform: scale(1.10); }
+  28%  { opacity: 0.75; transform: scale(1.18); }
+  60%  { opacity: 0.15; transform: scale(0.55); }
+  100% { opacity: 0.00; transform: scale(0.20); }
 }
 /* 저사양에서 착지 애니메이션도 단순화 */
 .low-perf .cell.landing .block-inner{
@@ -722,10 +763,23 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   0%   { opacity: 0; transform: scale(0.94); }
   100% { opacity: 1; transform: scale(1);    }
 }
-/* 저사양: Ghost scale 효과 제거 — 순수 opacity로만 on-board 표시 */
+/* 저사양: drop-shadow 비활성화 + scale 효과 축소 (GPU 절감) */
 .low-perf #ghost > .piece-grid{
-  transform: none !important;
-  transition: none !important;
+  filter: none !important;
+  transition: transform 80ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.low-perf #ghost.visible > .piece-grid{
+  transform: scale(1.06) !important;  /* 1.12 → 1.06 */
+}
+.low-perf #ghost.visible.on-board > .piece-grid{
+  transform: scale(1.03) !important;
+}
+.low-perf #ghost.dropping > .piece-grid{
+  animation: ghostDropLite 100ms cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+}
+@keyframes ghostDropLite{
+  0%   { transform: scale(1.03); }
+  100% { transform: scale(1.00); }
 }
 .low-perf .board-frame.shaking{animation-duration:.2s !important}
 .low-perf .board-frame.shaking-medium{animation-duration:.24s !important}
@@ -1689,7 +1743,7 @@ function clearLines(){
   toRemove.forEach(([r,c])=>{
     cellEls[r][c].classList.add('clearing');
   });
-  const CLEAR_DUR = 280; // CSS와 일치 (Pop & Vanish)
+  const CLEAR_DUR = 450; // CSS와 일치 (Royal Match 스타일)
   const _timerId=setTimeout(()=>{
     _activeClearTimers.delete(_timerId);
     for(const[r,c]of toRemove){
@@ -2069,6 +2123,9 @@ let _ghostEl=null;
 let _suppressClickUntil=0;
 
 // 거리 기반 LERP — 멀면 빠르게, 가까우면 부드럽게
+// v6-smooth: 반응성 향상 (토스/iOS 수준)
+//   고사양: 0.35 → 0.70 (이전 0.22~0.55 → 프레임당 22%만 이동해서 lag 체감됨)
+//   저사양: 0.50 → 0.85 (유지)
 // v6-perf: target 도달 + hit 안정 시 rAF 루프 일시 중단 (moveGhost에서 재가동)
 function _ghostRenderLoop(){
   if(!dragActive){_ghostLoopId=0;return}
@@ -2076,13 +2133,14 @@ function _ghostRenderLoop(){
   const dx=_ghostTargetX-_ghostRenderX;
   const dy=_ghostTargetY-_ghostRenderY;
   const dist=Math.sqrt(dx*dx+dy*dy);
-  // 저사양: 하한 0.40, 고사양: 하한 0.22 / 최대 0.55
-  const base=window._lowPerf?0.40:0.22;
-  const lerp=base+Math.min(dist/100,1)*0.33;
+  // 저사양: 하한 0.50, 고사양: 하한 0.35 / 거리 멀수록 최대 +0.35 부스트
+  const base=window._lowPerf?0.50:0.35;
+  const lerp=base+Math.min(dist/80,1)*0.35;
   _ghostRenderX+=dx*lerp;
   _ghostRenderY+=dy*lerp;
-  const snappedX = Math.abs(dx)<0.5;
-  const snappedY = Math.abs(dy)<0.5;
+  // 더 정밀한 착지 (0.5 → 0.3px)
+  const snappedX = Math.abs(dx)<0.3;
+  const snappedY = Math.abs(dy)<0.3;
   if(snappedX)_ghostRenderX=_ghostTargetX;
   if(snappedY)_ghostRenderY=_ghostTargetY;
 
@@ -2137,7 +2195,7 @@ function hideGhost(){
   _prevHitKey='';_lastHitKey='';_ghostLastHaptic=0;
   _ghostShape=null;_ghostHit=null;
   if(!_ghostEl)_ghostEl=document.getElementById('ghost');
-  _ghostEl.classList.remove('visible','on-board');
+  _ghostEl.classList.remove('visible','on-board','dropping','returning');
 }
 
 function onMove(e){
@@ -2154,7 +2212,7 @@ function onMove(e){
 
 function onUp(e){
   if(!dragActive||dragIdx<0)return;
-  hideGhost();clearPreview();
+  clearPreview();
   const[cx,cy]=getClient(e);
   const p=pieces[dragIdx];
   const cw=Math.round(_strideW)||42,ch=Math.round(_strideH)||42;
@@ -2162,15 +2220,29 @@ function onUp(e){
   const ghostCenterY=cy+_dragAnchorOffY+_dragRows*ch/2;
   const hit=cellAt(ghostCenterX,ghostCenterY);
   let attemptedPlace=false;
+  let placeSuccess=false;
   if(hit){
     attemptedPlace=true;
     const[hr,hc]=hit,[sr,sc]=shapeAnchor(p.shape,hr,hc);
-    if(!doPlace(dragIdx,sr,sc)){
+    if(doPlace(dragIdx,sr,sc)){
+      placeSuccess=true;
+    } else {
       haptic('error');Sound.sfx.invalid();
       const sl=document.getElementById('slot-'+dragIdx);
       sl.classList.add('invalid-nudge');
       setTimeout(()=>sl.classList.remove('invalid-nudge'),110);
     }
+  }
+  // v6 iOS 홈스크린 스타일: 성공 착지 시 ghost bounce 재생 후 사라짐
+  if(placeSuccess){
+    if(!_ghostEl)_ghostEl=document.getElementById('ghost');
+    _ghostEl.classList.add('dropping');
+    setTimeout(()=>{
+      hideGhost();
+      if(_ghostEl)_ghostEl.classList.remove('dropping');
+    }, window._lowPerf ? 100 : 180);
+  } else {
+    hideGhost();
   }
   // P0-MED-1 fix: 드래그 궤적이 보드까지 닿았을 때만 합성 click 억제.
   //               단순 탭(움직임 없음)은 click 핸들러에 그대로 위임 → 슬롯 선택 기능 유지.
