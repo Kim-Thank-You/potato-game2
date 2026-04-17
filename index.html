@@ -292,22 +292,25 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
    원칙: overshoot 금지, 80ms 단순 페이드인, 회전 없음, scale 미세
    "조용히 나타남" — 유저가 애니메이션을 의식하지 않음 */
 .cell.landing .block-inner{
-  animation: blockLand 80ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: blockLand 140ms cubic-bezier(0.34, 1.2, 0.64, 1) both;
   transform-origin: center center;
   will-change: transform, opacity;
 }
 .cell.landing .potato-wrap{
-  animation: potatoLand 80ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: potatoLand 140ms cubic-bezier(0.34, 1.2, 0.64, 1) both;
   transform-origin: center center;
   will-change: transform, opacity;
 }
+/* 착수 시 셀의 블록이 "받아내며 살짝 튀는" — 약한 오버슈트로 자연스러운 탄성 */
 @keyframes blockLand{
-  0%   { opacity: 0; transform: scale(0.92); }
-  100% { opacity: 1; transform: scale(1);    }
+  0%   { opacity: 0;   transform: scale(0.88); }
+  60%  { opacity: 1;   transform: scale(1.04); }  /* 살짝 오버슈트 */
+  100% { opacity: 1;   transform: scale(1.00); }
 }
 @keyframes potatoLand{
-  0%   { opacity: 0; transform: scale(0.88); }
-  100% { opacity: 1; transform: scale(1);    }
+  0%   { opacity: 0;   transform: scale(0.85); }
+  60%  { opacity: 1;   transform: scale(1.05); }  /* 감자는 약간 더 튐 */
+  100% { opacity: 1;   transform: scale(1.00); }
 }
 
 .cell.shake{animation:cellNudge 70ms var(--ease-press) both}
@@ -348,20 +351,19 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   transform: scale(1.08);
   transition: transform 80ms cubic-bezier(0.4, 0, 0.2, 1);  /* on-board는 더 빠른 전환 */
 }
-/* ═══ 착지 bounce: 유효 위치 drop 시 spring-back ═══ */
+/* ═══ 착지 전환: Ghost는 조용히 사라짐, 착수 연출은 Cell landing이 담당 ═══
+   이전 bounce(scale 0.94→1.03→1.00)는 과장된 "만화적 눌림"으로 부자연스러웠음.
+   Ghost는 자리에 녹듯 사라지는 역할만 — 실제 착수감은 Cell의 블록이 만든다. */
 #ghost.dropping > .piece-grid{
-  animation: ghostDrop 180ms cubic-bezier(0.34, 1.35, 0.64, 1) forwards;
+  animation: ghostDrop 120ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
 }
 @keyframes ghostDrop{
-  0%   { transform: scale(1.08); }
-  45%  { transform: scale(0.94); }  /* 눌림 */
-  75%  { transform: scale(1.03); }  /* 살짝 튕김 */
-  100% { transform: scale(1.00); }  /* 안착 */
+  0%   { transform: scale(1.08); opacity: 1;   }
+  100% { transform: scale(1.02); opacity: 0;   }  /* 살짝만 줄며 조용히 사라짐 */
 }
-/* 무효 반환 시 빠른 축소 페이드 */
-#ghost.returning > .piece-grid{
-  transform: scale(1.0);
-  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+/* dropping 중엔 drop-shadow도 같이 페이드 — 떠있는 느낌이 놓는 순간 사라져야 자연 */
+#ghost.dropping{
+  transition: opacity 120ms cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 .float-label{position:fixed;pointer-events:none;z-index:500;font-size:16px;font-weight:800;animation:labelRise 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;white-space:nowrap;letter-spacing:-.3px;transform-origin:center center}
 /* 토스 스타일: 오버슈트 없음, 부드러운 상승 + 페이드아웃 */
@@ -656,65 +658,83 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   overflow:visible;
 }
 /* ── 블록: 절제된 회전 + 축소 + dissolve ──
-/* ═══ v6 Royal Match 스타일 클리어 ═══
-   설계: 세계 매출 1위 Royal Match의 "조각조각 흩어지는 고급 도파민" 모션
-   - 두 번의 peak (8% 기척 + 28% 진짜 peak)
-   - 미세 rotate로 "조각 흩어짐" 연출
-   - blockFlash 이중 ping (기척 + peak)
-   - 450ms / 비대칭 easing (진입 스냅, 퇴장 부드러움) */
+/* ═══ v6 Gentle Vanish: 조용히 녹듯 사라지는 클리어 ═══
+   설계 원칙:
+   - rotate 완전 제거 (회전 없음 = 자연의 대칭)
+   - scale은 미세 기척(1.02)만, 그 후 단조 감소
+   - opacity가 주인공 (질감이 먼저, 색이 나중)
+   - blockFlash는 섬광 아닌 은은한 광채 (peak 0.20)
+   - Material Standard easing (보편적 자연스러움) */
 .cell.clearing .block-inner{
   transform-origin:center center;
-  animation: blockDissolve 450ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards;
+  animation: blockDissolve 450ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: var(--clear-delay, 0ms);
   will-change: transform, opacity;
   contain: paint;
   backface-visibility: hidden;
 }
 @keyframes blockDissolve{
-  /* 0-8%: 기척 — 숨 들이쉬듯 살짝 커지며 준비 */
-  0%   { opacity: 1.00; transform: scale(1)    rotate(0);    }
-  8%   { opacity: 1.00; transform: scale(1.08) rotate(0);    }
-  /* 8-28%: 진짜 Peak — 크게 부풀며 살짝 기울어짐 (조각 들뜸) */
-  28%  { opacity: 0.95; transform: scale(1.18) rotate(-2deg);}
-  /* 28-55%: 조각 흩어짐 — 부드럽게 수축하며 반대로 기울어짐 */
-  55%  { opacity: 0.55; transform: scale(0.70) rotate(3deg); }
-  /* 55-85%: Fade through — 더 수축, 더 투명 */
-  85%  { opacity: 0.15; transform: scale(0.40) rotate(-2deg);}
-  /* 85-100%: Exit — 조용히 소멸 */
-  100% { opacity: 0.00; transform: scale(0.20) rotate(0);    }
+  /* 0-15%: 미세 기척 — 거의 안 보일 정도로 살짝만 들뜸 */
+  0%   { opacity: 1.00; transform: scale(1);    }
+  15%  { opacity: 0.95; transform: scale(1.02); }
+  /* 15-45%: 본격 녹기 시작 — 천천히 줄어들며 투명화 */
+  45%  { opacity: 0.65; transform: scale(0.88); }
+  /* 45-75%: 더 투명, 더 작게 (단조 감소) */
+  75%  { opacity: 0.25; transform: scale(0.65); }
+  /* 75-100%: 조용한 마무리 */
+  100% { opacity: 0.00; transform: scale(0.45); }
 }
-/* ── 감자(potato): 블록보다 먼저 사라지되 같은 기울임 ── */
+/* ── 감자(potato): 질감이 색보다 먼저 녹는 자연스러움 ── */
 .cell.clearing .potato-wrap{
   transform-origin:center center;
-  animation: potatoDissolve 450ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards;
+  animation: potatoDissolve 450ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: var(--clear-delay, 0ms);
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
 @keyframes potatoDissolve{
-  0%   { opacity: 1.00; transform: scale(1)    rotate(0);    }
-  8%   { opacity: 1.00; transform: scale(1.10) rotate(0);    }
-  28%  { opacity: 0.85; transform: scale(1.20) rotate(-3deg);}
-  50%  { opacity: 0.30; transform: scale(0.65) rotate(4deg); }  /* 감자는 더 일찍 투명 */
-  80%  { opacity: 0.02; transform: scale(0.35) rotate(-2deg);}
-  100% { opacity: 0.00; transform: scale(0.15) rotate(0);    }
+  0%   { opacity: 1.00; transform: scale(1);    }
+  15%  { opacity: 0.92; transform: scale(1.02); }
+  40%  { opacity: 0.50; transform: scale(0.85); }  /* 감자는 40%에서 이미 50% 투명 */
+  70%  { opacity: 0.10; transform: scale(0.60); }
+  100% { opacity: 0.00; transform: scale(0.40); }
 }
-/* ── Flash 이중 ping: 기척(8%) + Peak(28%) 두 번 섬광 ── */
-.cell.clearing .block-inner::after{
-  animation: blockFlash 450ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards !important;
-  background: rgba(255,252,240,1) !important;
+/* ── Flash: 셀 전체로 퍼지는 "은은한 광채" (cell::before 레이어) ──
+   - inset:0 으로 셀 전체 영역 (이전 block-inner::after는 34×34로 갇혀있었음)
+   - scale peak(15%)와 타이밍 동기화
+   - z-index:2 로 블록 위에 표시 → 블록을 빛이 휘감는 효과
+   - 중앙 순수 흰빛 + 방사형으로 은은하게 퍼짐 */
+.cell.clearing::before{
+  display: block !important;
+  content: '';
+  position: absolute;
+  inset: 0;
   border-radius: inherit;
+  background: radial-gradient(circle at 50% 50%,
+                              rgba(255,255,255,1) 0%,
+                              rgba(255,250,230,0.85) 35%,
+                              rgba(255,240,200,0.35) 75%,
+                              rgba(255,240,200,0) 100%) !important;
   opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+  animation: blockFlash 450ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: var(--clear-delay, 0ms);
+  will-change: opacity;
+}
+/* 기존 block-inner::after는 flash 애니메이션 제거 (이중 레이어 방지) */
+.cell.clearing .block-inner::after{
+  animation: none !important;
 }
 @keyframes blockFlash{
   0%   { opacity: 0.00; }
-  8%   { opacity: 0.35; }   /* 첫 ping: 기척 단계 (부드러운 반짝) */
-  18%  { opacity: 0.10; }   /* 잠시 어두워짐 — 대비 효과 */
-  28%  { opacity: 0.85; }   /* 두 번째 ping: Peak 순간 섬광 (강렬) */
-  45%  { opacity: 0.30; }   /* 빠르게 사그라듦 */
-  70%  { opacity: 0.05; }
+  15%  { opacity: 0.55; }   /* scale peak(1.02)와 동기화 — 진짜 광채 */
+  40%  { opacity: 0.35; }   /* 두터운 잔광 */
+  75%  { opacity: 0.10; }   /* 늦게까지 유지 — 블록이 녹는 동안 빛이 남아있음 */
   100% { opacity: 0.00; }
 }
 /* warm 오버레이 제거 */
-.cell.clearing::before{display:none}
+/* .cell.clearing::before 는 위에 flash glow 레이어로 재정의됨 */
 
 /* 저사양/reduced-motion: 애니메이션 경량화 */
 @media (prefers-reduced-motion: reduce) {
@@ -728,40 +748,44 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   .board-frame.shaking, .board-frame.shaking-medium, .board-frame.shaking-heavy, .board-frame.shaking-epic { animation: none }
 }
 /* JS _lowPerf 감지 시 적용되는 경량 오버라이드 */
-/* v6 Royal Match 저사양: 4단계로 간결, rotate 제거해 GPU 절감 */
+/* v6 Gentle Vanish 저사양: 3단계로 간결, peak 없이 단조 감소만 */
 .low-perf .cell.clearing .block-inner{
-  animation: blockDissolveLite 380ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards !important;
+  animation: blockDissolveLite 380ms cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  animation-delay: var(--clear-delay, 0ms) !important;
 }
 .low-perf .cell.clearing .potato-wrap{
-  animation: potatoDissolveLite 380ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards !important;
+  animation: potatoDissolveLite 380ms cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  animation-delay: var(--clear-delay, 0ms) !important;
 }
 .low-perf .cell.clearing .block-inner::after{
-  animation: blockFlash 380ms cubic-bezier(0.34, 0.05, 0.15, 1) forwards !important;
+  animation: none !important;
+}
+/* 저사양: flash glow 레이어는 짧게 (380ms), gradient 그대로 유지 */
+.low-perf .cell.clearing::before{
+  animation: blockFlash 380ms cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  animation-delay: var(--clear-delay, 0ms) !important;
 }
 @keyframes blockDissolveLite{
   0%   { opacity: 1.00; transform: scale(1);    }
-  10%  { opacity: 1.00; transform: scale(1.08); }
-  28%  { opacity: 0.90; transform: scale(1.15); }
-  70%  { opacity: 0.35; transform: scale(0.55); }
-  100% { opacity: 0.00; transform: scale(0.25); }
+  40%  { opacity: 0.60; transform: scale(0.85); }
+  100% { opacity: 0.00; transform: scale(0.50); }
 }
 @keyframes potatoDissolveLite{
   0%   { opacity: 1.00; transform: scale(1);    }
-  10%  { opacity: 0.95; transform: scale(1.10); }
-  28%  { opacity: 0.75; transform: scale(1.18); }
-  60%  { opacity: 0.15; transform: scale(0.55); }
-  100% { opacity: 0.00; transform: scale(0.20); }
+  40%  { opacity: 0.40; transform: scale(0.80); }
+  100% { opacity: 0.00; transform: scale(0.45); }
 }
-/* 저사양에서 착지 애니메이션도 단순화 */
+/* 저사양에서 착지 애니메이션: 미세 스프링만, 100ms로 짧게 */
 .low-perf .cell.landing .block-inner{
-  animation: blockLandLite 60ms cubic-bezier(0.4, 0, 0.2, 1) both !important;
+  animation: blockLandLite 100ms cubic-bezier(0.34, 1.1, 0.64, 1) both !important;
 }
 .low-perf .cell.landing .potato-wrap{
-  animation: blockLandLite 60ms cubic-bezier(0.4, 0, 0.2, 1) both !important;
+  animation: blockLandLite 100ms cubic-bezier(0.34, 1.1, 0.64, 1) both !important;
 }
 @keyframes blockLandLite{
-  0%   { opacity: 0; transform: scale(0.94); }
-  100% { opacity: 1; transform: scale(1);    }
+  0%   { opacity: 0; transform: scale(0.92); }
+  60%  { opacity: 1; transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1.00); }
 }
 /* 저사양: drop-shadow 비활성화 + scale 효과 축소 (GPU 절감) */
 .low-perf #ghost > .piece-grid{
@@ -775,11 +799,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   transform: scale(1.03) !important;
 }
 .low-perf #ghost.dropping > .piece-grid{
-  animation: ghostDropLite 100ms cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  animation: ghostDropLite 80ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards !important;
 }
 @keyframes ghostDropLite{
-  0%   { transform: scale(1.03); }
-  100% { transform: scale(1.00); }
+  0%   { transform: scale(1.03); opacity: 1; }
+  100% { transform: scale(1.00); opacity: 0; }
 }
 .low-perf .board-frame.shaking{animation-duration:.2s !important}
 .low-perf .board-frame.shaking-medium{animation-duration:.24s !important}
@@ -1681,10 +1705,10 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
     el.classList.add('landing');
     landingCells.push(el);
   });
-  // 단 1개의 setTimeout으로 모든 셀의 landing 클래스 제거
+  // 단 1개의 setTimeout으로 모든 셀의 landing 클래스 제거 (140ms 애니 + 20ms 여유)
   setTimeout(()=>{
     landingCells.forEach(el=>el.classList.remove('landing'));
-  }, 100);
+  }, 160);
   // 착지 햅틱 — 블록 크기에 따라 강도 조절
   haptic(p.shape.length>=5?'medium':'light');
   Sound.sfx.place();
@@ -1738,20 +1762,32 @@ function clearLines(){
   if(!toRemove.length)return{lines:0,cells:0};
   _boardFilled-=toRemove.length;
   for(const[r,c]of toRemove){board[r][c]=null}
-  // ═══ 토스 스타일: stagger 없음, 모든 셀 동시에 조용히 사라짐 ═══
-  // CSS animation-delay도 제거 — 전부 0ms
+  // ═══ Woodoku Stagger: 좌상→우하 파도타기 연출 ═══
+  //    각 셀이 자기 위치에 따라 delay를 갖고 순차적으로 녹음
+  //    저사양: 계수 절반(6ms)으로 총 시간 단축
+  const minRow = toRemove.reduce((m,[r,_])=>Math.min(m,r), GRID);
+  const minCol = toRemove.reduce((m,[_,c])=>Math.min(m,c), GRID);
+  let maxDelay = 0;
+  const coef = window._lowPerf ? 6 : 12;
   toRemove.forEach(([r,c])=>{
-    cellEls[r][c].classList.add('clearing');
+    const el = cellEls[r][c];
+    const delay = (c - minCol) * coef + (r - minRow) * coef;
+    if(delay > maxDelay) maxDelay = delay;
+    el.style.setProperty('--clear-delay', delay + 'ms');
+    el.classList.add('clearing');
   });
-  const CLEAR_DUR = 450; // CSS와 일치 (Royal Match 스타일)
+  const CLEAR_DUR = 450; // CSS와 일치
+  // 총 대기 시간 = Dissolve duration + 최대 delay + 여유
+  const totalWait = CLEAR_DUR + maxDelay + 30;
   const _timerId=setTimeout(()=>{
     _activeClearTimers.delete(_timerId);
     for(const[r,c]of toRemove){
       const el=cellEls[r][c];
       el.className='cell'+(isSectionAlt(r,c)?' section-alt':'');
       el.dataset.r=r;el.dataset.c=c;el.innerHTML='';
+      el.style.removeProperty('--clear-delay'); // 다음 클리어를 위해 정리
     }
-  }, CLEAR_DUR + 30);
+  }, totalWait);
   _activeClearTimers.add(_timerId);
   return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:toRemove};
 }
@@ -2240,7 +2276,7 @@ function onUp(e){
     setTimeout(()=>{
       hideGhost();
       if(_ghostEl)_ghostEl.classList.remove('dropping');
-    }, window._lowPerf ? 100 : 180);
+    }, window._lowPerf ? 80 : 120);
   } else {
     hideGhost();
   }
@@ -2351,9 +2387,9 @@ function skipExtend(){Sound.sfx.uiClick();document.getElementById('gameover-over
 
 // ═══ EXTEND ═══
 function extendDiamond(){if(extendUsed)return;if(!spendCoins(200)){showToast('코인이 부족합니다!');return}extendUsed=true;Sound.sfx.extend();haptic('success');document.getElementById('gameover-overlay').classList.remove('on');let bestRow=-1,bestCount=-1;for(let r=0;r<GRID;r++){const count=board[r].filter(v=>v!==null).length;if(count>bestCount){bestCount=count;bestRow=r}}if(bestRow>=0){// ★ board 즉시 비움
-for(let c=0;c<GRID;c++)if(board[bestRow][c]!==null){cellEls[bestRow][c].classList.add('clearing');board[bestRow][c]=null}
-const clearDur=(window._lowPerf?500:750)+30;
-const _t=setTimeout(()=>{_activeClearTimers.delete(_t);for(let c=0;c<GRID;c++){const el=cellEls[bestRow][c];el.className='cell'+(isSectionAlt(bestRow,c)?' section-alt':'');el.dataset.r=bestRow;el.dataset.c=c;el.innerHTML=''}},clearDur);
+for(let c=0;c<GRID;c++)if(board[bestRow][c]!==null){cellEls[bestRow][c].style.setProperty('--clear-delay',(c*(window._lowPerf?6:12))+'ms');cellEls[bestRow][c].classList.add('clearing');board[bestRow][c]=null}
+const clearDur=(window._lowPerf?500:750)+30+GRID*(window._lowPerf?6:12);
+const _t=setTimeout(()=>{_activeClearTimers.delete(_t);for(let c=0;c<GRID;c++){const el=cellEls[bestRow][c];el.className='cell'+(isSectionAlt(bestRow,c)?' section-alt':'');el.dataset.r=bestRow;el.dataset.c=c;el.innerHTML='';el.style.removeProperty('--clear-delay')}},clearDur);
 _activeClearTimers.add(_t);
 setTimeout(()=>{if(pieces.every(p=>p.used))newSet();gameActive=true;setTimeout(checkGameOver,50)},clearDur+50)}}
 // extendAd: 광고 시뮬레이션 중 취소 가능하도록 interval을 모듈 변수로 보관
@@ -2375,9 +2411,9 @@ function extendAd(){if(extendUsed)return;extendUsed=true;Sound.sfx.uiClick();doc
     let bestRow=-1,bestCount=-1;
     for(let r=0;r<GRID;r++){const cnt=board[r].filter(v=>v!==null).length;if(cnt>bestCount){bestCount=cnt;bestRow=r}}
     if(bestRow>=0){
-      for(let c=0;c<GRID;c++)if(board[bestRow][c]!==null){cellEls[bestRow][c].classList.add('clearing');board[bestRow][c]=null}
-      const clearDur=(window._lowPerf?500:750)+30;
-      const _t2=setTimeout(()=>{_activeClearTimers.delete(_t2);for(let c=0;c<GRID;c++){const el=cellEls[bestRow][c];el.className='cell'+(isSectionAlt(bestRow,c)?' section-alt':'');el.dataset.r=bestRow;el.dataset.c=c;el.innerHTML=''}},clearDur);
+      for(let c=0;c<GRID;c++)if(board[bestRow][c]!==null){cellEls[bestRow][c].style.setProperty('--clear-delay',(c*(window._lowPerf?6:12))+'ms');cellEls[bestRow][c].classList.add('clearing');board[bestRow][c]=null}
+      const clearDur=(window._lowPerf?500:750)+30+GRID*(window._lowPerf?6:12);
+      const _t2=setTimeout(()=>{_activeClearTimers.delete(_t2);for(let c=0;c<GRID;c++){const el=cellEls[bestRow][c];el.className='cell'+(isSectionAlt(bestRow,c)?' section-alt':'');el.dataset.r=bestRow;el.dataset.c=c;el.innerHTML='';el.style.removeProperty('--clear-delay')}},clearDur);
       _activeClearTimers.add(_t2);
       renderTray();gameActive=true;
       setTimeout(checkGameOver,clearDur+100);
