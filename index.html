@@ -1,19 +1,28 @@
 <!DOCTYPE html>
 <!--
-  감자팡팡 (Potato Woodoku) v5 — 2026-04-17
-  [초기 통합 정비]
-  - BGM 완전 제거 (startBGM/stopBGM 호출 포함)
-  - 애니메이션 금기 규칙 위반 3건 저사양 모드에서 비활성화
-  - _adBoostLeft 날짜 기반 영속화 (pw2_boost_YYYY-MM-DD)
-  - extendAd interval 취소 경로 추가
-  - P1-A 하드웨어 힌트 즉시 감지 실제 구현
-  - P1-C iOS 드래그 가드 실제 구현
-  - 데드코드 정리 (getRankReward, COMBO_BONUS 폴백)
-  - pw2_muted 타입 일관화 ('1' 또는 null)
-  [QA 라운드 추가 수정]
-  - P0-HIGH-1 결과 화면 "⚠ 미검증 점수" 문구 제거 (버프 적용 시에만 표시)
-  - P0-HIGH-2 PERFECT 콤보 배너 분기 버그 수정 (levels[5] 추가)
-  - P0-MED-1 드래그 실패 후 합성 click으로 슬롯 자동 재선택 방지
+  감자팡팡 (Potato Woodoku) v6 — 2026-04-17
+  [v6 토스 스타일 전환 — 최신]
+  - 원칙: "모션이 보여야 실패. 모션이 느껴져야 성공."
+  - Overshoot 전면 제거 (ease-pop 사용 0건)
+  - 블록 착지: 80ms 단순 페이드인 (scale 0.92→1, 회전 없음)
+  - 라인 클리어: 220ms 조용한 페이드 (회전 0°, stagger 0, brightness 제거)
+  - Ghost 예고: scale 1.015 (거의 느껴지지 않는 수준)
+  - Score bump: peak 1.04/1.06/1.08 (이전 1.10/1.20/1.32에서 축소)
+  - Combo banner: scale 0.96→1 미세 변화, rotate/halo/glow 제거
+  - Board shake: 진폭 절반, 3단계 (epic 제거)
+  - Particles: 포물선·회전 제거, 짧은 상승+페이드만
+  - 모든 easing: cubic-bezier(0.4, 0, 0.2, 1) 차분한 곡선으로 통일
+  상세: v6-toss-style.md 참조
+
+  [v6 성능 대수술 (이전 라운드, 유지)]
+  - filter:brightness 제거, setTimeout stagger CSS화 등 9건
+
+  [v6 초기 모션 재설계 (이전, 대부분 토스 스타일로 재교체됨)]
+  - 새 easing 4종 + duration 5종 변수 시스템
+  - 라인 클리어/착지/Ghost/배너/파티클 전면 재작성
+
+  [v5에서 계승]
+  - BGM 제거, 금기 규칙 fallback, _adBoostLeft 영속화, P1-A/C, _suppressClickUntil
 -->
 <html lang="ko">
 <head>
@@ -41,6 +50,22 @@
   --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.10);
   --text-1:#F7FAFC;--text-2:rgba(247,250,252,0.52);--text-3:rgba(247,250,252,0.28);
   --radius-sm:10px;--radius-md:16px;--radius-lg:22px;--radius-xl:28px;
+
+  /* ═══ v6 Motion System ═══ */
+  /* Easing — 4종, 각각 명확한 용도 (CSS 기본 ease 절대 사용 금지) */
+  --ease-snap:   cubic-bezier(0.22, 1, 0.36, 1);      /* UI 전환, 자연스러운 감속 (대부분의 경우) */
+  --ease-pop:    cubic-bezier(0.34, 1.56, 0.64, 1);   /* Overshoot, "펑" 착지감 */
+  --ease-smooth: cubic-bezier(0.65, 0, 0.35, 1);      /* 대칭 in-out, 부드러운 전환 */
+  --ease-sharp:  cubic-bezier(0.4, 0, 0.6, 1);        /* 짧은 물리 피드백 */
+  /* Duration — 12 frame(200ms) 기준 다섯 단계 */
+  --dur-instant: 80ms;   /* 미세 피드백: 터치, nudge */
+  --dur-fast:    120ms;  /* 블록 착지, Ghost 전환 */
+  --dur-normal:  200ms;  /* 일반 UI 전환 */
+  --dur-medium:  320ms;  /* 주요 동작: 점수 pump, board shake */
+  --dur-slow:    500ms;  /* 의미 있는 전환: 라인 클리어, 콤보 배너 */
+  --dur-epic:    800ms;  /* 이벤트 클라이맥스 */
+
+  /* ── 레거시 (점진적 치환 중, 유지) ── */
   --dur-tap:100ms;--dur-select:160ms;--dur-settle:180ms;
   --dur-score:180ms;--dur-clear:220ms;--dur-card:260ms;--dur-label:480ms;
   --ease-out:cubic-bezier(0.22,1,0.36,1);
@@ -57,7 +82,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 
 /* ═══ SCREENS ═══ */
 .screen{display:none;flex-direction:column;width:100%;height:100%;position:absolute;inset:0;opacity:0}
-.screen.active{display:flex;animation:screenIn .3s ease forwards}
+.screen.active{display:flex;animation:screenIn .3s var(--ease-snap) forwards}
 @keyframes screenIn{0%{opacity:0}100%{opacity:1}}
 
 /* ═══ LOBBY SCREEN ═══ */
@@ -115,7 +140,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .stats-progress-sub{font-size:10px;font-weight:700;text-align:center;margin-top:5px;color:#ffffff4d}
 
 /* Guide Trigger */
-.guide-trigger{width:100%;display:flex;align-items:center;gap:10px;background:#ffffff05;border:1px solid rgba(255,255,255,.05);border-radius:14px;padding:clamp(11px,2vh,16px) clamp(14px,3vw,18px);cursor:pointer;position:relative;overflow:hidden;box-shadow:inset 0 1px #ffffff0a;flex-shrink:0;-webkit-tap-highlight-color:transparent;transition:transform .08s ease}
+.guide-trigger{width:100%;display:flex;align-items:center;gap:10px;background:#ffffff05;border:1px solid rgba(255,255,255,.05);border-radius:14px;padding:clamp(11px,2vh,16px) clamp(14px,3vw,18px);cursor:pointer;position:relative;overflow:hidden;box-shadow:inset 0 1px #ffffff0a;flex-shrink:0;-webkit-tap-highlight-color:transparent;transition:transform .08s var(--ease-snap)}
 .guide-trigger:active{transform:scale(.97)}
 .guide-trigger-ico{font-size:16px;flex-shrink:0}
 .guide-trigger-text{flex:1;font-size:12px;font-weight:800;color:#fbbf24bf;letter-spacing:1px;text-align:left;text-transform:uppercase}
@@ -134,15 +159,15 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .guide-row .guide-txt{flex:1}
 .guide-row.red .guide-txt{color:#f87171;font-weight:700}
 .guide-row.gold .guide-txt{color:rgba(251,191,36,.85)}
-.guide-close-btn{width:100%;padding:15px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(175deg,rgba(255,255,255,.06),rgba(255,255,255,.02));color:rgba(255,255,255,.7);font-size:14px;font-weight:800;cursor:pointer;margin-top:14px;transition:transform .08s ease;letter-spacing:.3px}
+.guide-close-btn{width:100%;padding:15px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(175deg,rgba(255,255,255,.06),rgba(255,255,255,.02));color:rgba(255,255,255,.7);font-size:14px;font-weight:800;cursor:pointer;margin-top:14px;transition:transform .08s var(--ease-snap);letter-spacing:.3px}
 .guide-close-btn:active{transform:scale(.96);opacity:.6}
 
 /* Start Button */
-.start-btn{width:100%;padding:16px;border-radius:18px;border:1px solid rgba(255,255,255,.3);background:linear-gradient(180deg,#ffd54f,#fbbf24 40%,#e8a817);box-shadow:inset 0 2px #ffffff73,inset 0 -2px 4px #00000026,0 4px 14px #fbbf2459;color:#1a1000;font-size:18px;font-weight:900;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;cursor:pointer;position:relative;overflow:hidden;transition:transform .08s ease;display:block;letter-spacing:.3px}
+.start-btn{width:100%;padding:16px;border-radius:18px;border:1px solid rgba(255,255,255,.3);background:linear-gradient(180deg,#ffd54f,#fbbf24 40%,#e8a817);box-shadow:inset 0 2px #ffffff73,inset 0 -2px 4px #00000026,0 4px 14px #fbbf2459;color:#1a1000;font-size:18px;font-weight:900;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;cursor:pointer;position:relative;overflow:hidden;transition:transform .08s var(--ease-snap);display:block;letter-spacing:.3px}
 .start-btn:before{content:"";position:absolute;top:0;left:0;right:0;height:45%;background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,.1),transparent);pointer-events:none}
 .start-btn:after{content:none}
 .start-btn:active{transform:scale(.95);box-shadow:inset 0 2px 4px #0000004d,0 2px 6px #fbbf2433;animation:none}
-.start-btn{animation:startPulse 2.5s ease-in-out infinite}
+.start-btn{animation:startPulse 3.5s var(--ease-smooth) infinite}
 @keyframes startPulse{0%,100%{box-shadow:inset 0 2px 1px rgba(255,255,255,.6),inset 0 -1px 2px rgba(0,0,0,.1),0 4px 14px rgba(251,191,36,.35)}50%{box-shadow:inset 0 2px 1px rgba(255,255,255,.6),inset 0 -1px 2px rgba(0,0,0,.1),0 4px 20px rgba(251,191,36,.55),0 0 24px rgba(251,191,36,.15)}}
 
 /* ═══ GAME (PLAY) SCREEN ═══ */
@@ -157,21 +182,36 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .undo-btn{position:relative;width:auto;height:34px;padding:0 14px;gap:6px;font-size:13px;border:1px solid rgba(251,191,36,.45);background:linear-gradient(180deg,rgba(251,191,36,.18) 0%,rgba(251,191,36,.06) 100%);border-radius:100px;box-shadow:0 2px 8px rgba(251,191,36,.12),inset 0 1px 0 rgba(255,255,255,.08)}
 .undo-btn:disabled{opacity:.2;pointer-events:none}
 .undo-btn .undo-label{font-size:13px;font-weight:900;color:#fbbf24;letter-spacing:.3px}
-.undo-count{min-width:20px;height:20px;border-radius:10px;background:#fbbf24;color:#1a1000;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(251,191,36,.3);transition:transform .15s ease}
-.undo-count.pop{animation:undoPop .3s ease both}
-@keyframes undoPop{0%{transform:scale(1.4)}50%{transform:scale(.85)}100%{transform:scale(1)}}
-.undo-btn.flash{animation:undoFlash .35s ease both}
+.undo-count{min-width:20px;height:20px;border-radius:10px;background:#fbbf24;color:#1a1000;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1;box-shadow:0 1px 4px rgba(251,191,36,.3);transition:transform .15s var(--ease-snap)}
+.undo-count.pop{animation:undoPop .3s var(--ease-snap) both}
+@keyframes undoPop{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+.undo-btn.flash{animation:undoFlash .35s var(--ease-snap) both}
 @keyframes undoFlash{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5),0 2px 8px rgba(251,191,36,.12)}50%{box-shadow:0 0 12px 4px rgba(74,222,128,.35),0 2px 8px rgba(251,191,36,.12)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0),0 2px 8px rgba(251,191,36,.12)}}
-.undo-toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;font-weight:900;color:#4ade80;white-space:nowrap;pointer-events:none;animation:undoToastAnim .7s ease forwards;z-index:500}
+.undo-toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;font-weight:900;color:#4ade80;white-space:nowrap;pointer-events:none;animation:undoToastAnim .7s var(--ease-snap) forwards;z-index:500}
 @keyframes undoToastAnim{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}40%{opacity:1;transform:translate(-50%,-60%)}100%{opacity:0;transform:translate(-50%,-80%)}}
-.cur-score-wrap{flex-shrink:0;text-align:center;padding:clamp(0px,.3vh,2px) 0 clamp(2px,1vh,8px)}
-.cur-score{font-size:clamp(36px,7vh,52px);font-weight:800;letter-spacing:-2.5px;line-height:1;background:linear-gradient(170deg,#F5F0E8 15%,#D4B870 55%,#A07828 90%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none}
-.cur-score.bump{animation:scoreBump var(--dur-score) var(--ease-out) both}
-@keyframes scoreBump{0%{transform:scale(1)}45%{transform:scale(1.07)}100%{transform:scale(1)}}
-.cur-score.bump-big{animation:scoreBumpBig 280ms var(--ease-out) both}
-@keyframes scoreBumpBig{0%{transform:scale(1)}35%{transform:scale(1.14)}100%{transform:scale(1)}}
-.cur-score.bump-mega{animation:scoreBumpMega 320ms var(--ease-out) both}
-@keyframes scoreBumpMega{0%{transform:scale(1)}30%{transform:scale(1.22)}60%{transform:scale(.97)}100%{transform:scale(1)}}
+.cur-score-wrap{flex-shrink:0;text-align:center;padding:clamp(0px,.3vh,2px) 0 clamp(2px,1vh,8px);position:relative}
+.cur-score{font-size:clamp(36px,7vh,52px);font-weight:800;letter-spacing:-2.5px;line-height:1;background:linear-gradient(170deg,#F5F0E8 15%,#D4B870 55%,#A07828 90%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none;position:relative;display:inline-block;transform-origin:center center}
+.cur-score.bump,.cur-score.bump-big,.cur-score.bump-mega{will-change:transform}
+/* v6 토스 스타일: scale peak 축소 (1.04/1.06/1.08), bounce 제거 */
+.cur-score.bump     {animation: scoreBump     180ms cubic-bezier(0.4, 0, 0.2, 1) both}
+.cur-score.bump-big {animation: scoreBumpBig  220ms cubic-bezier(0.4, 0, 0.2, 1) both}
+.cur-score.bump-mega{animation: scoreBumpMega 260ms cubic-bezier(0.4, 0, 0.2, 1) both}
+@keyframes scoreBump{
+  0%   { transform: scale(1);    }
+  50%  { transform: scale(1.04); }
+  100% { transform: scale(1);    }
+}
+@keyframes scoreBumpBig{
+  0%   { transform: scale(1);    }
+  50%  { transform: scale(1.06); }
+  100% { transform: scale(1);    }
+}
+@keyframes scoreBumpMega{
+  0%   { transform: scale(1);    }
+  50%  { transform: scale(1.08); }
+  100% { transform: scale(1);    }
+}
+/* glow halo 제거 (토스 스타일: 과장 금지) */
 .streak-badge{display:inline-flex;align-items:center;gap:5px;background:var(--gold-dim);border:1px solid rgba(245,200,66,.18);border-radius:100px;padding:3px 12px;font-size:12px;font-weight:700;color:var(--gold);opacity:0;transform:translateY(2px);transition:opacity var(--dur-select) var(--ease-io),transform var(--dur-select) var(--ease-out),background .2s,border-color .2s,font-size .2s,padding .2s;margin-top:3px;letter-spacing:.2px}
 .streak-badge.show{opacity:1;transform:translateY(0)}
 .streak-badge.s3{font-size:14px;padding:4px 14px;background:rgba(251,191,36,.18);border-color:rgba(251,191,36,.35);color:#fbbf24}
@@ -179,7 +219,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .streak-badge.s5{font-size:16px;padding:5px 18px;background:rgba(249,168,212,.15);border-color:rgba(249,168,212,.35);color:#F9A8D4}
 .streak-badge.streak-pop{animation:streakPop 250ms var(--ease-out) both}
 @keyframes streakPop{0%{transform:scale(.7)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
-.goal-hint{font-size:11px;font-weight:700;color:rgba(251,191,36,.5);letter-spacing:.3px;margin-top:2px;height:16px;transition:opacity .3s ease}
+.goal-hint{font-size:11px;font-weight:700;color:rgba(251,191,36,.5);letter-spacing:.3px;margin-top:2px;height:16px;transition:opacity .3s var(--ease-snap)}
 .goal-hint.achieved{color:rgba(74,222,128,.7)}
 .board-area{flex:1;display:flex;align-items:center;justify-content:center;padding:0 clamp(4px,1.2vw,8px);min-height:0;contain:layout;overflow:hidden}
 .board-outer{width:var(--board-size,100%);max-width:var(--board-size,100%)}
@@ -247,14 +287,33 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 }
 .cell.preview-valid::after{background:rgba(99,179,237,.08)}
 .cell.preview-invalid::before{content:'';position:absolute;inset:4px;border-radius:5px;background:rgba(220,38,38,.55);pointer-events:none;z-index:2}
-/* 성공 배치: 단단한 안착 — 짧은 scale snap + opacity pop */
-/* 착지 애니메이션 제거됨 — 블록이 그냥 자연스럽게 나타남 */
-/* cellFade replaced by cellGlow */
+
+/* ═══ v6 토스 스타일 블록 착지 ═══
+   원칙: overshoot 금지, 80ms 단순 페이드인, 회전 없음, scale 미세
+   "조용히 나타남" — 유저가 애니메이션을 의식하지 않음 */
+.cell.landing .block-inner{
+  animation: blockLand 80ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+.cell.landing .potato-wrap{
+  animation: potatoLand 80ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  transform-origin: center center;
+  will-change: transform, opacity;
+}
+@keyframes blockLand{
+  0%   { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1);    }
+}
+@keyframes potatoLand{
+  0%   { opacity: 0; transform: scale(0.88); }
+  100% { opacity: 1; transform: scale(1);    }
+}
 
 .cell.shake{animation:cellNudge 70ms var(--ease-press) both}
 @keyframes cellNudge{0%{transform:translateX(0)}35%{transform:translateX(-2px)}70%{transform:translateX(2px)}100%{transform:translateX(0)}}
 .tray{flex-shrink:0;padding:clamp(4px,1.2vh,10px) 12px clamp(8px,2.5vh,22px);display:flex;gap:10px;align-items:center;justify-content:center;contain:layout;padding-bottom:max(clamp(8px,2.5vh,22px),env(safe-area-inset-bottom,0px))}
-.piece-slot{flex:1;max-width:120px;min-height:clamp(70px,12vh,100px);contain:layout;background:linear-gradient(175deg,rgba(255,255,255,.035) 0%,var(--surface) 40%,rgba(0,0,0,.22) 100%);border:1px solid rgba(255,255,255,.055);border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(0,0,0,.5);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;touch-action:none;user-select:none;transition:transform var(--dur-select) var(--ease-out),opacity var(--dur-select) var(--ease-io);box-shadow:0 2px 4px rgba(0,0,0,.4),0 4px 12px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05),inset 0 -2px 4px rgba(0,0,0,.28)}
+.piece-slot{flex:1;max-width:120px;min-height:clamp(70px,12vh,100px);contain:layout;background:linear-gradient(175deg,rgba(255,255,255,.035) 0%,var(--surface) 40%,rgba(0,0,0,.22) 100%);border:1px solid rgba(255,255,255,.055);border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(0,0,0,.5);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;touch-action:none;user-select:none;transition:transform var(--dur-fast) var(--ease-snap),opacity var(--dur-fast) var(--ease-snap);box-shadow:0 2px 4px rgba(0,0,0,.4),0 4px 12px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05),inset 0 -2px 4px rgba(0,0,0,.28)}
 .piece-slot::after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none}
 .piece-slot.selected{border-color:rgba(184,151,92,.40);border-top-color:rgba(184,151,92,.55);background:linear-gradient(175deg,rgba(184,151,92,.06) 0%,rgba(184,151,92,.02) 100%);transform:translateY(-5px) scale(1.02);box-shadow:0 6px 16px rgba(150,115,50,.12),0 2px 6px rgba(0,0,0,.35),inset 0 1px 0 rgba(184,151,92,.10)}
 .piece-slot.used{opacity:.16;pointer-events:none}
@@ -267,8 +326,34 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 #ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;visibility:hidden;opacity:0;will-change:transform;backface-visibility:hidden;contain:layout style}
 #ghost.on-board{opacity:1}
 #ghost.visible{visibility:visible;opacity:.9}
-.float-label{position:fixed;pointer-events:none;z-index:500;font-size:16px;font-weight:800;animation:labelRise var(--dur-label) var(--ease-out) forwards;white-space:nowrap;letter-spacing:-.3px}
-@keyframes labelRise{0%{opacity:0;transform:translateY(4px)}18%{opacity:1;transform:translateY(-12px)}70%{opacity:.9;transform:translateY(-26px)}100%{opacity:0;transform:translateY(-38px)}}
+/* ═══ v6 토스 스타일 Ghost 배치 예고 ═══
+   scale 1.015의 미세 반응만 — "여기 놓을 수 있어"를 조용히 확인시켜줌
+   듀레이션 80ms로 단축 (빠른 반응) */
+#ghost > .piece-grid{
+  transform: scale(1);
+  transition: transform 80ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+#ghost.on-board > .piece-grid{
+  transform: scale(1.015);
+}
+.float-label{position:fixed;pointer-events:none;z-index:500;font-size:16px;font-weight:800;animation:labelRise 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;white-space:nowrap;letter-spacing:-.3px;transform-origin:center center}
+/* 토스 스타일: 오버슈트 없음, 부드러운 상승 + 페이드아웃 */
+@keyframes labelRise{
+  0%   { opacity: 0;   transform: translate(-50%, -50%) translateY(4px);    }
+  20%  { opacity: 1;   transform: translate(-50%, -50%) translateY(-8px);   }
+  100% { opacity: 0;   transform: translate(-50%, -50%) translateY(-34px);  }
+}
+/* big variant — 3+ 라인 시 조금 더 오래, 조금 더 높이 (하지만 scale bounce 없음) */
+.float-label.big{
+  animation: labelRiseBig 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  font-weight: 900;
+}
+@keyframes labelRiseBig{
+  0%   { opacity: 0;   transform: translate(-50%, -50%) translateY(6px);    }
+  18%  { opacity: 1;   transform: translate(-50%, -50%) translateY(-12px);  }
+  100% { opacity: 0;   transform: translate(-50%, -50%) translateY(-48px);  }
+}
 
 /* ── 클리어 이펙트: 보드 진동 ──────────────────────────────────────
    제미나이 원안 대비 수정사항:
@@ -276,25 +361,40 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
    · scale 제거 — layout 영향 차단
    · transform:translate 만 사용 — compositor thread 전용
    · board-frame 에만 적용 — 전체 화면 멀미 방지 ──────────────── */
+/* ═══ v6 토스 스타일 Board Shake ═══
+   진폭 절반, 3단계 (1~2 / 3~4 / 5+), rotate 없음 */
 @keyframes boardPulse {
+  /* 1~2 라인: 아주 미세한 흔들림 */
+  0%   { transform: translate3d(0,0,0); }
+  25%  { transform: translate3d(-1px,0,0); }
+  50%  { transform: translate3d(1px,0,0); }
+  75%  { transform: translate3d(-1px,0,0); }
+  100% { transform: translate3d(0,0,0); }
+}
+@keyframes boardPulseMedium {
+  /* 3 라인: 약간 강함 */
   0%   { transform: translate3d(0,0,0); }
   20%  { transform: translate3d(-2px,1px,0); }
   40%  { transform: translate3d(2px,-1px,0); }
-  60%  { transform: translate3d(-2px,-1px,0); }
-  80%  { transform: translate3d(2px,1px,0); }
+  60%  { transform: translate3d(-2px,0,0); }
+  80%  { transform: translate3d(1px,0,0); }
   100% { transform: translate3d(0,0,0); }
 }
 @keyframes boardPulseHeavy {
+  /* 4+ 라인: 좀 더 강함 (그래도 기존 대비 절반) */
   0%   { transform: translate3d(0,0,0); }
-  15%  { transform: translate3d(-4px,2px,0); }
-  30%  { transform: translate3d(4px,-2px,0); }
-  45%  { transform: translate3d(-4px,-2px,0); }
-  60%  { transform: translate3d(4px,2px,0); }
-  80%  { transform: translate3d(-2px,1px,0); }
+  15%  { transform: translate3d(-3px,1px,0); }
+  30%  { transform: translate3d(3px,-1px,0); }
+  45%  { transform: translate3d(-3px,-1px,0); }
+  60%  { transform: translate3d(3px,1px,0); }
+  80%  { transform: translate3d(-1px,0,0); }
   100% { transform: translate3d(0,0,0); }
 }
-.board-frame.shaking       { animation: boardPulse      0.32s var(--ease-out) both; }
-.board-frame.shaking-heavy { animation: boardPulseHeavy 0.42s var(--ease-out) both; }
+.board-frame.shaking        { animation: boardPulse       220ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+.board-frame.shaking-medium { animation: boardPulseMedium 280ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+.board-frame.shaking-heavy  { animation: boardPulseHeavy  320ms cubic-bezier(0.4, 0, 0.2, 1) both; }
+/* epic 클래스는 heavy 키프레임 재사용 (토스 스타일: 과장 금지) */
+.board-frame.shaking-epic   { animation: boardPulseHeavy  320ms cubic-bezier(0.4, 0, 0.2, 1) both; }
 
 /* ── 코인 파티클 ────────────────────────────────────────────────────
    제미나이 원안 대비 수정사항:
@@ -314,7 +414,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .modal-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-xl);padding:24px;width:min(280px,82vw);animation:cardSlide var(--dur-card) var(--ease-out) both}
 @keyframes cardSlide{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 .modal-close{width:30px;height:30px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text-2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.modal-btn{flex:1;padding:14px;border-radius:14px;border:none;font-size:15px;font-weight:800;cursor:pointer;transition:transform .08s ease}
+.modal-btn{flex:1;padding:14px;border-radius:14px;border:none;font-size:15px;font-weight:800;cursor:pointer;transition:transform .08s var(--ease-snap)}
 .modal-btn:active{transform:scale(.96)}
 .modal-btn.primary{background:var(--gold);color:#1a1000}
 .modal-btn.danger{background:var(--red);color:#fff}
@@ -358,17 +458,17 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .weekly-cut-diff.negative{color:#fbbf24;background:rgba(251,191,36,.08)}
 
 /* Reward Trigger (접힌 상태) */
-.result-reward-trigger{display:flex;align-items:center;gap:10px;background:linear-gradient(165deg,rgba(20,24,45,.9),rgba(12,16,35,.95));border:1px solid rgba(251,191,36,.15);border-radius:14px;padding:14px 16px;cursor:pointer;animation:resCardIn .4s cubic-bezier(.16,1,.3,1) .3s both;transition:transform .08s ease;-webkit-tap-highlight-color:transparent}
+.result-reward-trigger{display:flex;align-items:center;gap:10px;background:linear-gradient(165deg,rgba(20,24,45,.9),rgba(12,16,35,.95));border:1px solid rgba(251,191,36,.15);border-radius:14px;padding:14px 16px;cursor:pointer;animation:resCardIn .4s cubic-bezier(.16,1,.3,1) .3s both;transition:transform .08s var(--ease-snap);-webkit-tap-highlight-color:transparent}
 .result-reward-trigger:active{transform:scale(.97)}
 .reward-trigger-icon{font-size:16px;flex-shrink:0}
 .reward-trigger-text{flex:1;font-size:13px;font-weight:800;color:rgba(255,255,255,.65);letter-spacing:.3px}
-.reward-trigger-badge{font-size:9px;font-weight:900;color:#fbbf24;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.3);border-radius:100px;padding:3px 8px;letter-spacing:.5px;animation:msBadge .5s ease .5s both}
+.reward-trigger-badge{font-size:9px;font-weight:900;color:#fbbf24;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.3);border-radius:100px;padding:3px 8px;letter-spacing:.5px;animation:msBadge .5s var(--ease-snap) .5s both}
 .reward-trigger-arrow{font-size:18px;font-weight:700;color:rgba(255,255,255,.25);flex-shrink:0}
 
 /* Milestone Popup Overlay */
 .milestone-overlay{position:fixed;inset:0;z-index:320;background:rgba(6,8,18,.88);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 200ms var(--ease-io);padding:20px}
 .milestone-overlay.on{opacity:1;pointer-events:all}
-.milestone-popup{background:linear-gradient(170deg,#111628,var(--surface));border:1px solid rgba(251,191,36,.15);border-radius:22px;padding:24px 20px 20px;width:min(360px,88vw);max-height:75vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;box-shadow:0 16px 48px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4);transform:translateY(20px) scale(.95);opacity:0;transition:transform .3s cubic-bezier(.16,1,.3,1),opacity .3s ease}
+.milestone-popup{background:linear-gradient(170deg,#111628,var(--surface));border:1px solid rgba(251,191,36,.15);border-radius:22px;padding:24px 20px 20px;width:min(360px,88vw);max-height:75vh;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;box-shadow:0 16px 48px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4);transform:translateY(20px) scale(.95);opacity:0;transition:transform .3s cubic-bezier(.16,1,.3,1),opacity .3s var(--ease-snap)}
 .milestone-overlay.on .milestone-popup{transform:translateY(0) scale(1);opacity:1}
 
 /* Milestone Content */
@@ -377,7 +477,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .milestone-week{font-size:10px;font-weight:700;color:rgba(255,255,255,.25)}
 .milestone-list{display:flex;flex-direction:column;gap:5px}
 .milestone-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.03);transition:background .3s}
-.milestone-row.new{background:rgba(251,191,36,.12);animation:msFlash .6s ease}
+.milestone-row.new{background:rgba(251,191,36,.12);animation:msFlash .6s var(--ease-snap)}
 .milestone-row.done{opacity:.5}
 .milestone-row.reached{opacity:.7}
 .milestone-row.locked{opacity:.35}
@@ -385,7 +485,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .ms-icon{font-size:15px;flex-shrink:0;width:22px;text-align:center}
 .ms-score{font-size:13px;font-weight:800;color:rgba(255,255,255,.7);flex:1}
 .ms-reward{font-size:12px;font-weight:700;color:#fbbf24;white-space:nowrap}
-.ms-new-badge{font-size:9px;font-weight:900;color:#fbbf24;background:rgba(251,191,36,.2);border-radius:4px;padding:2px 6px;margin-left:4px;letter-spacing:.5px;animation:msBadge .4s ease .2s both}
+.ms-new-badge{font-size:9px;font-weight:900;color:#fbbf24;background:rgba(251,191,36,.2);border-radius:4px;padding:2px 6px;margin-left:4px;letter-spacing:.5px;animation:msBadge .4s var(--ease-snap) .2s both}
 @keyframes msBadge{0%{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
 .milestone-total{font-size:12px;font-weight:700;color:rgba(255,255,255,.3);text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)}
 .milestone-total.gained{color:#fbbf24}
@@ -402,7 +502,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 
 /* Extend Buttons */
 .ext-row{display:flex;gap:8px}
-.ext-btn{flex:1;padding:12px 8px;border-radius:14px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:transform .08s ease;position:relative;overflow:hidden}
+.ext-btn{flex:1;padding:12px 8px;border-radius:14px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:transform .08s var(--ease-snap);position:relative;overflow:hidden}
 .ext-btn:active{transform:scale(.95)}
 .ext-btn.diamond{background:linear-gradient(165deg,rgba(40,90,200,.35),rgba(25,55,140,.25));color:var(--cyan);border:1px solid rgba(99,179,237,.3)}
 .ext-btn.ad{background:linear-gradient(165deg,rgba(30,100,50,.35),rgba(15,60,30,.25));color:var(--green);border:1px solid rgba(104,211,145,.3)}
@@ -445,30 +545,42 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   flex-direction:column;
   align-items:center;
   gap:8px;
-  animation:comboIn 750ms cubic-bezier(0.16,1,0.3,1) forwards;
+  /* v6 토스 스타일: 180ms 부드러운 페이드인 + 600ms dwell + 페이드아웃 */
+  animation: comboIn 1000ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform-origin: center center;
+  will-change: transform, opacity;
 }
+/* 토스 스타일: scale 0.96 → 1 미세 변화, 오버슈트 없음 */
 @keyframes comboIn{
-  0%  {opacity:0;transform:translate(-50%,-50%) scale(.5)}
-  12% {opacity:1;transform:translate(-50%,-50%) scale(1.18)}
-  24% {transform:translate(-50%,-50%) scale(.97)}
-  32% {transform:translate(-50%,-50%) scale(1.03)}
-  42% {transform:translate(-50%,-50%) scale(1.0)}
-  70% {opacity:1;transform:translate(-50%,-50%) scale(1.0)}
-  100%{opacity:0;transform:translate(-50%,-58%) scale(.9)}
+  /* Enter (0-18%, 180ms) */
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+  18%  { opacity: 1; transform: translate(-50%, -50%) scale(1);    }
+  /* Dwell (18-72%, 540ms 유지) */
+  72%  { opacity: 1; transform: translate(-50%, -50%) scale(1);    }
+  /* Exit (72-100%, 280ms 페이드) */
+  100% { opacity: 0; transform: translate(-50%, -54%) scale(1);    }
 }
-/* 상단 텍스트: NICE!/GREAT! 등 — 우도쿠처럼 큰 글씨 */
+/* intensity별 차별화 — 글자 크기·색으로만 표현 (rotate/halo 제거) */
+.combo-banner.intensity-great,
+.combo-banner.intensity-excellent,
+.combo-banner.intensity-perfect{
+  animation: comboIn 1000ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+/* 상단 텍스트: NICE!/GREAT! 등 */
 .combo-word{
   font-size:clamp(40px,11vw,58px);
   font-weight:900;
   letter-spacing:2px;
   line-height:1;
-  text-shadow:0 0 20px currentColor,0 2px 12px rgba(0,0,0,.9);
+  text-shadow:0 2px 8px rgba(0,0,0,.6);
 }
 .combo-word.bravo    {color:#fff;font-size:clamp(36px,9vw,48px)}
 .combo-word.great    {color:#67E8F9;font-size:clamp(42px,11vw,56px)}
 .combo-word.excellent{color:#F5C842;font-size:clamp(48px,13vw,64px)}
-.combo-word.perfect  {color:#FFD700;font-size:clamp(52px,14vw,70px)}
-/* 하단 박스: "2X 연속 성공!" — 시안 배경 박스 */
+.combo-word.perfect  {color:#FFD700;font-size:clamp(52px,14vw,70px);text-shadow:0 2px 12px rgba(0,0,0,.7)}
+/* PERFECT halo 제거 (토스 스타일: 과장 금지) */
+
+/* 하단 박스 */
 .combo-sub{
   background:rgba(99,179,237,.92);
   border:2px solid rgba(255,255,255,.5);
@@ -497,14 +609,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   position:fixed;
   pointer-events:none;
   z-index:597;
-  width:140px;height:140px;
-  background:radial-gradient(ellipse at center,rgba(255,248,220,.65) 0%,rgba(255,235,170,.30) 40%,transparent 70%);
+  width:120px;height:120px;
+  background:radial-gradient(ellipse at center,rgba(255,248,220,.35) 0%,rgba(255,235,170,.15) 40%,transparent 70%);
   border-radius:50%;
-  animation:flashOut 350ms ease-out forwards;
+  animation:flashOut 260ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 @keyframes flashOut{
-  0%  {opacity:1;transform:translate(-50%,-50%) scale(0)}
-  25% {opacity:.9;transform:translate(-50%,-50%) scale(.6)}
+  0%  {opacity:0.9;transform:translate(-50%,-50%) scale(0.2)}
   100%{opacity:0;transform:translate(-50%,-50%) scale(1)}
 }
 
@@ -519,46 +630,51 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   overflow:visible;
 }
 /* ── 블록: 절제된 회전 + 축소 + dissolve ──
-   will-change: clearing 클래스 붙는 순간 GPU 레이어 승격 (첫 프레임 드롭 방지)
-   contain:paint: 회전/축소가 인접 셀로 paint 번지는 것 차단
-   backface-visibility:hidden: GPU 렌더링 힌트 (안드로이드 크롬 최적화) */
+/* ═══ v6 토스 스타일 라인 클리어: Pop & Vanish ═══
+   원칙: 셀 자체가 peak moment를 가지고 터지듯 사라짐
+   20% 지점 peak(scale 1.12 + 밝기 강화) → 나머지는 빠른 소멸
+   "내가 없앴다"는 감각을 확실히 주되, 주변 요란함 없음 */
 .cell.clearing .block-inner{
   transform-origin:center center;
-  animation:blockSpin 750ms cubic-bezier(0.22,0.61,0.36,1) forwards;
-  will-change:transform,opacity;
-  contain:paint;
-  backface-visibility:hidden;
+  animation: blockDissolve 280ms cubic-bezier(0.34, 0, 0.25, 1) forwards;
+  will-change: transform, opacity;
+  contain: paint;
+  backface-visibility: hidden;
 }
-@keyframes blockSpin{
-  0%  {opacity:1;  transform:rotate(0deg) scale(1)}
-  60% {opacity:.5; transform:rotate(180deg) scale(.45)}
-  85% {opacity:.15;transform:rotate(260deg) scale(.22)}
-  100%{opacity:0;  transform:rotate(290deg) scale(.18)}
+@keyframes blockDissolve{
+  /* 0-20%: Pop — 순간적으로 살짝 커지며 밝아짐 (peak moment) */
+  0%   { opacity: 1; transform: scale(1);    }
+  20%  { opacity: 1; transform: scale(1.12); }
+  /* 20-60%: Shrink — 빠르게 축소되며 투명해지기 시작 */
+  60%  { opacity: 0.5; transform: scale(0.4); }
+  /* 60-100%: Vanish — 완전히 소멸, 마지막은 거의 보이지 않음 */
+  100% { opacity: 0; transform: scale(0.1); }
 }
-/* ── 감자: 블록보다 빨리 페이드 ── */
+/* ── 감자: 블록 peak 직후 빠르게 사라짐 ── */
 .cell.clearing .potato-wrap{
   transform-origin:center center;
-  animation:potatoSpin 750ms cubic-bezier(0.22,0.61,0.36,1) forwards;
-  will-change:transform,opacity;
-  backface-visibility:hidden;
+  animation: potatoDissolve 280ms cubic-bezier(0.34, 0, 0.25, 1) forwards;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
-@keyframes potatoSpin{
-  0%  {opacity:1;  transform:rotate(0deg) scale(1)}
-  40% {opacity:0;  transform:rotate(120deg) scale(.5)}
-  100%{opacity:0;  transform:rotate(290deg) scale(.18)}
+@keyframes potatoDissolve{
+  0%   { opacity: 1; transform: scale(1);    }
+  20%  { opacity: 1; transform: scale(1.15); }  /* 감자는 조금 더 튐 */
+  50%  { opacity: 0; transform: scale(0.3);  }
+  100% { opacity: 0; transform: scale(0);    }
 }
-/* ── 백화: 미리 흰 배경 깔아두고 opacity만 페이드인 ──
-   기존: background rgba() 변화 (매 프레임 paint 발생 — 저사양 렉 원인 1순위)
-   개선: background 고정 + opacity 애니메이션 (GPU 합성만, paint 0회) */
+/* ── 백화(flash): Peak 순간에만 강하게, 그 후 즉시 꺼짐 ── */
 .cell.clearing .block-inner::after{
-  animation:blockWhiten 750ms cubic-bezier(0.22,0.61,0.36,1) forwards !important;
-  background:rgba(255,252,240,1) !important;
-  border-radius:inherit;
-  opacity:0;
+  animation: blockFlash 280ms cubic-bezier(0.34, 0, 0.25, 1) forwards !important;
+  background: rgba(255,252,240,1) !important;
+  border-radius: inherit;
+  opacity: 0;
 }
-@keyframes blockWhiten{
-  0%  {opacity:0}
-  100%{opacity:1}
+@keyframes blockFlash{
+  0%   { opacity: 0;    }
+  20%  { opacity: 0.85; }   /* Peak와 동기화 — "터지는" 순간 흰빛 */
+  45%  { opacity: 0;    }   /* 빠르게 꺼짐 */
+  100% { opacity: 0;    }
 }
 /* warm 오버레이 제거 */
 .cell.clearing::before{display:none}
@@ -572,20 +688,50 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   .cell.clearing .potato-wrap { animation: none !important; opacity: 0 }
   .cell.clearing .block-inner::after { animation: none !important }
   .combo-banner { animation: none; opacity: 1 }
-  .board-frame.shaking, .board-frame.shaking-heavy { animation: none }
+  .board-frame.shaking, .board-frame.shaking-medium, .board-frame.shaking-heavy, .board-frame.shaking-epic { animation: none }
 }
-/* JS _lowPerf 감지 시 적용되는 클래스 */
+/* JS _lowPerf 감지 시 적용되는 경량 오버라이드 */
+/* v6 토스 스타일 저사양: Pop 강도 약간 낮추되 peak 유지 */
 .low-perf .cell.clearing .block-inner{
-  animation-duration:500ms !important;
+  animation: blockDissolveLite 220ms cubic-bezier(0.34, 0, 0.25, 1) forwards !important;
 }
 .low-perf .cell.clearing .potato-wrap{
-  animation-duration:500ms !important;
+  animation: potatoDissolveLite 220ms cubic-bezier(0.34, 0, 0.25, 1) forwards !important;
 }
 .low-perf .cell.clearing .block-inner::after{
-  animation-duration:500ms !important;
+  animation: blockFlash 220ms cubic-bezier(0.34, 0, 0.25, 1) forwards !important;
+}
+@keyframes blockDissolveLite{
+  0%   { opacity: 1; transform: scale(1);    }
+  20%  { opacity: 1; transform: scale(1.08); }  /* peak 살짝 더 작게 */
+  100% { opacity: 0; transform: scale(0.2);  }
+}
+@keyframes potatoDissolveLite{
+  0%   { opacity: 1; transform: scale(1);    }
+  20%  { opacity: 1; transform: scale(1.10); }
+  100% { opacity: 0; transform: scale(0.15); }
+}
+/* 저사양에서 착지 애니메이션도 단순화 */
+.low-perf .cell.landing .block-inner{
+  animation: blockLandLite 60ms cubic-bezier(0.4, 0, 0.2, 1) both !important;
+}
+.low-perf .cell.landing .potato-wrap{
+  animation: blockLandLite 60ms cubic-bezier(0.4, 0, 0.2, 1) both !important;
+}
+@keyframes blockLandLite{
+  0%   { opacity: 0; transform: scale(0.94); }
+  100% { opacity: 1; transform: scale(1);    }
+}
+/* 저사양: Ghost scale 효과 제거 — 순수 opacity로만 on-board 표시 */
+.low-perf #ghost > .piece-grid{
+  transform: none !important;
+  transition: none !important;
 }
 .low-perf .board-frame.shaking{animation-duration:.2s !important}
+.low-perf .board-frame.shaking-medium{animation-duration:.24s !important}
 .low-perf .board-frame.shaking-heavy{animation-duration:.28s !important}
+/* 저사양은 epic도 heavy와 동일 duration + epic 키프레임 대신 heavy 재사용 */
+.low-perf .board-frame.shaking-epic{animation: boardPulseHeavy .3s var(--ease-sharp) both !important}
 .low-perf .cell.filled.preview-clear .block-inner{
   box-shadow:inset 0 2px 0 rgba(255,255,255,.5),inset 0 -2px 0 rgba(0,0,0,.1) !important;
 }
@@ -1468,13 +1614,23 @@ let _trayPieceIds=[null,null,null];
 function renderTray(){for(let i=0;i<3;i++){const slot=document.getElementById('slot-'+i),p=pieces[i],isUsed=!p||p.used,isSel=selIdx===i;slot.classList.toggle('used',isUsed);slot.classList.toggle('selected',!isUsed&&isSel);if(isUsed){slot.innerHTML='';_trayPieceIds[i]=null;continue}if(_trayPieceIds[i]!==p){slot.innerHTML='';slot.appendChild(makePieceGrid(p.shape,15,p.face));_trayPieceIds[i]=p}}}
 function canPlace(shape,sr,sc){return shape.every(([dr,dc])=>{const r=sr+dr,c=sc+dc;return r>=0&&r<GRID&&c>=0&&c<GRID&&board[r][c]===null})}
 function shapeAnchor(shape,hr,hc){const maxR=Math.max(...shape.map(([r])=>r)),maxC=Math.max(...shape.map(([,c])=>c));return[hr-Math.round(maxR/2),hc-Math.round(maxC/2)]}
-function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!canPlace(p.shape,sr,sc))return false;saveUndoState();// ── 블록 착지 ──
+function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!canPlace(p.shape,sr,sc))return false;saveUndoState();
+  // ── v6 블록 착지: 모든 셀 동시 트리거 (성능 최적화) ──
+  // stagger를 제거하고 모든 셀에 동시에 landing 클래스 부여.
+  // 이유: 셀마다 setTimeout은 이벤트 루프 압박. 5셀 블록 = 5개 타이머 → 렉.
+  // 시각적으로도 "투투툭" vs "탁"의 차이는 120ms 범위에서 거의 구분 안 됨.
+  const landingCells = [];
   p.shape.forEach(([dr,dc])=>{
     const r=sr+dr,c=sc+dc;
     board[r][c]=p.face;_boardFilled++;renderCell(r,c);
     const el=cellEls[r][c];
-    // 착지 애니메이션 제거됨 (블록은 renderCell에서 즉시 그려짐)
+    el.classList.add('landing');
+    landingCells.push(el);
   });
+  // 단 1개의 setTimeout으로 모든 셀의 landing 클래스 제거
+  setTimeout(()=>{
+    landingCells.forEach(el=>el.classList.remove('landing'));
+  }, 100);
   // 착지 햅틱 — 블록 크기에 따라 강도 조절
   haptic(p.shape.length>=5?'medium':'light');
   Sound.sfx.place();
@@ -1513,16 +1669,27 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
     }
   }addScore(pts,numLines);showStreakUI();renderTray();const sr2=sr+Math.floor(Math.max(...p.shape.map(([r])=>r))/2),sc2=sc+Math.floor(Math.max(...p.shape.map(([,c])=>c))/2);if(sr2>=0&&sr2<GRID&&sc2>=0&&sc2<GRID){const rect=cellEls[sr2][sc2].getBoundingClientRect();const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;const labelSize=numLines>=4?32:numLines>=3?28:numLines>=2?24:numLines>=1?20:15;
 const labelColor=numLines>=3?'#FFD700':numLines>=1?'#F5C842':'rgba(247,250,252,0.7)';
-spawnLabel('+'+pts,cx,cy,labelColor,labelSize);if(numLines>0)triggerClearFX(cx,cy,numLines,cleared.removed)}if(numLines>=2)haptic('success');if(pieces.every(p=>p.used)){setTimeout(()=>{newSet();setTimeout(checkGameOver,50)},180)}else{setTimeout(checkGameOver,50)}updateUndoUI();return true}
-function clearLines(){const toRemove=[],seen=new Uint8Array(GRID*GRID);function mark(r,c){const idx=r*GRID+c;if(!seen[idx]){seen[idx]=1;toRemove.push([r,c])}}let rowCount=0,colCount=0,boxCount=0;for(let r=0;r<GRID;r++)if(board[r].every(v=>v!==null)){rowCount++;for(let c=0;c<GRID;c++)mark(r,c)}for(let c=0;c<GRID;c++)if(board.every(row=>row[c]!==null)){colCount++;for(let r=0;r<GRID;r++)mark(r,c)}for(let br=0;br<3;br++)for(let bc=0;bc<3;bc++){let full=true;outer:for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)if(board[r][c]===null){full=false;break outer}if(full){boxCount++;for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)mark(r,c)}}if(!toRemove.length)return{lines:0,cells:0};_boardFilled-=toRemove.length;
-  // ★ 핵심: board 데이터를 즉시 비움 → checkGameOver가 언제 실행되든 정확한 판정
+spawnLabel('+'+pts,cx,cy,labelColor,labelSize,numLines>=3);if(numLines>0)triggerClearFX(cx,cy,numLines,cleared.removed)}if(numLines>=2)haptic('success');if(pieces.every(p=>p.used)){setTimeout(()=>{newSet();setTimeout(checkGameOver,50)},180)}else{setTimeout(checkGameOver,50)}updateUndoUI();return true}
+function clearLines(){
+  const toRemove=[],seen=new Uint8Array(GRID*GRID);
+  function mark(r,c){const idx=r*GRID+c;if(!seen[idx]){seen[idx]=1;toRemove.push([r,c])}}
+  let rowCount=0,colCount=0,boxCount=0;
+  for(let r=0;r<GRID;r++)if(board[r].every(v=>v!==null)){rowCount++;for(let c=0;c<GRID;c++)mark(r,c)}
+  for(let c=0;c<GRID;c++)if(board.every(row=>row[c]!==null)){colCount++;for(let r=0;r<GRID;r++)mark(r,c)}
+  for(let br=0;br<3;br++)for(let bc=0;bc<3;bc++){
+    let full=true;
+    outer:for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)if(board[r][c]===null){full=false;break outer}
+    if(full){boxCount++;for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)mark(r,c)}
+  }
+  if(!toRemove.length)return{lines:0,cells:0};
+  _boardFilled-=toRemove.length;
   for(const[r,c]of toRemove){board[r][c]=null}
-  // stagger 제거: 모든 셀 동시 트리거 (GPU 레이어 일괄 생성이 더 효율적)
+  // ═══ 토스 스타일: stagger 없음, 모든 셀 동시에 조용히 사라짐 ═══
+  // CSS animation-delay도 제거 — 전부 0ms
   toRemove.forEach(([r,c])=>{
-    const el=cellEls[r][c];
-    el.classList.add('clearing');
+    cellEls[r][c].classList.add('clearing');
   });
-  const totalDur=(window._lowPerf?500:750)+30;
+  const CLEAR_DUR = 280; // CSS와 일치 (Pop & Vanish)
   const _timerId=setTimeout(()=>{
     _activeClearTimers.delete(_timerId);
     for(const[r,c]of toRemove){
@@ -1530,10 +1697,28 @@ function clearLines(){const toRemove=[],seen=new Uint8Array(GRID*GRID);function 
       el.className='cell'+(isSectionAlt(r,c)?' section-alt':'');
       el.dataset.r=r;el.dataset.c=c;el.innerHTML='';
     }
-  },totalDur);
+  }, CLEAR_DUR + 30);
   _activeClearTimers.add(_timerId);
-  return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:toRemove}}
-function addScore(pts,numLines){const prevPhase=getPhase();score+=pts;if(score>best){best=score;Storage.set('pw2_best',best)}const newPhase=getPhase();if(newPhase>prevPhase){haptic('success');updatePhaseBadge(newPhase)}const sv=document.getElementById('score-el');if(pts>0){const cls=numLines>=4?'bump-mega':numLines>=3?'bump-big':'bump';sv.classList.remove('bump','bump-big','bump-mega');requestAnimationFrame(()=>sv.classList.add(cls));const dur=numLines>=4?320:numLines>=3?280:180;setTimeout(()=>sv.classList.remove(cls),dur)}sv.textContent=score.toLocaleString();document.getElementById('best-el').textContent=best.toLocaleString();updateGoalHint()}
+  return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:toRemove};
+}
+function addScore(pts,numLines){
+  const prevPhase=getPhase();score+=pts;
+  if(score>best){best=score;Storage.set('pw2_best',best)}
+  const newPhase=getPhase();
+  if(newPhase>prevPhase){haptic('success');updatePhaseBadge(newPhase)}
+  const sv=document.getElementById('score-el');
+  if(pts>0){
+    const cls=numLines>=4?'bump-mega':numLines>=3?'bump-big':'bump';
+    sv.classList.remove('bump','bump-big','bump-mega');
+    requestAnimationFrame(()=>sv.classList.add(cls));
+    // v6 토스 스타일 duration: bump 180 / bump-big 220 / bump-mega 260
+    const dur=numLines>=4?260:numLines>=3?220:180;
+    setTimeout(()=>sv.classList.remove(cls),dur);
+  }
+  sv.textContent=score.toLocaleString();
+  document.getElementById('best-el').textContent=best.toLocaleString();
+  updateGoalHint();
+}
 function updateGoalHint(){
   const el=document.getElementById('goal-hint');if(!el)return;
   const cut=getTop10Cut();
@@ -1569,50 +1754,46 @@ const STAR_CHARS=['★','◆','✦','·'];
 function triggerClearFX(cx, cy, numLines, removed){
   if(numLines>=2) showComboBanner(cx, cy, numLines);
 
-  // 보드 진동 — 줄 수에 따라 강도 차등
+  // v6 토스 스타일 보드 진동 — 3단계 차등 (epic은 heavy와 동일)
   const bf=document.getElementById('board-frame-el')||document.querySelector('.board-frame');
   if(bf){
-    const cls=numLines>=3?'shaking-heavy':'shaking';
-    bf.classList.remove('shaking','shaking-heavy');
+    let cls, dur;
+    if(numLines>=5){      cls='shaking-epic';   dur=320; }
+    else if(numLines>=4){ cls='shaking-heavy';  dur=320; }
+    else if(numLines>=3){ cls='shaking-medium'; dur=280; }
+    else {                cls='shaking';        dur=220; }
+    bf.classList.remove('shaking','shaking-medium','shaking-heavy','shaking-epic');
     requestAnimationFrame(()=>{
       bf.classList.add(cls);
-      setTimeout(()=>bf.classList.remove(cls),numLines>=3?420:numLines>=2?320:220);
+      setTimeout(()=>bf.classList.remove(cls), dur);
     });
   }
 
-  // 흰빛 flash — 줄 수에 따라 크기 차등
-  const flashSize=numLines>=4?220:numLines>=3?180:140;
+  // 흰빛 flash — 크기 차등 완화 (토스 스타일)
+  const flashSize=numLines>=4?160:numLines>=3?140:120;
   const flash=document.createElement('div');
   flash.className='clear-flash';
   flash.style.cssText=`left:${cx}px;top:${cy}px;width:${flashSize}px;height:${flashSize}px;`;
   document.body.appendChild(flash);
-  setTimeout(()=>flash.remove(),450);
+  setTimeout(()=>flash.remove(),300);
 
-  if(document.querySelectorAll('.star-particle').length>16) return;
+  // 이미 화면에 파티클이 많으면 새로 생성 안 함
+  if(document.querySelectorAll('.star-particle').length>10) return;
   if(!removed||!removed.length) return;
 
   const low=window._lowPerf;
-  // 저사양: N셀 중 1/3만, 고사양: 1/2만 선택 (너무 많으면 렉)
-  const step=low?3:2;
+  // v6 토스 스타일: 파티클 수 더 축소 (고사양 step 4, 저사양 step 6)
+  // 45셀 클리어 → 고사양 최대 11개, 저사양 최대 7개
+  const step=low?6:4;
 
-  // 파티클 데이터: 클리어된 셀 위치에서 직접 발사
-  // 행/열 분석 → 방향별 파티클
-  const rowCnt={},colCnt={};
-  removed.forEach(([r,c])=>{rowCnt[r]=(rowCnt[r]||0)+1;colCnt[c]=(colCnt[c]||0)+1});
-  const fullRows=new Set(Object.keys(rowCnt).filter(r=>rowCnt[r]>=9).map(Number));
-  const fullCols=new Set(Object.keys(colCnt).filter(c=>colCnt[c]>=9).map(Number));
-
+  // 파티클 데이터: 클리어된 셀 위치에서 발사
   const pts=[];
   removed.forEach(([r,c],idx)=>{
     if(idx%step!==0) return;
     const px=_originLeft+c*_strideW+_strideW/2;
     const py=_originTop +r*_strideH+_strideH/2;
     const char=STAR_CHARS[idx%STAR_CHARS.length];
-    // 방향 결정: 행 클리어=좌→우, 열 클리어=위→아래, 둘다=방사
-    let dir='r';
-    if(fullRows.has(r)&&!fullCols.has(c)) dir='h';
-    else if(fullCols.has(c)&&!fullRows.has(r)) dir='v';
-    pts.push({x:px,y:py,char,i:idx,dir});
+    pts.push({x:px,y:py,char,i:idx});
   });
 
   const frag=document.createDocumentFragment();
@@ -1621,43 +1802,34 @@ function triggerClearFX(cx, cy, numLines, removed){
     const p=document.createElement('div');
     p.className='star-particle';
     p.textContent=char;
-    p.style.cssText=`left:${x}px;top:${y}px;font-size:${10+Math.random()*7}px;`;
+    p.style.cssText=`left:${x}px;top:${y}px;font-size:${11+Math.random()*4}px;`;
     frag.appendChild(p);
     elems.push(p);
   });
   document.body.appendChild(frag);
 
+  // ── 토스 스타일 파티클 모션 ──
+  // 포물선·중력·회전 제거 — 위로 살짝 퍼지며 페이드아웃만
+  // 고/저사양 동일 (이미 충분히 가벼움)
   requestAnimationFrame(()=>{
-    pts.forEach(({i,dir},idx)=>{
+    pts.forEach((_,idx)=>{
       const el=elems[idx];
-      const dur=400+Math.random()*150;
-      const rot=(Math.random()-.5)*240;
-      let tx,ty;
-      if(dir==='h'){
-        // 좌→우 (행 클리어)
-        tx=60+Math.random()*60;
-        ty=(Math.random()-.5)*30;
-      } else if(dir==='v'){
-        // 위→아래 (열 클리어)
-        tx=(Math.random()-.5)*30;
-        ty=60+Math.random()*60;
-      } else {
-        // 방사
-        const ang=(Math.random()-.5)*Math.PI*1.4-Math.PI/2;
-        const sp=35+Math.random()*45;
-        tx=Math.cos(ang)*sp;
-        ty=Math.sin(ang)*sp;
-      }
+      // 랜덤한 상향 방향 (부채꼴 ±40deg)
+      const ang = -Math.PI/2 + (Math.random()-.5)*Math.PI*0.45;
+      const sp = 28 + Math.random()*18;  // 이동 거리 축소 (이전 55~95 → 28~46)
+      const tx = Math.cos(ang)*sp;
+      const ty = Math.sin(ang)*sp;
+      const dur = 420+Math.random()*80;  // 420~500ms
       const kf=[
-        {transform:'translate(-50%,-50%) scale(.3)',opacity:1,offset:0},
-        {transform:`translate(calc(-50% + ${tx}px),calc(-50% + ${ty}px)) scale(1.1)`,opacity:1,offset:.3},
-        {transform:`translate(calc(-50% + ${tx*1.4}px),calc(-50% + ${ty+50}px)) scale(.5) rotate(${rot}deg)`,opacity:0,offset:1},
+        {transform:`translate(-50%,-50%) scale(0.5)`, opacity:0.9, offset:0},
+        {transform:`translate(calc(-50% + ${tx*0.5}px), calc(-50% + ${ty*0.5}px)) scale(1)`, opacity:1, offset:0.3},
+        {transform:`translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.8)`, opacity:0, offset:1},
       ];
       const a=el.animate(kf,{
-        duration:dur,
-        easing:'cubic-bezier(.2,1,.4,1)',
-        fill:'forwards',
-        delay:idx*20 // 셀마다 약간씩 시차
+        duration: dur,
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        fill: 'forwards',
+        delay: idx*12  // 아주 미세한 stagger
       });
       a.onfinish=()=>el.remove();
     });
@@ -1704,16 +1876,15 @@ let _comboBannerEl = null;
 function showComboBanner(cx, cy, numLines){
   if(_comboBannerEl){ _comboBannerEl.remove(); _comboBannerEl=null; }
 
-  // 우도쿠 원작: 위=NICE!/GREAT! 큰 글씨, 아래=시안 박스 "2X 연속 성공!"
   // intensity = max(numLines, floor(streak/2)+1)
   //   2 → NICE!, 3 → GREAT!, 4 → EXCELLENT!, 5+ → PERFECT!
   const intensity=Math.max(numLines, Math.floor(streak/2)+1);
   const levels=[
     null,null,
-    {word:'NICE!',     cls:'bravo',     sub:'COMBO'},         // [2]
-    {word:'GREAT!',    cls:'great',     sub:'GREAT COMBO'},   // [3]
-    {word:'EXCELLENT!',cls:'excellent', sub:'EXCELLENT'},     // [4]
-    {word:'PERFECT!',  cls:'perfect',   sub:'PERFECT'},       // [5+]
+    {word:'NICE!',     cls:'bravo',     sub:'COMBO',       tier:null},          // [2]
+    {word:'GREAT!',    cls:'great',     sub:'GREAT COMBO', tier:'great'},        // [3]
+    {word:'EXCELLENT!',cls:'excellent', sub:'EXCELLENT',   tier:'excellent'},    // [4]
+    {word:'PERFECT!',  cls:'perfect',   sub:'PERFECT',     tier:'perfect'},      // [5+]
   ];
   const lv=levels[Math.min(intensity,levels.length-1)];
   if(!lv)return;
@@ -1727,16 +1898,27 @@ function showComboBanner(cx, cy, numLines){
   }
 
   const el=document.createElement('div');
-  el.className='combo-banner';
+  // v6: intensity별 exit 모션 차별화 (great/excellent/perfect에 클래스 추가)
+  el.className='combo-banner'+(lv.tier?' intensity-'+lv.tier:'');
   el.style.cssText=`left:${bx}px;top:${by}px;`;
   el.innerHTML=
     '<div class="combo-word '+lv.cls+'">'+lv.word+'</div>'+
     '<div class="combo-sub">'+lv.sub+'</div>';
   document.body.appendChild(el);
   _comboBannerEl=el;
-  setTimeout(()=>{if(_comboBannerEl===el){el.remove();_comboBannerEl=null;}},800);
+  // v6 토스 스타일: 1000ms 애니메이션 + 여유 50ms
+  setTimeout(()=>{if(_comboBannerEl===el){el.remove();_comboBannerEl=null;}},1050);
 }
-function spawnLabel(txt,x,y,color='#F5C842',fontSize=20){const el=document.createElement('div');el.className='float-label';el.textContent=txt;el.style.cssText=`left:${x}px;top:${y}px;font-size:${fontSize}px;color:${color};transform:translate(-50%,-50%)`;document.body.appendChild(el);setTimeout(()=>el.remove(),500)}
+function spawnLabel(txt, x, y, color='#F5C842', fontSize=20, big=false){
+  const el=document.createElement('div');
+  el.className='float-label'+(big?' big':'');
+  el.textContent=txt;
+  // v6: transform은 CSS 키프레임이 관리 (translate -50%,-50% 포함)
+  // 인라인에는 위치/색/크기만 설정
+  el.style.cssText=`left:${x}px;top:${y}px;font-size:${fontSize}px;color:${color};`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), big?650:550);
+}
 function clearPreview(){if(!prevHover.length)return;prevHover.forEach(([r,c])=>{if(cellEls[r]&&cellEls[r][c])cellEls[r][c].classList.remove('preview-valid','preview-invalid','preview-clear','preview-place')});prevHover=[]}
 function showPreview(shape,sr,sc){
   const valid=canPlace(shape,sr,sc);
@@ -1887,9 +2069,9 @@ let _ghostEl=null;
 let _suppressClickUntil=0;
 
 // 거리 기반 LERP — 멀면 빠르게, 가까우면 부드럽게
+// v6-perf: target 도달 + hit 안정 시 rAF 루프 일시 중단 (moveGhost에서 재가동)
 function _ghostRenderLoop(){
   if(!dragActive){_ghostLoopId=0;return}
-  _ghostLoopId=requestAnimationFrame(_ghostRenderLoop);
 
   const dx=_ghostTargetX-_ghostRenderX;
   const dy=_ghostTargetY-_ghostRenderY;
@@ -1899,16 +2081,20 @@ function _ghostRenderLoop(){
   const lerp=base+Math.min(dist/100,1)*0.33;
   _ghostRenderX+=dx*lerp;
   _ghostRenderY+=dy*lerp;
-  if(Math.abs(dx)<0.5)_ghostRenderX=_ghostTargetX;
-  if(Math.abs(dy)<0.5)_ghostRenderY=_ghostTargetY;
+  const snappedX = Math.abs(dx)<0.5;
+  const snappedY = Math.abs(dy)<0.5;
+  if(snappedX)_ghostRenderX=_ghostTargetX;
+  if(snappedY)_ghostRenderY=_ghostTargetY;
 
   if(!_ghostEl)_ghostEl=document.getElementById('ghost');
   _ghostEl.style.transform=`translate3d(${_ghostRenderX}px,${_ghostRenderY}px,0)`;
 
   // preview: hit 바뀔 때만 업데이트
+  let hitChanged = false;
   if(_ghostShape){
     const hk=_ghostHit?_ghostHit.join(','):'';
     if(hk!==_lastHitKey){
+      hitChanged = true;
       _lastHitKey=hk;
       if(_ghostHit&&hk!==_prevHitKey){
         _prevHitKey=hk;
@@ -1919,6 +2105,14 @@ function _ghostRenderLoop(){
       else clearPreview();
     }
   }
+
+  // v6-perf: target 완전 도달 + hit 안정 시 rAF 루프 종료 (배터리 친화)
+  // moveGhost가 다시 호출되면 루프 재개
+  if(snappedX && snappedY && !hitChanged){
+    _ghostLoopId=0;
+    return;
+  }
+  _ghostLoopId=requestAnimationFrame(_ghostRenderLoop);
 }
 
 function moveGhost(cx,cy,shape,hit){
@@ -1929,7 +2123,12 @@ function moveGhost(cx,cy,shape,hit){
   _ghostShape=shape;
   _ghostHit=hit;
   if(!_ghostEl)_ghostEl=document.getElementById('ghost');
-  _ghostEl.classList.toggle('on-board',!!hit);
+  // v6-perf: on-board 상태가 실제 변했을 때만 classList 조작 (불필요한 style 재계산 방지)
+  const shouldBeOnBoard = !!hit;
+  const isOnBoard = _ghostEl.classList.contains('on-board');
+  if(shouldBeOnBoard !== isOnBoard){
+    _ghostEl.classList.toggle('on-board', shouldBeOnBoard);
+  }
   if(!_ghostLoopId)_ghostLoopId=requestAnimationFrame(_ghostRenderLoop);
 }
 
