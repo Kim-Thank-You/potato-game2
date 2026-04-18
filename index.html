@@ -28,6 +28,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="감자팡팡">
+<meta name="format-detection" content="telephone=no">
+<meta name="mobile-web-app-capable" content="yes">
 <title>🥔 감자 우도쿠</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,13 +44,17 @@
 @import "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=optional";
 
 :root{
-  --bg:#07080F;--card:#0E1220;
+  --bg:#000000;--card:#0E1424;
   --g:#D4A510;--d:#67E8F9;--s:#94A3B8;
   --green:#4ADE80;--red:#F87171;--purple:#A78BFA;--white:#F1F5F9;
   --board-frame:#06080E;--board-bg:#060810;
-  --cell-empty:#060810;--cell-alt:#28365A;--cell-line:rgba(255,255,255,0.05);
-  --section-line:rgba(255,255,255,0.52);
-  --block:#C4965A;--block-light:#DDB870;--block-dark:#6E4018;
+  --cell-empty:#1A2038;--cell-alt:#4A5578;--cell-line:rgba(255,255,255,0.05);
+  --section-line:rgba(255,255,255,0.3);
+  --block:#DCB87A;--block-light:#F0D8A5;--block-dark:#8B6630;
+  /* 특수 블록 색상 3종 */
+  --block-cross-light:#FFBCE0;--block-cross:#FF70B8;--block-cross-dark:#B03880;
+  --block-bomb-light:#8A6A4A;--block-bomb:#4A3220;--block-bomb-dark:#1A0E00;
+  --block-ice-light:#E8F6FF;--block-ice:#88C4F0;--block-ice-dark:#2870A8;
   --gold:#B8975C;--gold-dim:rgba(184,151,92,0.10);
   --cyan:#63B3ED;--cyan-dim:rgba(99,179,237,0.10);
   --surface:#0F121E;--surface2:#161926;--surface3:#1C2030;
@@ -72,13 +83,26 @@
   --ease-io:cubic-bezier(0.4,0,0.2,1);
   --ease-press:cubic-bezier(0.2,0.8,0.2,1);
 }
-:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px)}
+:root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);color-scheme:dark}
 *,*:before,*:after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
-html,body{width:100%;height:100%;overscroll-behavior:none;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+/* ═══ Telegram iOS swipe-to-minimize 방어: 1px Buffer 트릭 ═══
+   원리: html을 1px만 스크롤 가능하게 만들면 Telegram이 "스크롤 중"으로 인식 → 앱 최소화 제스처 무시
+   - overflow-y:auto + height 101vh로 1px buffer
+   - JS에서 window.scrollTo(0,1)로 초기 1px 스크롤 상태 유지
+   - scroll 이벤트에서 0으로 돌아가면 다시 1로 복귀 */
+html{width:100%;height:100%;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;-webkit-user-select:none;user-select:none;overscroll-behavior-y:none}
+body{width:100%;min-height:101vh;min-height:calc(var(--tg-viewport-stable-height,100dvh) + 1px);overflow-x:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
 body{font-family:'Plus Jakarta Sans',-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);color:var(--text-1);display:flex;align-items:center;justify-content:center}
-body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse 80% 40% at 50% 0%,rgba(99,179,237,0.05) 0%,transparent 65%)}
-.phone{position:fixed;inset:0;width:100%;height:100dvh;height:var(--tg-viewport-stable-height,100dvh);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);z-index:1}
-@media(min-width:600px){body{background:#060810}.phone{position:relative;inset:auto;width:390px;height:min(820px,95dvh);border-radius:40px;border:1px solid var(--border2);box-shadow:0 0 0 1px rgba(0,0,0,.5),0 32px 80px rgba(0,0,0,.8)}}
+/* ═══ 우주 배경: 순수 검정 + 별만 (은하수 gradient 완전 제거) ═══ */
+/* 설계: radial-gradient 전부 제거 → 회색 틴트 방지. 별 400개만 순수 검정 위에 */
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-color:#000000;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 1200'><g fill='%23ffffff'><circle cx='129' cy='662' r='0.6' opacity='0.66'/><circle cx='113' cy='465' r='1.2' opacity='0.77'/><circle cx='594' cy='1129' r='0.9' opacity='0.68'/><circle cx='608' cy='911' r='0.6' opacity='0.49'/><circle cx='108' cy='928' r='0.7' opacity='0.61'/><circle cx='329' cy='438' r='0.5' opacity='0.65'/><circle cx='373' cy='778' r='1.6' opacity='0.84'/><circle cx='356' cy='191' r='0.5' opacity='0.54'/><circle cx='668' cy='1190' r='0.7' opacity='0.59'/><circle cx='480' cy='872' r='0.7' opacity='0.63'/><circle cx='127' cy='879' r='0.6' opacity='0.6'/><circle cx='510' cy='823' r='1.1' opacity='0.74'/><circle cx='498' cy='1058' r='0.4' opacity='0.45'/><circle cx='140' cy='108' r='1.2' opacity='0.83'/><circle cx='742' cy='887' r='0.5' opacity='0.49'/><circle cx='132' cy='943' r='0.9' opacity='0.79'/><circle cx='566' cy='522' r='0.6' opacity='0.54'/><circle cx='670' cy='1035' r='0.9' opacity='0.66'/><circle cx='215' cy='610' r='0.7' opacity='0.54'/><circle cx='619' cy='946' r='1.0' opacity='0.69'/><circle cx='212' cy='540' r='0.8' opacity='0.71'/><circle cx='517' cy='897' r='0.7' opacity='0.69'/><circle cx='332' cy='945' r='1.0' opacity='0.76'/><circle cx='535' cy='538' r='0.7' opacity='0.72'/><circle cx='753' cy='989' r='1.3' opacity='0.91'/><circle cx='387' cy='205' r='0.7' opacity='0.54'/><circle cx='22' cy='196' r='0.6' opacity='0.68'/><circle cx='93' cy='415' r='0.6' opacity='0.64'/><circle cx='282' cy='739' r='0.5' opacity='0.56'/><circle cx='511' cy='284' r='0.5' opacity='0.46'/><circle cx='620' cy='1041' r='0.5' opacity='0.47'/><circle cx='146' cy='634' r='0.5' opacity='0.47'/><circle cx='209' cy='778' r='0.4' opacity='0.6'/><circle cx='60' cy='718' r='1.0' opacity='0.82'/><circle cx='34' cy='1053' r='0.6' opacity='0.57'/><circle cx='132' cy='1027' r='1.2' opacity='0.86'/><circle cx='165' cy='1072' r='0.6' opacity='0.57'/><circle cx='246' cy='150' r='0.4' opacity='0.54'/><circle cx='185' cy='100' r='1.0' opacity='0.62'/><circle cx='780' cy='394' r='0.6' opacity='0.47'/><circle cx='669' cy='1093' r='0.7' opacity='0.7'/><circle cx='149' cy='336' r='0.8' opacity='0.6'/><circle cx='553' cy='856' r='0.8' opacity='0.58'/><circle cx='186' cy='547' r='0.7' opacity='0.68'/><circle cx='302' cy='965' r='0.6' opacity='0.57'/><circle cx='547' cy='1082' r='0.9' opacity='0.76'/><circle cx='244' cy='18' r='1.4' opacity='0.89'/><circle cx='425' cy='1124' r='1.0' opacity='0.76'/><circle cx='35' cy='728' r='0.8' opacity='0.69'/><circle cx='559' cy='451' r='0.6' opacity='0.59'/><circle cx='589' cy='447' r='0.6' opacity='0.62'/><circle cx='143' cy='215' r='0.7' opacity='0.6'/><circle cx='116' cy='131' r='0.9' opacity='0.62'/><circle cx='653' cy='225' r='0.5' opacity='0.62'/><circle cx='306' cy='652' r='0.5' opacity='0.44'/><circle cx='271' cy='856' r='1.0' opacity='0.66'/><circle cx='325' cy='259' r='0.6' opacity='0.69'/><circle cx='366' cy='653' r='0.9' opacity='0.72'/><circle cx='637' cy='85' r='1.1' opacity='0.69'/><circle cx='481' cy='880' r='1.4' opacity='0.9'/><circle cx='521' cy='523' r='0.7' opacity='0.58'/><circle cx='761' cy='902' r='0.8' opacity='0.61'/><circle cx='752' cy='258' r='0.5' opacity='0.56'/><circle cx='28' cy='1118' r='1.1' opacity='0.66'/><circle cx='123' cy='340' r='0.7' opacity='0.53'/><circle cx='370' cy='626' r='0.6' opacity='0.55'/><circle cx='401' cy='780' r='0.5' opacity='0.48'/><circle cx='136' cy='383' r='0.6' opacity='0.68'/><circle cx='708' cy='1144' r='0.5' opacity='0.47'/><circle cx='31' cy='41' r='0.5' opacity='0.49'/><circle cx='330' cy='291' r='1.2' opacity='0.86'/><circle cx='574' cy='85' r='1.0' opacity='0.72'/><circle cx='279' cy='705' r='0.9' opacity='0.64'/><circle cx='681' cy='31' r='0.8' opacity='0.55'/><circle cx='235' cy='1049' r='1.0' opacity='0.81'/><circle cx='416' cy='745' r='1.1' opacity='0.83'/><circle cx='359' cy='419' r='0.5' opacity='0.54'/><circle cx='493' cy='647' r='0.6' opacity='0.5'/><circle cx='13' cy='733' r='1.0' opacity='0.76'/><circle cx='46' cy='361' r='0.5' opacity='0.6'/><circle cx='149' cy='214' r='1.4' opacity='0.8'/><circle cx='720' cy='636' r='0.7' opacity='0.59'/><circle cx='536' cy='331' r='1.0' opacity='0.64'/><circle cx='406' cy='691' r='0.5' opacity='0.6'/><circle cx='686' cy='396' r='0.5' opacity='0.55'/><circle cx='373' cy='282' r='1.1' opacity='0.81'/><circle cx='17' cy='991' r='1.1' opacity='0.81'/><circle cx='558' cy='357' r='0.7' opacity='0.57'/><circle cx='156' cy='343' r='0.4' opacity='0.55'/><circle cx='729' cy='12' r='0.7' opacity='0.57'/><circle cx='552' cy='323' r='0.5' opacity='0.46'/><circle cx='342' cy='1000' r='0.7' opacity='0.52'/><circle cx='276' cy='625' r='0.8' opacity='0.74'/><circle cx='131' cy='1145' r='0.6' opacity='0.62'/><circle cx='474' cy='714' r='0.6' opacity='0.49'/><circle cx='514' cy='647' r='0.6' opacity='0.51'/><circle cx='450' cy='1044' r='0.5' opacity='0.63'/><circle cx='680' cy='1018' r='0.5' opacity='0.61'/><circle cx='233' cy='721' r='0.8' opacity='0.72'/><circle cx='612' cy='789' r='0.5' opacity='0.56'/><circle cx='761' cy='269' r='0.5' opacity='0.46'/><circle cx='280' cy='918' r='0.6' opacity='0.53'/><circle cx='347' cy='301' r='0.4' opacity='0.46'/><circle cx='477' cy='829' r='0.6' opacity='0.54'/><circle cx='427' cy='697' r='0.6' opacity='0.58'/><circle cx='702' cy='1127' r='0.5' opacity='0.58'/><circle cx='69' cy='826' r='0.7' opacity='0.63'/><circle cx='266' cy='275' r='0.6' opacity='0.56'/><circle cx='495' cy='997' r='0.4' opacity='0.45'/><circle cx='131' cy='558' r='0.6' opacity='0.64'/><circle cx='535' cy='575' r='0.8' opacity='0.66'/><circle cx='200' cy='1111' r='1.0' opacity='0.64'/><circle cx='232' cy='957' r='0.6' opacity='0.63'/><circle cx='94' cy='1170' r='0.6' opacity='0.6'/><circle cx='144' cy='229' r='0.7' opacity='0.51'/><circle cx='571' cy='1059' r='1.8' opacity='1.0'/><circle cx='681' cy='706' r='0.5' opacity='0.54'/><circle cx='508' cy='677' r='0.7' opacity='0.61'/><circle cx='30' cy='992' r='0.8' opacity='0.71'/><circle cx='211' cy='760' r='0.7' opacity='0.59'/><circle cx='231' cy='118' r='1.0' opacity='0.77'/><circle cx='668' cy='1050' r='0.9' opacity='0.64'/><circle cx='502' cy='193' r='1.0' opacity='0.74'/><circle cx='508' cy='659' r='0.8' opacity='0.56'/><circle cx='583' cy='365' r='1.0' opacity='0.82'/><circle cx='548' cy='1074' r='0.9' opacity='0.78'/><circle cx='227' cy='67' r='0.5' opacity='0.55'/><circle cx='547' cy='267' r='0.6' opacity='0.53'/><circle cx='741' cy='1008' r='0.6' opacity='0.66'/><circle cx='380' cy='810' r='0.6' opacity='0.51'/><circle cx='629' cy='1137' r='0.7' opacity='0.54'/><circle cx='680' cy='1181' r='0.6' opacity='0.48'/><circle cx='314' cy='374' r='0.7' opacity='0.66'/><circle cx='139' cy='944' r='0.6' opacity='0.64'/><circle cx='704' cy='323' r='0.6' opacity='0.67'/><circle cx='37' cy='623' r='0.5' opacity='0.55'/><circle cx='484' cy='841' r='0.5' opacity='0.59'/><circle cx='49' cy='972' r='0.4' opacity='0.53'/><circle cx='729' cy='534' r='0.4' opacity='0.51'/><circle cx='100' cy='873' r='0.8' opacity='0.73'/><circle cx='254' cy='468' r='0.8' opacity='0.62'/><circle cx='556' cy='872' r='0.8' opacity='0.62'/><circle cx='222' cy='640' r='0.8' opacity='0.75'/><circle cx='629' cy='994' r='0.7' opacity='0.67'/><circle cx='126' cy='169' r='0.6' opacity='0.62'/><circle cx='125' cy='360' r='0.5' opacity='0.63'/><circle cx='446' cy='70' r='0.4' opacity='0.6'/><circle cx='657' cy='558' r='0.5' opacity='0.44'/><circle cx='541' cy='950' r='1.3' opacity='0.82'/><circle cx='149' cy='228' r='0.9' opacity='0.79'/><circle cx='474' cy='780' r='0.9' opacity='0.78'/><circle cx='694' cy='1155' r='0.5' opacity='0.59'/><circle cx='480' cy='967' r='0.6' opacity='0.59'/><circle cx='551' cy='209' r='0.8' opacity='0.56'/><circle cx='50' cy='151' r='0.5' opacity='0.46'/><circle cx='668' cy='1185' r='1.2' opacity='0.8'/><circle cx='164' cy='660' r='0.4' opacity='0.42'/><circle cx='555' cy='530' r='0.4' opacity='0.61'/><circle cx='778' cy='1074' r='0.7' opacity='0.7'/><circle cx='742' cy='321' r='0.5' opacity='0.51'/><circle cx='487' cy='504' r='0.6' opacity='0.66'/><circle cx='436' cy='92' r='0.6' opacity='0.57'/><circle cx='124' cy='983' r='0.5' opacity='0.44'/><circle cx='231' cy='795' r='0.9' opacity='0.75'/><circle cx='309' cy='501' r='0.8' opacity='0.71'/><circle cx='760' cy='61' r='0.7' opacity='0.54'/><circle cx='551' cy='258' r='0.6' opacity='0.6'/><circle cx='575' cy='356' r='0.6' opacity='0.65'/><circle cx='433' cy='829' r='1.1' opacity='0.66'/><circle cx='777' cy='354' r='0.7' opacity='0.52'/><circle cx='179' cy='82' r='0.7' opacity='0.68'/><circle cx='583' cy='244' r='1.2' opacity='0.69'/><circle cx='718' cy='964' r='0.9' opacity='0.78'/><circle cx='202' cy='994' r='0.4' opacity='0.54'/><circle cx='293' cy='427' r='0.6' opacity='0.48'/><circle cx='273' cy='154' r='1.3' opacity='0.75'/><circle cx='658' cy='1066' r='0.5' opacity='0.62'/><circle cx='562' cy='728' r='0.5' opacity='0.45'/><circle cx='40' cy='38' r='0.6' opacity='0.57'/><circle cx='645' cy='373' r='0.4' opacity='0.44'/><circle cx='782' cy='698' r='0.7' opacity='0.65'/><circle cx='487' cy='197' r='0.4' opacity='0.57'/><circle cx='588' cy='1066' r='0.9' opacity='0.68'/><circle cx='718' cy='313' r='0.8' opacity='0.65'/><circle cx='126' cy='292' r='0.5' opacity='0.65'/><circle cx='517' cy='865' r='0.8' opacity='0.75'/><circle cx='93' cy='51' r='0.8' opacity='0.62'/><circle cx='258' cy='630' r='0.6' opacity='0.69'/><circle cx='191' cy='636' r='0.7' opacity='0.51'/><circle cx='761' cy='367' r='0.9' opacity='0.63'/><circle cx='490' cy='333' r='0.9' opacity='0.72'/><circle cx='123' cy='146' r='0.6' opacity='0.54'/><circle cx='425' cy='524' r='0.6' opacity='0.68'/><circle cx='398' cy='18' r='0.4' opacity='0.45'/><circle cx='340' cy='916' r='1.0' opacity='0.82'/><circle cx='457' cy='917' r='0.9' opacity='0.63'/><circle cx='765' cy='848' r='0.7' opacity='0.68'/><circle cx='112' cy='1130' r='0.5' opacity='0.59'/><circle cx='737' cy='834' r='0.6' opacity='0.54'/><circle cx='111' cy='478' r='0.6' opacity='0.61'/><circle cx='412' cy='433' r='0.8' opacity='0.66'/><circle cx='395' cy='547' r='0.7' opacity='0.56'/><circle cx='528' cy='626' r='0.6' opacity='0.51'/><circle cx='181' cy='889' r='0.7' opacity='0.72'/><circle cx='659' cy='1025' r='0.9' opacity='0.74'/><circle cx='618' cy='1060' r='0.5' opacity='0.53'/><circle cx='715' cy='1103' r='1.4' opacity='0.86'/><circle cx='688' cy='1044' r='0.7' opacity='0.67'/><circle cx='546' cy='459' r='0.6' opacity='0.56'/><circle cx='380' cy='507' r='0.5' opacity='0.62'/><circle cx='37' cy='227' r='0.5' opacity='0.57'/><circle cx='492' cy='330' r='0.5' opacity='0.44'/><circle cx='94' cy='215' r='0.5' opacity='0.54'/><circle cx='363' cy='1064' r='1.7' opacity='0.95'/><circle cx='336' cy='644' r='1.0' opacity='0.62'/><circle cx='357' cy='316' r='0.5' opacity='0.58'/><circle cx='203' cy='1143' r='0.8' opacity='0.58'/><circle cx='96' cy='717' r='0.5' opacity='0.64'/><circle cx='109' cy='1135' r='0.8' opacity='0.75'/><circle cx='101' cy='50' r='0.8' opacity='0.76'/><circle cx='460' cy='1027' r='0.5' opacity='0.6'/><circle cx='56' cy='842' r='0.6' opacity='0.53'/><circle cx='566' cy='1081' r='0.4' opacity='0.61'/><circle cx='19' cy='298' r='0.9' opacity='0.63'/><circle cx='453' cy='217' r='0.8' opacity='0.71'/><circle cx='428' cy='177' r='0.6' opacity='0.54'/><circle cx='637' cy='1192' r='0.6' opacity='0.6'/><circle cx='193' cy='1088' r='0.4' opacity='0.53'/><circle cx='547' cy='950' r='0.6' opacity='0.66'/><circle cx='220' cy='912' r='0.6' opacity='0.54'/><circle cx='279' cy='645' r='0.6' opacity='0.47'/><circle cx='210' cy='699' r='0.9' opacity='0.79'/><circle cx='133' cy='697' r='0.5' opacity='0.54'/><circle cx='393' cy='226' r='1.3' opacity='0.93'/><circle cx='781' cy='935' r='0.6' opacity='0.55'/><circle cx='786' cy='737' r='0.5' opacity='0.49'/><circle cx='499' cy='28' r='0.5' opacity='0.57'/><circle cx='734' cy='610' r='0.6' opacity='0.48'/><circle cx='346' cy='892' r='0.5' opacity='0.63'/><circle cx='734' cy='535' r='0.5' opacity='0.45'/><circle cx='188' cy='109' r='1.0' opacity='0.82'/><circle cx='560' cy='942' r='0.6' opacity='0.58'/><circle cx='640' cy='119' r='0.4' opacity='0.49'/><circle cx='127' cy='144' r='1.3' opacity='0.73'/><circle cx='611' cy='802' r='0.5' opacity='0.62'/><circle cx='761' cy='57' r='1.0' opacity='0.7'/><circle cx='387' cy='1148' r='0.9' opacity='0.62'/><circle cx='60' cy='857' r='0.5' opacity='0.64'/><circle cx='557' cy='345' r='0.9' opacity='0.59'/><circle cx='595' cy='852' r='0.8' opacity='0.68'/><circle cx='8' cy='596' r='0.7' opacity='0.53'/><circle cx='204' cy='560' r='1.2' opacity='0.82'/><circle cx='218' cy='666' r='0.6' opacity='0.53'/><circle cx='113' cy='403' r='0.4' opacity='0.49'/><circle cx='84' cy='28' r='0.6' opacity='0.53'/><circle cx='232' cy='406' r='0.4' opacity='0.52'/><circle cx='121' cy='1121' r='0.5' opacity='0.56'/><circle cx='148' cy='357' r='0.6' opacity='0.62'/><circle cx='407' cy='522' r='0.5' opacity='0.48'/><circle cx='786' cy='372' r='1.2' opacity='0.88'/><circle cx='617' cy='285' r='0.8' opacity='0.76'/><circle cx='555' cy='108' r='1.5' opacity='0.99'/><circle cx='744' cy='573' r='0.7' opacity='0.71'/><circle cx='163' cy='557' r='0.7' opacity='0.71'/><circle cx='738' cy='219' r='0.4' opacity='0.61'/><circle cx='432' cy='155' r='0.5' opacity='0.46'/><circle cx='726' cy='104' r='1.1' opacity='0.74'/><circle cx='214' cy='422' r='1.0' opacity='0.83'/><circle cx='214' cy='64' r='0.8' opacity='0.6'/><circle cx='541' cy='851' r='0.9' opacity='0.71'/><circle cx='51' cy='740' r='0.9' opacity='0.68'/><circle cx='709' cy='1008' r='0.7' opacity='0.65'/><circle cx='379' cy='421' r='0.5' opacity='0.57'/><circle cx='360' cy='832' r='0.6' opacity='0.61'/><circle cx='784' cy='50' r='0.7' opacity='0.52'/><circle cx='620' cy='88' r='0.7' opacity='0.61'/><circle cx='131' cy='736' r='1.1' opacity='0.7'/><circle cx='238' cy='433' r='0.5' opacity='0.65'/><circle cx='17' cy='256' r='0.7' opacity='0.61'/><circle cx='184' cy='814' r='1.4' opacity='0.78'/><circle cx='211' cy='625' r='0.6' opacity='0.53'/><circle cx='454' cy='1147' r='0.4' opacity='0.48'/><circle cx='384' cy='448' r='0.9' opacity='0.7'/><circle cx='729' cy='1010' r='0.5' opacity='0.59'/><circle cx='757' cy='685' r='0.7' opacity='0.67'/><circle cx='199' cy='170' r='0.5' opacity='0.61'/><circle cx='324' cy='840' r='0.5' opacity='0.64'/><circle cx='745' cy='602' r='0.9' opacity='0.64'/><circle cx='483' cy='696' r='0.7' opacity='0.59'/><circle cx='545' cy='1054' r='0.5' opacity='0.46'/><circle cx='723' cy='581' r='0.4' opacity='0.59'/><circle cx='261' cy='674' r='1.0' opacity='0.82'/><circle cx='279' cy='561' r='0.5' opacity='0.47'/><circle cx='288' cy='993' r='0.7' opacity='0.67'/><circle cx='767' cy='160' r='0.7' opacity='0.68'/><circle cx='415' cy='24' r='0.7' opacity='0.64'/><circle cx='421' cy='1152' r='0.9' opacity='0.58'/><circle cx='64' cy='40' r='1.4' opacity='0.82'/><circle cx='142' cy='46' r='0.4' opacity='0.4'/><circle cx='118' cy='916' r='0.8' opacity='0.72'/><circle cx='167' cy='1017' r='0.5' opacity='0.52'/><circle cx='41' cy='416' r='0.6' opacity='0.58'/><circle cx='467' cy='1091' r='0.7' opacity='0.6'/><circle cx='735' cy='826' r='1.0' opacity='0.68'/><circle cx='252' cy='736' r='0.4' opacity='0.41'/><circle cx='531' cy='500' r='1.0' opacity='0.68'/><circle cx='652' cy='430' r='0.4' opacity='0.44'/><circle cx='209' cy='915' r='1.4' opacity='0.86'/><circle cx='353' cy='727' r='0.6' opacity='0.67'/><circle cx='91' cy='291' r='0.4' opacity='0.55'/><circle cx='161' cy='928' r='0.7' opacity='0.68'/><circle cx='626' cy='362' r='0.6' opacity='0.51'/><circle cx='528' cy='146' r='1.0' opacity='0.65'/><circle cx='70' cy='271' r='1.7' opacity='0.88'/><circle cx='437' cy='259' r='0.7' opacity='0.53'/><circle cx='605' cy='225' r='1.4' opacity='0.95'/><circle cx='689' cy='832' r='0.5' opacity='0.49'/><circle cx='329' cy='123' r='0.7' opacity='0.56'/><circle cx='345' cy='205' r='0.5' opacity='0.62'/><circle cx='158' cy='656' r='0.5' opacity='0.56'/><circle cx='101' cy='290' r='0.5' opacity='0.65'/><circle cx='708' cy='337' r='0.5' opacity='0.65'/><circle cx='424' cy='818' r='0.9' opacity='0.61'/><circle cx='33' cy='364' r='0.6' opacity='0.63'/><circle cx='145' cy='643' r='0.4' opacity='0.56'/><circle cx='147' cy='834' r='0.5' opacity='0.54'/><circle cx='33' cy='755' r='0.4' opacity='0.62'/><circle cx='130' cy='1118' r='1.6' opacity='0.94'/><circle cx='19' cy='619' r='0.4' opacity='0.6'/><circle cx='63' cy='223' r='0.6' opacity='0.5'/><circle cx='190' cy='794' r='0.7' opacity='0.6'/><circle cx='207' cy='971' r='0.6' opacity='0.5'/><circle cx='487' cy='818' r='0.9' opacity='0.6'/><circle cx='712' cy='832' r='0.8' opacity='0.58'/><circle cx='361' cy='830' r='0.4' opacity='0.44'/><circle cx='226' cy='1121' r='0.6' opacity='0.6'/><circle cx='623' cy='692' r='0.5' opacity='0.54'/><circle cx='412' cy='660' r='0.7' opacity='0.55'/><circle cx='772' cy='749' r='0.6' opacity='0.69'/><circle cx='62' cy='900' r='0.7' opacity='0.61'/><circle cx='80' cy='979' r='0.6' opacity='0.51'/><circle cx='284' cy='471' r='0.5' opacity='0.53'/><circle cx='575' cy='759' r='0.7' opacity='0.65'/><circle cx='566' cy='40' r='0.8' opacity='0.59'/><circle cx='404' cy='164' r='0.7' opacity='0.71'/><circle cx='156' cy='370' r='0.4' opacity='0.48'/><circle cx='170' cy='11' r='0.6' opacity='0.49'/><circle cx='552' cy='288' r='0.8' opacity='0.57'/><circle cx='530' cy='440' r='0.6' opacity='0.66'/><circle cx='144' cy='446' r='1.6' opacity='0.96'/><circle cx='240' cy='775' r='0.9' opacity='0.77'/><circle cx='141' cy='386' r='0.5' opacity='0.61'/><circle cx='542' cy='781' r='0.6' opacity='0.68'/><circle cx='553' cy='958' r='0.4' opacity='0.56'/><circle cx='376' cy='632' r='1.1' opacity='0.73'/><circle cx='712' cy='673' r='0.4' opacity='0.43'/><circle cx='465' cy='889' r='0.7' opacity='0.64'/><circle cx='168' cy='1011' r='0.6' opacity='0.57'/><circle cx='418' cy='88' r='0.7' opacity='0.67'/><circle cx='98' cy='466' r='0.8' opacity='0.55'/><circle cx='378' cy='705' r='0.6' opacity='0.55'/><circle cx='472' cy='30' r='0.4' opacity='0.49'/><circle cx='720' cy='458' r='0.6' opacity='0.67'/><circle cx='697' cy='349' r='0.7' opacity='0.61'/><circle cx='18' cy='829' r='0.5' opacity='0.62'/><circle cx='320' cy='99' r='0.8' opacity='0.55'/><circle cx='435' cy='1112' r='0.7' opacity='0.53'/><circle cx='438' cy='804' r='1.8' opacity='1.0'/><circle cx='406' cy='1039' r='0.5' opacity='0.45'/><circle cx='752' cy='626' r='0.5' opacity='0.55'/><circle cx='53' cy='517' r='0.5' opacity='0.47'/><circle cx='602' cy='1099' r='1.2' opacity='0.75'/><circle cx='751' cy='1027' r='0.4' opacity='0.57'/><circle cx='538' cy='1031' r='0.4' opacity='0.44'/><circle cx='529' cy='269' r='0.4' opacity='0.51'/><circle cx='97' cy='877' r='1.1' opacity='0.78'/><circle cx='275' cy='647' r='0.5' opacity='0.47'/><circle cx='726' cy='784' r='0.9' opacity='0.64'/><circle cx='280' cy='453' r='0.5' opacity='0.53'/><circle cx='443' cy='796' r='0.4' opacity='0.45'/><circle cx='450' cy='979' r='1.2' opacity='0.71'/><circle cx='301' cy='195' r='1.0' opacity='0.66'/><circle cx='785' cy='601' r='0.6' opacity='0.6'/><circle cx='681' cy='815' r='0.6' opacity='0.66'/><circle cx='72' cy='1097' r='1.2' opacity='0.86'/><circle cx='229' cy='352' r='0.6' opacity='0.63'/><circle cx='530' cy='861' r='1.1' opacity='0.84'/><circle cx='484' cy='191' r='0.5' opacity='0.6'/><circle cx='184' cy='1165' r='0.7' opacity='0.52'/><circle cx='688' cy='64' r='1.3' opacity='0.86'/><circle cx='642' cy='773' r='0.5' opacity='0.54'/><circle cx='183' cy='696' r='0.5' opacity='0.56'/><circle cx='201' cy='969' r='0.6' opacity='0.52'/><circle cx='342' cy='316' r='0.6' opacity='0.63'/><circle cx='744' cy='537' r='0.7' opacity='0.52'/><circle cx='307' cy='775' r='0.9' opacity='0.67'/><circle cx='594' cy='888' r='1.3' opacity='0.83'/><circle cx='345' cy='102' r='0.6' opacity='0.63'/><circle cx='339' cy='244' r='1.2' opacity='0.89'/><circle cx='122' cy='432' r='0.7' opacity='0.68'/></g></svg>");
+  background-size:100% 100%;
+  background-repeat:no-repeat;
+}
+.phone{position:fixed;inset:0;width:100%;height:100dvh;height:var(--tg-viewport-stable-height,100dvh);background:transparent;display:flex;flex-direction:column;overflow:hidden;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);z-index:1}
+@media(min-width:600px){body{background:#000000}.phone{position:relative;inset:auto;width:390px;height:min(820px,95dvh);border-radius:40px;border:1px solid var(--border2);box-shadow:0 0 0 1px rgba(0,0,0,.5),0 32px 80px rgba(0,0,0,.8);background:transparent}}
 
 /* ═══ SCREENS ═══ */
 .screen{display:none;flex-direction:column;width:100%;height:100%;position:absolute;inset:0;opacity:0}
@@ -189,8 +213,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 @keyframes undoFlash{0%{box-shadow:0 1px 3px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05),0 0 0 0 rgba(74,222,128,.5)}50%{box-shadow:0 1px 3px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05),0 0 12px 4px rgba(74,222,128,.35)}100%{box-shadow:0 1px 3px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05),0 0 0 0 rgba(74,222,128,0)}}
 .undo-toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;font-weight:900;color:#4ade80;white-space:nowrap;pointer-events:none;animation:undoToastAnim .7s var(--ease-snap) forwards;z-index:500}
 @keyframes undoToastAnim{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}40%{opacity:1;transform:translate(-50%,-60%)}100%{opacity:0;transform:translate(-50%,-80%)}}
-.cur-score-wrap{flex-shrink:0;text-align:center;padding:clamp(0px,.3vh,2px) 0 clamp(2px,1vh,8px);position:relative;display:flex;flex-direction:column;align-items:center}
-.cur-score{font-size:clamp(36px,7vh,52px);font-weight:800;letter-spacing:-2.5px;line-height:1;background:linear-gradient(180deg,#F5F0E8 15%,#D4B870 55%,#A07828 90%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none;position:relative;display:block;text-align:center;transform-origin:center center}
+.cur-score-wrap{flex-shrink:0;text-align:center;padding:clamp(0px,.2vh,1px) 0 clamp(2px,.6vh,5px);position:relative;display:flex;flex-direction:column;align-items:center}
+.cur-score{font-size:clamp(28px,5vh,40px);font-weight:900;letter-spacing:-1.5px;line-height:1;color:#F5F0E8;-webkit-text-stroke:1.5px #8B6F2E;text-shadow:0 2px 0 rgba(0,0,0,.5);position:relative;display:block;text-align:center;transform-origin:center center}
 .cur-score.bump,.cur-score.bump-big,.cur-score.bump-mega{will-change:transform}
 /* v6 토스 스타일: scale peak 축소 (1.04/1.06/1.08), bounce 제거 */
 .cur-score.bump     {animation: scoreBump     180ms cubic-bezier(0.4, 0, 0.2, 1) both}
@@ -219,66 +243,116 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .streak-badge.s5{font-size:16px;padding:5px 18px;background:rgba(249,168,212,.15);border-color:rgba(249,168,212,.35);color:#F9A8D4}
 .streak-badge.streak-pop{animation:streakPop 250ms var(--ease-out) both}
 @keyframes streakPop{0%{transform:scale(.7)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
-.goal-hint{font-size:11px;font-weight:500;color:rgba(255,255,255,.35);letter-spacing:0;margin-top:4px;height:16px;transition:opacity .3s var(--ease-snap),color .3s var(--ease-snap)}
-.goal-hint.achieved{color:rgba(74,222,128,.75);font-weight:600}
-.board-area{flex:1;display:flex;align-items:center;justify-content:center;padding:0 clamp(4px,1.2vw,8px);min-height:0;contain:layout;overflow:hidden}
+.goal-hint{font-size:11px;font-weight:600;color:rgba(74,222,128,.85);letter-spacing:0;margin-top:6px;height:0;opacity:0;overflow:hidden;transition:opacity .4s var(--ease-snap),height .4s var(--ease-snap)}
+.goal-hint.achieved{height:16px;opacity:1}
+.board-area{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:clamp(4px,1vh,12px) clamp(2px,.5vw,4px) 0;min-height:0;contain:layout;overflow:hidden}
 .board-outer{width:var(--board-size,100%);max-width:var(--board-size,100%)}
 /* ── 보드 프레임: 1단 레이어 — 가장 깊고 무거운 바깥틀 ── */
 .board-frame{background:transparent;border-radius:12px;padding:0;border:none;box-shadow:none;position:relative}
 .board-frame::before{display:none}
 .board-frame::after{display:none}
+/* ── Preview Overlay: 드래그 중 예상 착수 위치 표시 (물 흐르듯 transform 이동) ── */
+#preview-overlay{position:absolute;inset:0;pointer-events:none;z-index:5;opacity:0;transition:opacity 140ms ease-out;will-change:transform,opacity;backface-visibility:hidden;contain:layout style}
+#preview-overlay.visible{opacity:1}
+#preview-overlay .po-grid{display:grid;gap:1px;position:absolute;left:0;top:0;will-change:transform;transform:translate3d(0,0,0)}
+#preview-overlay .po-cell{border-radius:5px;background:transparent}
+#preview-overlay .po-cell.on{background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10)}
+#preview-overlay.invalid .po-cell.on{background:rgba(220,38,38,.55);box-shadow:inset 0 0 0 1px rgba(220,38,38,.28)}
 /* ── 보드 표면: 2단 레이어 — 프레임 위에 떠있는 정제된 면 ── */
-.board{display:grid;grid-template-columns:repeat(9,1fr);gap:1px;background:linear-gradient(180deg,#C49A5C 0%,#A88044 50%,#8A6830 100%);border-radius:8px;padding:0;position:relative;overflow:hidden;touch-action:none;user-select:none;border:1px solid rgba(180,140,80,.25);box-shadow:0 0 0 1px rgba(0,0,0,.5),0 4px 12px rgba(0,0,0,.30)}
+.board{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;background:transparent;border-radius:2px;padding:0;position:relative;overflow:hidden;touch-action:none;user-select:none;border:none;box-shadow:none;contain:layout style paint;backface-visibility:hidden}
 /* 3x3 경계선 overlay — 모든 셀/블록 위에 균일하게 그려짐 */
 /* 3x3 경계 — 반투명 화이트 라인 */
 .board::after{content:'';position:absolute;inset:0;z-index:10;pointer-events:none;
   background:
-    linear-gradient(90deg,transparent calc(33.333% - 1.5px),var(--section-line) calc(33.333% - 1.5px),var(--section-line) calc(33.333% + 1.5px),transparent calc(33.333% + 1.5px),transparent calc(66.666% - 1.5px),var(--section-line) calc(66.666% - 1.5px),var(--section-line) calc(66.666% + 1.5px),transparent calc(66.666% + 1.5px)),
-    linear-gradient(180deg,transparent calc(33.333% - 1.5px),var(--section-line) calc(33.333% - 1.5px),var(--section-line) calc(33.333% + 1.5px),transparent calc(33.333% + 1.5px),transparent calc(66.666% - 1.5px),var(--section-line) calc(66.666% - 1.5px),var(--section-line) calc(66.666% + 1.5px),transparent calc(66.666% + 1.5px))}
-/* ── 셀: 3단 레이어 — 미세 표면감 ── */
-/* ── 셀: 오목하게 눌린 패널 느낌 ── */
-.cell{aspect-ratio:1;border-radius:2px;background:linear-gradient(160deg,#030408 0%,var(--cell-empty) 50%,#090C14 100%);border:none;position:relative;overflow:hidden;cursor:pointer;box-shadow:inset 0 4px 10px rgba(0,0,0,.65),inset 4px 0 8px rgba(0,0,0,.4),inset 0 2px 4px rgba(0,0,0,.75),inset -1px -1px 2px rgba(255,255,255,.025);contain:layout style}
-.cell::after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(160deg,rgba(0,0,0,.22) 0%,transparent 50%,rgba(255,255,255,.018) 100%);pointer-events:none}
-/* ── 교차 구역: 2,4,6,8번 — 톤 차이로 구분 ── */
-.cell.section-alt{background:linear-gradient(160deg,#1A2438 0%,var(--cell-alt) 48%,#243060 100%);box-shadow:inset 0 4px 10px rgba(0,0,0,.7),inset 4px 0 8px rgba(0,0,0,.45),inset 0 2px 4px rgba(0,0,0,.8),inset -1px -1px 2px rgba(255,255,255,.022)}
+    linear-gradient(90deg,transparent calc(33.333% - 1px),var(--section-line) calc(33.333% - 1px),var(--section-line) calc(33.333% + 1px),transparent calc(33.333% + 1px),transparent calc(66.666% - 1px),var(--section-line) calc(66.666% - 1px),var(--section-line) calc(66.666% + 1px),transparent calc(66.666% + 1px)),
+    linear-gradient(180deg,transparent calc(33.333% - 1px),var(--section-line) calc(33.333% - 1px),var(--section-line) calc(33.333% + 1px),transparent calc(33.333% + 1px),transparent calc(66.666% - 1px),var(--section-line) calc(66.666% - 1px),var(--section-line) calc(66.666% + 1px),transparent calc(66.666% + 1px))}
+/* ── 셀: 평면 패널 (층 쌓임 착시 제거) ──
+   - box-shadow를 inset 0 0 0 1px 대칭 outline으로 (상하 비대칭 제거)
+   - ::after 상단 그라디언트 제거 (위에서 빛 받는 느낌 제거)
+   - border-radius 2px (교차점 + 자 점 최소화) */
+.cell{aspect-ratio:1;border-radius:2px;background:#1A2038;border:none;position:relative;overflow:hidden;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);contain:layout style}
+.cell::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:transparent}
+/* ── Preview 오버레이 (드래그 중 부드러운 fade) ── */
+.cell::before{content:'';position:absolute;inset:2px;border-radius:4px;background:transparent;opacity:0;pointer-events:none;z-index:2;transition:opacity 120ms ease-out}
+/* ── 교차 구역: 2,4,6,8번 — 매우 미묘한 톤 차이로만 구분 ── */
+.cell.section-alt{background:#4A5578;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
 /* ── 3x3 경계: board::after 오버레이로 분리 — 블록 위에 항상 표시 ── */
-.cell.filled .block-inner{position:absolute;inset:4px;border-radius:5px;background:linear-gradient(148deg,var(--block-light) 0%,var(--block) 48%,var(--block-dark) 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.28),inset 0 -2px 0 rgba(0,0,0,.30),inset 0 0 0 1px rgba(60,34,12,.15)}
-.cell.filled .block-inner::after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(175deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.02) 50%,rgba(0,0,0,.06) 100%);pointer-events:none}
-.cell.filled .potato-wrap{position:absolute;inset:4px;display:flex;align-items:center;justify-content:center;z-index:1}
-.cell.filled svg{width:65%;height:65%;display:block;pointer-events:none}
+.cell.filled .block-inner{position:absolute;inset:2px;border-radius:9px;background:linear-gradient(155deg,var(--block-light) 0%,var(--block) 55%,var(--block-dark) 100%);box-shadow:inset 0 2px 1px rgba(255,255,255,.45),inset 0 -2px 2px rgba(75,45,15,.35),inset 0 0 0 1px rgba(60,34,12,.18)}
+/* 특수 블록: 크로스 (마젠타/핑크) - inset shadow만 (외부 glow 제거, paint 비용 차단) */
+.cell.special-cross .block-inner,.pc.on.special-cross{background:linear-gradient(155deg,var(--block-cross-light) 0%,var(--block-cross) 55%,var(--block-cross-dark) 100%) !important;box-shadow:inset 0 2px 1px rgba(255,255,255,.55),inset 0 -2px 2px rgba(120,32,80,.4),inset 0 0 0 1.5px rgba(176,56,128,.35) !important}
+/* 특수 블록: 폭탄 (다크 그레이/오렌지) */
+.cell.special-bomb .block-inner,.pc.on.special-bomb{background:linear-gradient(155deg,var(--block-bomb-light) 0%,var(--block-bomb) 55%,var(--block-bomb-dark) 100%) !important;box-shadow:inset 0 2px 1px rgba(255,180,100,.32),inset 0 -2px 2px rgba(0,0,0,.5),inset 0 0 0 1.5px rgba(0,0,0,.45) !important}
+/* 특수 블록: 얼음 (블루/서리) */
+.cell.filled-ice .block-inner{position:absolute;inset:2px;border-radius:9px;background:linear-gradient(155deg,var(--block-ice-light) 0%,var(--block-ice) 55%,var(--block-ice-dark) 100%) !important;box-shadow:inset 0 2px 1px rgba(255,255,255,.65),inset 0 -2px 2px rgba(16,64,120,.4),inset 0 0 0 1.5px rgba(40,112,168,.4) !important}
+.cell.filled-ice.ice-cracked .block-inner{opacity:.88}
+.cell.filled-ice .potato-wrap{position:absolute;inset:2px;display:flex;align-items:center;justify-content:center}
+.cell.filled-ice svg{width:85%;height:85%;display:block}
+.pc.on.special-cross::after,.pc.on.special-bomb::after{display:none}
+/* ═══ 특수 효과 발동 애니메이션 (GPU-only: transform+opacity) ═══ */
+@keyframes specialBurstRow{
+  0%{opacity:0;transform:scaleX(0.2)}
+  30%{opacity:.75;transform:scaleX(1)}
+  100%{opacity:0;transform:scaleX(1)}
+}
+@keyframes specialBurstCol{
+  0%{opacity:0;transform:scaleY(0.2)}
+  30%{opacity:.75;transform:scaleY(1)}
+  100%{opacity:0;transform:scaleY(1)}
+}
+@keyframes specialBurstRadial{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0)}
+  40%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.35)}
+}
+.special-burst-row{position:fixed;background:linear-gradient(90deg,transparent,rgba(255,200,230,.55) 25%,rgba(255,255,255,.75) 50%,rgba(255,200,230,.55) 75%,transparent);height:var(--burst-h,28px);pointer-events:none;z-index:900;border-radius:3px;transform-origin:center;animation:specialBurstRow 380ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;will-change:transform,opacity}
+.special-burst-col{position:fixed;background:linear-gradient(180deg,transparent,rgba(255,200,230,.55) 25%,rgba(255,255,255,.75) 50%,rgba(255,200,230,.55) 75%,transparent);width:var(--burst-w,28px);pointer-events:none;z-index:900;border-radius:3px;transform-origin:center;animation:specialBurstCol 380ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;will-change:transform,opacity}
+.special-burst-radial{position:fixed;background:radial-gradient(circle,rgba(255,220,130,1) 0%,rgba(255,140,50,.85) 40%,rgba(120,50,0,.25) 75%,transparent 100%);border-radius:50%;pointer-events:none;z-index:900;transform:translate(-50%,-50%) scale(0);animation:specialBurstRadial 520ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;will-change:transform,opacity}
+/* 얼음 깨짐 shake */
+@keyframes iceCrackShake{
+  0%,100%{transform:translate(0,0)}
+  25%{transform:translate(-1.2px,.4px)}
+  50%{transform:translate(1.2px,-.4px)}
+  75%{transform:translate(-.8px,.6px)}
+}
+.cell.ice-crack-shake .block-inner{animation:iceCrackShake 260ms cubic-bezier(0.25, 0.1, 0.25, 1)}
+/* block-inner::after 제거됨 (paint 비용) */
+/* ★ 글래스 상단 하이라이트 — 얼굴 위에 덮이도록 cell.filled::after로 분리 */
+/* .cell.filled::after 글래스 레이어 제거 (paint 비용 최우선 감소) */
+.cell.filled .potato-wrap{position:absolute;inset:2px;display:flex;align-items:center;justify-content:center;z-index:1}
+.cell.filled svg{width:85%;height:85%;display:block;pointer-events:none}
 .cell.filled svg *{pointer-events:none}
-.cell.preview-valid::before{content:'';position:absolute;inset:4px;border-radius:5px;background:rgba(255,255,255,.45);pointer-events:none;z-index:2}
+/* preview-valid / preview-invalid는 이제 #preview-overlay 레이어가 담당 (물 흐르듯 이동) */
+/* 기존 셀 단위 오버레이 제거 — discrete 깜빡임 방지 */
 /* 배치 시 터질 셀 미리보기 — 골드 pulse */
-/* preview-clear: 빛만 pulse, 모션(transform/translate) 없음 */
-/* preview-clear: 블록 전체가 하얗게 빛나며 살짝 투명해짐 */
-/* preview-clear: 블록만 밝아지는 예고 */
+/* preview-clear: 배경 밝기 변화만 (box-shadow 제거, 렉 근본 해결) */
 .cell.preview-clear{
   z-index:6;
 }
-/* 블록만 밝게 — 깜빡임 없이 고정 (glow 축소) */
+/* 채워진 블록: 배경 자체를 밝은 크림으로 오버라이드 (filter 없이) */
 .cell.filled.preview-clear .block-inner{
-  box-shadow:inset 0 2px 0 rgba(255,255,255,.75),inset 0 -2px 0 rgba(0,0,0,.08),0 0 8px 2px rgba(255,235,180,.35) !important;
+  background:linear-gradient(155deg,#FFF0C8 0%,#FFD886 55%,#C08843 100%) !important;
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.95),inset 0 -2px 0 rgba(0,0,0,.05),inset 0 0 0 2px rgba(255,230,100,.7) !important;
 }
-.cell.filled.preview-clear .block-inner::after{
-  background:rgba(255,252,240,.50) !important;
-}
-/* 빈 셀 클리어 예상 — 블록 크기만큼만 (셀 테두리 보존) */
+/* 빈 셀: 더 밝은 노란 fill */
 .cell.preview-clear:not(.filled){
-  background:var(--cell-empty) !important;
-  box-shadow:inset 0 4px 10px rgba(0,0,0,.65),inset 4px 0 8px rgba(0,0,0,.4) !important;
+  background:rgba(255,225,110,.52) !important;
+  box-shadow:inset 0 0 0 2px rgba(255,235,110,.85) !important;
 }
 .cell.section-alt.preview-clear:not(.filled){
-  background:var(--cell-alt) !important;
+  background:rgba(255,225,110,.58) !important;
 }
+/* ::after 빈 셀 중앙 점 - 더 크고 밝게 */
 .cell.preview-clear:not(.filled)::after{
   content:'';
   position:absolute;
-  inset:5px;
-  border-radius:2px;
-  background:rgba(255,210,40,0.75);
+  inset:25%;
+  border-radius:50%;
+  background:rgba(255,250,180,1);
   pointer-events:none;
   z-index:4;
 }
+/* preview-clear 상태에서 글래스 하이라이트 숨김 - 렌더링 레이어 감소 */
+.cell.filled.preview-clear::after{opacity:0 !important}
 /* 착수 위치 표시 — 화이트 배경 */
 .cell.preview-place{
   background:rgba(255,255,255,.25) !important;
@@ -286,7 +360,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   z-index:7;
 }
 .cell.preview-valid::after{background:rgba(99,179,237,.08)}
-.cell.preview-invalid::before{content:'';position:absolute;inset:4px;border-radius:5px;background:rgba(220,38,38,.55);pointer-events:none;z-index:2}
+/* preview-invalid::before 제거 — overlay 레이어가 대체 */
 
 /* ═══ v6 토스 스타일 블록 착지 ═══
    원칙: overshoot 금지, 80ms 단순 페이드인, 회전 없음, scale 미세
@@ -316,40 +390,42 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .cell.shake{animation:cellNudge 70ms var(--ease-press) both}
 @keyframes cellNudge{0%{transform:translateX(0)}35%{transform:translateX(-2px)}70%{transform:translateX(2px)}100%{transform:translateX(0)}}
 .tray{flex-shrink:0;padding:clamp(4px,1.2vh,10px) 12px clamp(8px,2.5vh,22px);display:flex;gap:10px;align-items:center;justify-content:center;contain:layout;padding-bottom:max(clamp(8px,2.5vh,22px),env(safe-area-inset-bottom,0px))}
-.piece-slot{flex:1;max-width:120px;min-height:clamp(70px,12vh,100px);contain:layout;background:linear-gradient(175deg,rgba(255,255,255,.035) 0%,var(--surface) 40%,rgba(0,0,0,.22) 100%);border:1px solid rgba(255,255,255,.055);border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(0,0,0,.5);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;touch-action:none;user-select:none;transition:transform var(--dur-fast) var(--ease-snap),opacity var(--dur-fast) var(--ease-snap);box-shadow:0 2px 4px rgba(0,0,0,.4),0 4px 12px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05),inset 0 -2px 4px rgba(0,0,0,.28)}
+.piece-slot{flex:1;max-width:130px;min-height:clamp(78px,13vh,108px);contain:layout;background:transparent;border:none;border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;touch-action:none;user-select:none;transition:transform var(--dur-fast) var(--ease-snap),opacity var(--dur-fast) var(--ease-snap);box-shadow:none}
 .piece-slot::after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 55%);pointer-events:none}
-.piece-slot.selected{border-color:rgba(184,151,92,.40);border-top-color:rgba(184,151,92,.55);background:linear-gradient(175deg,rgba(184,151,92,.06) 0%,rgba(184,151,92,.02) 100%);transform:translateY(-5px) scale(1.02);box-shadow:0 6px 16px rgba(150,115,50,.12),0 2px 6px rgba(0,0,0,.35),inset 0 1px 0 rgba(184,151,92,.10)}
+.piece-slot.selected{transform:translateY(-5px) scale(1.02)}
+/* ★ 드래그 중 슬롯 내부 피스 숨김 - Ghost만 보이게 (쌍둥이 현상 방지) */
+.piece-slot.selected .piece-grid{transition:opacity 80ms ease-out}
+.piece-slot.dragging .piece-grid{opacity:0}
 .piece-slot.used{opacity:.16;pointer-events:none}
 .piece-slot.invalid-nudge{animation:slotNudge 80ms var(--ease-press) both}
 @keyframes slotNudge{0%{transform:translateX(0)}35%{transform:translateX(-2.5px)}70%{transform:translateX(2.5px)}100%{transform:translateX(0)}}
 .piece-grid{display:inline-grid;gap:2px;pointer-events:none}
 .pc{width:22px;height:22px;border-radius:5px;background:transparent}
-.pc.on{background:linear-gradient(145deg,var(--block-light),var(--block) 55%,var(--block-dark));border-top:2px solid rgba(255,255,255,0.42);border-left:1.5px solid rgba(255,255,255,0.18);border-bottom:2px solid rgba(0,0,0,0.45);border-right:1.5px solid rgba(0,0,0,0.32);box-shadow:0 2px 7px rgba(0,0,0,0.55),0 1px 2px rgba(0,0,0,0.35);position:relative;border-radius:4px}
-.pc.on svg{position:absolute;inset:0;width:100%;height:100%}
-#ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;visibility:hidden;opacity:0;will-change:transform;backface-visibility:hidden;contain:layout style}
+.pc.on{background:linear-gradient(155deg,var(--block-light),var(--block) 55%,var(--block-dark));border-top:2px solid rgba(255,255,255,0.50);border-left:1.5px solid rgba(255,255,255,0.22);border-bottom:2px solid rgba(0,0,0,0.48);border-right:1.5px solid rgba(0,0,0,0.35);box-shadow:0 2px 5px rgba(0,0,0,0.50),inset 0 1px 1px rgba(255,255,255,.25);position:relative;border-radius:7px}
+/* .pc.on::after 글래스 제거 (paint 최적화) */
+.pc.on svg{position:absolute;inset:7.5%;width:85%;height:85%}
+#ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;visibility:hidden;opacity:0;will-change:transform,opacity;backface-visibility:hidden;contain:layout style paint;transition:opacity 220ms cubic-bezier(0.25, 0.1, 0.25, 1)}
 #ghost.visible{visibility:visible;opacity:.92}
 #ghost.on-board{opacity:1}
 /* ═══ v6 iOS 홈스크린 스타일 드래그 Ghost ═══
    원칙:
-   - 드래그 시작 시 scale 1.0 → 1.12 살짝 떠오름 (pop-in)
-   - 드래그 중 drop-shadow로 공중 부양감
-   - 유효 위치 진입 시 scale 1.12 → 1.08 (살짝 안착, 안정감)
-   - 드래그 종료(성공 착지) 시 bounce back — 1.08 → 0.95 → 1 spring
+   - 드래그 시작 시 scale 1.0 → 1.08 부드럽게 떠오름 (오버슈트 없음)
+   - 드래그 중 정적 scale
+   - 유효 위치 진입 시 동일 scale 유지 (불필요한 tween 제거)
+   - 드래그 종료 시 조용히 사라짐
 */
 #ghost > .piece-grid{
   transform: scale(1);
-  transition: transform 120ms cubic-bezier(0.34, 1.2, 0.64, 1);  /* 진입 시 살짝 오버슈트 */
+  transition: transform 220ms cubic-bezier(0.25, 0.1, 0.25, 1);  /* 부드러운 ease-out, 오버슈트 없음 */
   will-change: transform;
-  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35)) drop-shadow(0 2px 4px rgba(0,0,0,0.25));
 }
-/* 드래그 시작 — visible 상태가 되면 scale 1.12로 떠오름 */
+/* 드래그 시작 — visible 상태가 되면 부드럽게 8% 확대 */
 #ghost.visible > .piece-grid{
-  transform: scale(1.12);
+  transform: scale(1.08);
 }
-/* 유효 위치 진입 — 살짝 가라앉음 (안착 대비) */
+/* 유효 위치 진입 — 동일 scale 유지 (불필요한 tween 제거) */
 #ghost.visible.on-board > .piece-grid{
   transform: scale(1.08);
-  transition: transform 80ms cubic-bezier(0.4, 0, 0.2, 1);  /* on-board는 더 빠른 전환 */
 }
 /* ═══ 착지 전환: Ghost는 조용히 사라짐, 착수 연출은 Cell landing이 담당 ═══
    이전 bounce(scale 0.94→1.03→1.00)는 과장된 "만화적 눌림"으로 부자연스러웠음.
@@ -365,22 +441,22 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 #ghost.dropping{
   transition: opacity 120ms cubic-bezier(0.25, 0.1, 0.25, 1);
 }
-.float-label{position:fixed;pointer-events:none;z-index:500;font-size:16px;font-weight:800;animation:labelRise 500ms cubic-bezier(0.4, 0, 0.2, 1) forwards;white-space:nowrap;letter-spacing:-.3px;transform-origin:center center}
+.float-label{position:fixed;pointer-events:none;z-index:500;font-size:22px;font-weight:800;animation:labelRise 550ms cubic-bezier(0.4, 0, 0.2, 1) forwards;white-space:nowrap;letter-spacing:-.3px;transform-origin:center center;text-shadow:0 1px 2px rgba(0,0,0,.6),0 0 6px rgba(0,0,0,.4)}
 /* 토스 스타일: 오버슈트 없음, 부드러운 상승 + 페이드아웃 */
 @keyframes labelRise{
   0%   { opacity: 0;   transform: translate(-50%, -50%) translateY(4px);    }
-  20%  { opacity: 1;   transform: translate(-50%, -50%) translateY(-8px);   }
-  100% { opacity: 0;   transform: translate(-50%, -50%) translateY(-34px);  }
+  20%  { opacity: 1;   transform: translate(-50%, -50%) translateY(-12px);  }
+  100% { opacity: 0;   transform: translate(-50%, -50%) translateY(-44px);  }
 }
 /* big variant — 3+ 라인 시 조금 더 오래, 조금 더 높이 (하지만 scale bounce 없음) */
 .float-label.big{
-  animation: labelRiseBig 600ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: labelRiseBig 650ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
   font-weight: 900;
 }
 @keyframes labelRiseBig{
   0%   { opacity: 0;   transform: translate(-50%, -50%) translateY(6px);    }
-  18%  { opacity: 1;   transform: translate(-50%, -50%) translateY(-12px);  }
-  100% { opacity: 0;   transform: translate(-50%, -50%) translateY(-48px);  }
+  18%  { opacity: 1;   transform: translate(-50%, -50%) translateY(-16px);  }
+  100% { opacity: 0;   transform: translate(-50%, -50%) translateY(-60px);  }
 }
 
 /* ── 클리어 이펙트: 보드 진동 ──────────────────────────────────────
@@ -620,6 +696,93 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   text-shadow:0 1px 3px rgba(0,0,100,.35);
   white-space:nowrap;
 }
+/* ── 콤보 멀티플라이어 — 숫자 배수 (×2, ×3, ×4+) 보드 상단에 ── */
+.combo-multiplier{
+  position:fixed;
+  pointer-events:none;
+  z-index:601;
+  font-weight:900;
+  letter-spacing:-2px;
+  font-size:clamp(56px,15vw,90px);
+  color:#FFD700;
+  text-shadow:
+    0 0 12px rgba(255,215,0,.95),
+    0 0 24px rgba(255,180,0,.75),
+    0 0 48px rgba(255,150,0,.55),
+    0 3px 8px rgba(0,0,0,.65);
+  transform:translate3d(-50%,-50%,0) scale(0.5);
+  opacity:0;
+  will-change:transform,opacity;
+  animation:multiplierPop 900ms cubic-bezier(0.16,1.3,0.3,1) forwards;
+  font-variant-numeric:tabular-nums;
+}
+.combo-multiplier.m3{color:#67E8F9;text-shadow:0 0 16px rgba(103,232,249,.95),0 0 32px rgba(60,200,230,.75),0 0 64px rgba(40,180,220,.55),0 3px 8px rgba(0,0,0,.5)}
+.combo-multiplier.m4{color:#FF6EC7;text-shadow:0 0 16px rgba(255,110,199,.95),0 0 32px rgba(255,80,170,.75),0 0 64px rgba(255,50,150,.55),0 3px 8px rgba(0,0,0,.5)}
+.combo-multiplier.m5{color:#FFFFFF;text-shadow:0 0 20px rgba(255,255,255,1),0 0 40px rgba(255,240,160,.85),0 0 80px rgba(255,200,50,.65),0 3px 10px rgba(0,0,0,.6)}
+@keyframes multiplierPop{
+  0%   {opacity:0;transform:translate3d(-50%,-50%,0) scale(0.4) rotate(-8deg)}
+  25%  {opacity:1;transform:translate3d(-50%,-50%,0) scale(1.15) rotate(2deg)}
+  45%  {opacity:1;transform:translate3d(-50%,-50%,0) scale(1) rotate(0deg)}
+  75%  {opacity:1;transform:translate3d(-50%,-50%,0) scale(1) rotate(0deg)}
+  100% {opacity:0;transform:translate3d(-50%,-65%,0) scale(0.95) rotate(0deg)}
+}
+.low-perf .combo-multiplier{animation-duration:600ms !important}
+/* ── 마일스톤 팝업 — 점수 임계치 돌파 연출 (화면 하단에 표시) ─── */
+.milestone-pop{
+  position:fixed;
+  left:50%;
+  top:72%;
+  pointer-events:none;
+  z-index:602;
+  text-align:center;
+  transform:translate3d(-50%,-50%,0) scale(0.5);
+  opacity:0;
+  will-change:transform,opacity;
+  animation:milestonePopAnim 1600ms cubic-bezier(0.16,1.2,0.3,1) forwards;
+}
+.milestone-pop .m-label{
+  font-size:clamp(10px,2.4vw,13px);
+  font-weight:800;
+  letter-spacing:2.5px;
+  color:#F5C842;
+  text-transform:uppercase;
+  margin-bottom:4px;
+  text-shadow:0 2px 6px rgba(0,0,0,.8),0 0 8px rgba(0,0,0,.6);
+}
+.milestone-pop .m-num{
+  font-size:clamp(38px,10vw,56px);
+  font-weight:900;
+  letter-spacing:-1.5px;
+  line-height:1;
+  color:#FFD700;
+  font-variant-numeric:tabular-nums;
+  text-shadow:
+    0 0 16px rgba(255,215,0,1),
+    0 0 32px rgba(255,180,0,.75),
+    0 0 56px rgba(255,140,0,.5),
+    0 3px 8px rgba(0,0,0,.75);
+}
+.milestone-pop .m-sub{
+  margin-top:3px;
+  font-size:clamp(9px,2vw,11px);
+  font-weight:700;
+  letter-spacing:1.5px;
+  color:rgba(255,255,255,.88);
+  text-shadow:0 1px 3px rgba(0,0,0,.8),0 0 6px rgba(0,0,0,.5);
+}
+/* 높은 마일스톤일수록 색상 격상 */
+.milestone-pop.m-high .m-num{color:#FF6EC7;text-shadow:0 0 20px rgba(255,110,199,1),0 0 40px rgba(255,80,170,.75),0 0 70px rgba(255,50,150,.5),0 3px 10px rgba(0,0,0,.75)}
+.milestone-pop.m-epic .m-num{color:#FFFFFF;text-shadow:0 0 24px rgba(255,255,255,1),0 0 48px rgba(255,240,160,.85),0 0 88px rgba(255,200,50,.65),0 4px 12px rgba(0,0,0,.8)}
+/* CLUTCH (위기 탈출) 배너 — 마일스톤과 다른 위치 (화면 56%, 콤보/마일스톤과 분리) */
+.milestone-pop.crisis-banner{top:56%}
+@keyframes milestonePopAnim{
+  0%   {opacity:0;transform:translate3d(-50%,-50%,0) scale(0.4)}
+  18%  {opacity:1;transform:translate3d(-50%,-50%,0) scale(1.12)}
+  32%  {opacity:1;transform:translate3d(-50%,-50%,0) scale(1)}
+  78%  {opacity:1;transform:translate3d(-50%,-50%,0) scale(1)}
+  100% {opacity:0;transform:translate3d(-50%,-60%,0) scale(0.92)}
+}
+.low-perf .milestone-pop{animation-duration:900ms !important}
 
 /* ── 별/다이아 파티클 — 라인 방향으로 흐름 ── */
 .star-particle{
@@ -666,74 +829,47 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
    - Material Standard easing (보편적 자연스러움) */
 .cell.clearing .block-inner{
   transform-origin:center center;
-  animation: blockDissolve 450ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: blockDissolve 700ms cubic-bezier(0.33, 0, 0.4, 1) forwards;
   animation-delay: var(--clear-delay, 0ms);
   will-change: transform, opacity;
   contain: paint;
   backface-visibility: hidden;
 }
 @keyframes blockDissolve{
-  /* 0-15%: 미세 기척 — 거의 안 보일 정도로 살짝만 들뜸 */
+  /* 완만하게 퍼져나가는 느낌 — 중반에 훅 떨어지지 않음 */
   0%   { opacity: 1.00; transform: scale(1);    }
-  15%  { opacity: 0.85; transform: scale(1.02); }
-  /* 15-35%: 빠르게 투명화 — 중반에 이미 절반 이하 */
-  35%  { opacity: 0.40; transform: scale(0.88); }
-  /* 35-60%: 거의 보이지 않음 */
-  60%  { opacity: 0.10; transform: scale(0.65); }
-  /* 60-100%: 흔적만 남음 */
-  100% { opacity: 0.00; transform: scale(0.45); }
+  20%  { opacity: 0.95; transform: scale(1.02); }  /* 아주 살짝 기척 */
+  40%  { opacity: 0.75; transform: scale(0.97); }  /* 부드러운 감소 시작 */
+  60%  { opacity: 0.50; transform: scale(0.90); }  /* 중반 — 선형에 가까움 */
+  80%  { opacity: 0.22; transform: scale(0.80); }  /* 후반 — 천천히 줄어듦 */
+  100% { opacity: 0.00; transform: scale(0.70); }
 }
-/* ── 감자(potato): 질감이 색보다 먼저 녹는 자연스러움 ── */
+/* ── 감자(potato): 블록과 동일 곡선 + 약간 빠르게 ── */
 .cell.clearing .potato-wrap{
   transform-origin:center center;
-  animation: potatoDissolve 450ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: potatoDissolve 700ms cubic-bezier(0.33, 0, 0.4, 1) forwards;
   animation-delay: var(--clear-delay, 0ms);
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
 @keyframes potatoDissolve{
   0%   { opacity: 1.00; transform: scale(1);    }
-  15%  { opacity: 0.80; transform: scale(1.02); }
-  35%  { opacity: 0.30; transform: scale(0.85); }  /* 감자는 35%에서 이미 70% 투명 */
-  60%  { opacity: 0.05; transform: scale(0.60); }
-  100% { opacity: 0.00; transform: scale(0.40); }
+  20%  { opacity: 0.90; transform: scale(1.02); }
+  40%  { opacity: 0.65; transform: scale(0.95); }
+  60%  { opacity: 0.40; transform: scale(0.88); }
+  80%  { opacity: 0.15; transform: scale(0.78); }
+  100% { opacity: 0.00; transform: scale(0.68); }
 }
-/* ── Flash: 셀 전체로 퍼지는 "은은한 광채" (cell::before 레이어) ──
-   - inset:0 으로 셀 전체 영역 (이전 block-inner::after는 34×34로 갇혀있었음)
-   - scale peak(15%)와 타이밍 동기화
-   - z-index:2 로 블록 위에 표시 → 블록을 빛이 휘감는 효과
-   - 중앙 순수 흰빛 + 방사형으로 은은하게 퍼짐 */
-.cell.clearing::before{
-  display: block !important;
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(circle at 50% 50%,
-                              rgba(255,255,255,1) 0%,
-                              rgba(255,250,230,0.85) 35%,
-                              rgba(255,240,200,0.35) 75%,
-                              rgba(255,240,200,0) 100%) !important;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 2;
-  animation: blockFlash 450ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  animation-delay: var(--clear-delay, 0ms);
-  will-change: opacity;
-}
-/* 기존 block-inner::after는 flash 애니메이션 제거 (이중 레이어 방지) */
-.cell.clearing .block-inner::after{
-  animation: none !important;
-}
-@keyframes blockFlash{
-  0%   { opacity: 0.00; }
-  15%  { opacity: 0.55; }   /* scale peak(1.02)와 동기화 — 진짜 광채 */
-  40%  { opacity: 0.35; }   /* 두터운 잔광 */
-  75%  { opacity: 0.10; }   /* 늦게까지 유지 — 블록이 녹는 동안 빛이 남아있음 */
-  100% { opacity: 0.00; }
-}
-/* warm 오버레이 제거 */
-/* .cell.clearing::before 는 위에 flash glow 레이어로 재정의됨 */
+/* ── ❌ flash 레이어 제거됨 ──
+   과거: .cell.clearing::before 가 셀 전체에 inset:0 으로 흰색 radial-gradient
+         flash를 덮음. blockFlash 키프레임으로 opacity 0 → 0.55 → 0.
+   문제: flash가 셀 전체 영역(블록뿐 아니라 배경)을 덮어 "밝아졌다 훅
+         어두워지는" 느낌이 뒷 셀에까지 번져 보였음. 
+   해결: flash 완전 제거. 블록 dissolve(scale+opacity)만으로 피드백 충분.
+         뒷 셀은 완전히 정적 유지. */
+.cell.clearing::before{display:none !important}
+/* clearing 중 글래스 하이라이트 숨김은 유지 (dissolve 깔끔) */
+.cell.clearing::after{opacity:0 !important}
 
 /* 저사양/reduced-motion: 애니메이션 경량화 */
 @media (prefers-reduced-motion: reduce) {
@@ -759,11 +895,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .low-perf .cell.clearing .block-inner::after{
   animation: none !important;
 }
-/* 저사양: flash glow 레이어는 짧게 (380ms), gradient 그대로 유지 */
-.low-perf .cell.clearing::before{
-  animation: blockFlash 380ms cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
-  animation-delay: var(--clear-delay, 0ms) !important;
-}
+/* 저사양 모드도 flash 레이어 완전 제거 (동일 이유) */
+.low-perf .cell.clearing::before{display:none !important}
 @keyframes blockDissolveLite{
   0%   { opacity: 1.00; transform: scale(1);    }
   40%  { opacity: 0.30; transform: scale(0.85); }
@@ -786,16 +919,16 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
   60%  { opacity: 1; transform: scale(1.02); }
   100% { opacity: 1; transform: scale(1.00); }
 }
-/* 저사양: drop-shadow 비활성화 + scale 효과 축소 (GPU 절감) */
+/* 저사양: scale 효과 축소 + 부드러운 트랜지션 유지 */
 .low-perf #ghost > .piece-grid{
   filter: none !important;
-  transition: transform 80ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: transform 180ms cubic-bezier(0.25, 0.1, 0.25, 1) !important;
 }
 .low-perf #ghost.visible > .piece-grid{
   transform: scale(1.06) !important;  /* 1.12 → 1.06 */
 }
 .low-perf #ghost.visible.on-board > .piece-grid{
-  transform: scale(1.03) !important;
+  transform: scale(1.06) !important;  /* 동일 scale 유지 (tween 없음) */
 }
 .low-perf #ghost.dropping > .piece-grid{
   animation: ghostDropLite 80ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards !important;
@@ -811,6 +944,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 .low-perf .board-frame.shaking-epic{animation: boardPulseHeavy .3s var(--ease-sharp) both !important}
 .low-perf .cell.filled.preview-clear .block-inner{
   box-shadow:inset 0 2px 0 rgba(255,255,255,.5),inset 0 -2px 0 rgba(0,0,0,.1) !important;
+  animation:none !important;
+}
+.low-perf .cell.filled.preview-clear .block-inner::after{
+  animation:none !important;
+}
+.low-perf .cell.preview-clear:not(.filled)::after{
+  animation:none !important;
+  box-shadow:none !important;
 }
 .low-perf .cell.preview-place{
   box-shadow:none !important;
@@ -825,6 +966,34 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 /* box-shadow 값 보간 애니메이션은 저사양에서 중단 (정적 상태 유지) */
 .low-perf .start-btn{animation:none !important}
 .low-perf .undo-btn.flash{animation:none !important}
+
+/* ═══ 카운트다운 3-2-1-GO (쓰리매치에서 이식) ═══ */
+.countdown{position:absolute;inset:0;z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;background:rgba(0,0,0,.55);contain:layout style}
+.countdown.on{opacity:1;pointer-events:all}
+.cd-ring{position:relative;width:160px;height:160px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(10,10,20,.88) 55%,rgba(10,10,20,.6) 75%,transparent 100%);border-radius:50%}
+.cd-ring::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(251,191,36,.25)}
+.cd-ring::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid transparent;border-top-color:#fbbf24;animation:cdSpin 1.2s linear infinite;will-change:transform}
+@keyframes cdSpin{0%{transform:rotate(0)}to{transform:rotate(360deg)}}
+.cd-num{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:76px;font-weight:900;background:linear-gradient(180deg,#ffe066,#fbbf24 40%,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;z-index:2;will-change:transform,opacity}
+.cd-num.pop{animation:cdNumPop .7s cubic-bezier(.175,.885,.32,1.275) forwards}
+@keyframes cdNumPop{0%{transform:scale(0) rotate(-15deg);opacity:0}35%{transform:scale(1.15) rotate(3deg);opacity:1}55%{transform:scale(.95) rotate(-1deg)}70%{transform:scale(1.03) rotate(0)}to{transform:scale(1) rotate(0);opacity:1}}
+.cd-num.out{animation:cdNumOut .25s ease forwards}
+@keyframes cdNumOut{0%{transform:scale(1);opacity:1}to{transform:scale(1.8);opacity:0}}
+.cd-dots{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.cd-dot{position:absolute;width:3px;height:3px;border-radius:50%;background:rgba(251,191,36,.4);animation:cdDotFloat 2s ease-in-out infinite;will-change:transform,opacity}
+@keyframes cdDotFloat{0%{transform:translateY(0) scale(1);opacity:.5}50%{transform:translateY(-30px) scale(1.5);opacity:1}to{transform:translateY(-60px) scale(0);opacity:0}}
+/* 저사양 모드: 배경 스핀/점 애니메이션 정지 (정적 표시만) */
+.low-perf .cd-ring::after,.low-perf .cd-dot{animation:none !important}
+
+/* ═══ GAME OVER Splash (쓰리매치에서 이식) ═══ */
+.gameover-splash{position:absolute;inset:0;z-index:95;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,0,0,.75);pointer-events:none;opacity:0;transition:opacity .3s ease;contain:layout style}
+.gameover-splash.on{opacity:1;pointer-events:all}
+.gameover-splash-text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:28px;font-weight:900;background:linear-gradient(135deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:1.5px;transform:scale(0);opacity:0;will-change:transform,opacity}
+.gameover-splash.on .gameover-splash-text{animation:goTextIn .6s cubic-bezier(.175,.885,.32,1.275) .15s forwards}
+@keyframes goTextIn{0%{transform:scale(0) rotate(-8deg);opacity:0}50%{transform:scale(1.1) rotate(2deg);opacity:1}70%{transform:scale(.95) rotate(0)}to{transform:scale(1) rotate(0);opacity:1}}
+.gameover-splash-line{width:120px;height:2px;margin-top:12px;background:linear-gradient(90deg,transparent,rgba(251,191,36,.5),transparent);transform:scaleX(0);transform-origin:center;will-change:transform}
+.gameover-splash.on .gameover-splash-line{animation:goLineIn .4s ease .55s forwards}
+@keyframes goLineIn{0%{transform:scaleX(0)}to{transform:scaleX(1)}}
 
 </style>
 </head>
@@ -948,7 +1117,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
     <div class="streak-badge" id="streak-bar"><span>🔥</span><span id="streak-el">×2</span></div>
     <div class="goal-hint" id="goal-hint"></div>
   </div>
-  <div class="board-area"><div class="board-outer"><div class="board-frame" id="board-frame-el"><div class="board" id="board"></div></div></div></div>
+  <div class="board-area"><div class="board-outer"><div class="board-frame" id="board-frame-el"><div class="board" id="board"></div><div id="preview-overlay"></div></div></div></div>
   <div class="tray" id="tray">
     <div class="piece-slot" id="slot-0"></div>
     <div class="piece-slot" id="slot-1"></div>
@@ -979,11 +1148,23 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
       <div style="font-size:18px;font-weight:800;margin-bottom:4px">게임 오버</div>
       <div style="font-size:13px;color:var(--text-3);margin-bottom:14px">한 번 더 이어서 플레이할 수 있어요!</div>
       <div class="ext-row" style="margin-bottom:12px">
-        <button class="ext-btn diamond" id="ext-diamond" onclick="extendDiamond()">💎 한 줄 클리어<span class="ext-sub">2 다이아</span></button>
-        <button class="ext-btn ad" id="ext-ad" onclick="extendAd()">📺 3줄 + 블록 3개<span class="ext-sub">광고 시청</span></button>
+        <button class="ext-btn diamond" id="ext-diamond" onclick="extendDiamond()">💎 2줄 클리어<span class="ext-sub">2 다이아</span></button>
+        <button class="ext-btn ad" id="ext-ad" onclick="extendAd()">📺 6×6 구역 클리어<span class="ext-sub">광고 시청</span></button>
       </div>
       <button class="modal-btn secondary" onclick="skipExtend()" style="width:100%;padding:12px">결과 보기</button>
     </div>
+  </div>
+  <!-- GAME OVER Splash (쓰리매치에서 이식) -->
+  <div class="gameover-splash" id="gameover-splash">
+    <div class="gameover-splash-text">GAME OVER</div>
+    <div class="gameover-splash-line"></div>
+  </div>
+  <!-- Countdown 3-2-1-GO (쓰리매치에서 이식) -->
+  <div class="countdown" id="countdown">
+    <div class="cd-ring">
+      <div class="cd-num" id="cd-num">3</div>
+    </div>
+    <div class="cd-dots" id="cd-dots"></div>
   </div>
 </div>
 
@@ -1075,9 +1256,23 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;bac
 (function(){
   if(!window.Telegram?.WebApp)return;
   const tg=Telegram.WebApp;tg.ready();tg.expand();
-  tg.disableVerticalSwipes?.();tg.enableClosingConfirmation?.();
-  tg.setBackgroundColor?.('#07080F');tg.setHeaderColor?.('bg_color');
-  tg.onEvent?.('viewportChanged',fixVH);
+  // 세로 스와이프로 앱 최소화/닫힘 방지 (최신 Telegram)
+  tg.disableVerticalSwipes?.();
+  // 창 닫기 시도 시 확인창 (실수 방지)
+  tg.enableClosingConfirmation?.();
+  // 전체 화면 모드 시도 (지원되는 클라이언트에서만)
+  tg.requestFullscreen?.();
+  tg.setBackgroundColor?.('#000000');tg.setHeaderColor?.('#000000');
+  // viewportChanged: 축소(swipe-down) 감지 시 즉시 재확장 + disableVerticalSwipes 재호출
+  tg.onEvent?.('viewportChanged',()=>{
+    if(!tg.isExpanded)tg.expand?.();
+    tg.disableVerticalSwipes?.();
+    fixVH();
+  });
+  // 게임 시작 후에도 주기적으로 swipe 차단 재확인 (Telegram 버전마다 리셋될 가능성 방어)
+  window._tgSafeMode = ()=>{
+    try{tg.disableVerticalSwipes?.();tg.enableClosingConfirmation?.();tg.expand?.();}catch(e){}
+  };
 })();
 function fixVH(){const tg=window.Telegram?.WebApp;const h=tg?.viewportStableHeight||tg?.viewportHeight||window.innerHeight;document.documentElement.style.setProperty('--tg-viewport-stable-height',h+'px');fitBoard()}
 function fitBoard(){
@@ -1293,7 +1488,22 @@ return{
     extend(){if(!ctx||muted)return;const t=ctx.currentTime;
       [N.C4,N.E4,N.G4,N.B4,N.D5,N.E5].forEach((f,i)=>{
         chime(f,master,.018,t+i*.065,.28);
-        if(i%2===0)piano(f,dly,.005,t+i*.065+.02,.2)})}
+        if(i%2===0)piano(f,dly,.005,t+i*.065+.02,.2)})},
+
+    /* 카운트다운 숫자: 3/2/1 하강 톤 (고→저 주파수) */
+    countTick(n){if(!ctx||muted)return;const t=ctx.currentTime;
+      const f=[0,880,660,520][Math.min(n,3)];if(!f)return;
+      tone(f,master,.032,t,.09,'sine');
+      tone(f*2,master,.012,t+.008,.06,'sine');
+      chime(f*1.5,master,.008,t,.05)},
+
+    /* GO!: 상승 아르페지오 C5→C6→D6 화려한 마무리 */
+    countGo(){if(!ctx||muted)return;const t=ctx.currentTime;
+      [N.C5,N.E5,N.G5,N.C6].forEach((f,i)=>{
+        chime(f,master,.024,t+i*.045,.3);
+        piano(f,dly,.006,t+i*.045+.02,.22)});
+      chime(N.C6,master,.03,t+.2,.42);
+      chime(N.D6,master,.02,t+.22,.38)}
   }
 }
 })();
@@ -1400,7 +1610,17 @@ function loadWeekly(cb){Storage.get('pw2_wk_'+getWeekKey(),val=>{weeklyBest=+(va
 function saveWeekly(sc){if(sc>weeklyBest){weeklyBest=sc;Storage.set('pw2_wk_'+getWeekKey(),weeklyBest)}}
 
 // ═══ SCREEN MANAGEMENT ═══
-function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');if(id==='s-play')requestAnimationFrame(()=>fitBoard())}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id==='s-play')requestAnimationFrame(()=>fitBoard());
+  // Telegram 방어 재적용 — 화면 전환 시마다 swipe 방어/확장 유지
+  const tg=window.Telegram?.WebApp;
+  if(tg){
+    if(!tg.isExpanded)tg.expand?.();
+    tg.disableVerticalSwipes?.();
+  }
+}
 function updateLobby(){
   document.getElementById('best-el').textContent=best.toLocaleString();
   updateCoinUI();
@@ -1443,11 +1663,11 @@ function updateLobby(){
   // 버프 카운터 UI 동기화 (loadAdBoost 이후 반영)
   if(_scoreMultiplier===1)resetAdDouble();
 }
-function startNewGame(){Sound.sfx.uiClick();Sound.resumeCtx();showScreen('s-play');resetGame()}
+function startNewGame(){Sound.sfx.uiClick();Sound.resumeCtx();window._tgSafeMode?.();showScreen('s-play');resetGame()}
 function confirmQuit(){Sound.sfx.uiClick();const m=Sound.isMuted();const icon=document.getElementById('mute-icon');if(icon)icon.textContent=m?'🔇':'🔊';const lbl=document.getElementById('mute-label');if(lbl)lbl.textContent=m?'사운드 OFF':'사운드 ON';document.getElementById('quit-overlay').classList.add('on')}
 function cancelQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay').classList.remove('on')}
 function doQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay').classList.remove('on');endGameToResult()}
-function retryGame(){Sound.sfx.uiClick();showScreen('s-play');resetGame()}
+function retryGame(){Sound.sfx.uiClick();window._tgSafeMode?.();showScreen('s-play');resetGame()}
 function goToLobby(){Sound.sfx.uiClick();cancelExtendAd();resetAdDouble();if(_comboBannerTimer){clearTimeout(_comboBannerTimer);_comboBannerTimer=null}if(_comboBannerEl){_comboBannerEl.style.display='none'}updateLobby();showScreen('s-lobby')}
 function openGuide(){document.getElementById('guide-overlay').classList.add('on')}
 function closeGuide(){document.getElementById('guide-overlay').classList.remove('on')}
@@ -1585,7 +1805,14 @@ function resetAdDouble(){
 function endGameToResult(){gameActive=false;showResultScreen()}
 
 // ═══ POTATO SVGs ═══
-const POTATOES=[`<svg viewBox="0 0 28 28"><ellipse cx="14" cy="16" rx="10" ry="8" fill="#C8A060" stroke="#8B6030" stroke-width="1"/><ellipse cx="9" cy="10" rx="4.5" ry="5" fill="#C8A060" stroke="#8B6030" stroke-width=".9"/><circle cx="9" cy="7.5" r="1.3" fill="#4A7A30"/><ellipse cx="13" cy="9" rx=".9" ry="1.3" fill="#8B6030" opacity=".45"/><circle cx="11" cy="15" r="1.1" fill="#2A1000" opacity=".85"/><circle cx="17" cy="15" r="1.1" fill="#2A1000" opacity=".85"/><path d="M12 18 Q14 20 16 18" fill="none" stroke="#2A1000" stroke-width=".9" stroke-linecap="round"/></svg>`,`<svg viewBox="0 0 28 28"><ellipse cx="14" cy="16" rx="10.5" ry="8" fill="#D4B070" stroke="#8B6030" stroke-width="1"/><ellipse cx="9.5" cy="9.5" rx="4" ry="4.8" fill="#D4B070" stroke="#8B6030" stroke-width=".9"/><circle cx="9.5" cy="7" r="1.2" fill="#4A7A30"/><path d="M10 15 Q11.2 14 12.4 15" fill="none" stroke="#2A1000" stroke-width="1.1" stroke-linecap="round"/><path d="M15.6 15 Q16.8 14 18 15" fill="none" stroke="#2A1000" stroke-width="1.1" stroke-linecap="round"/><path d="M12 18.5 Q14 20 16 18.5" fill="none" stroke="#8B6030" stroke-width=".9" stroke-linecap="round"/></svg>`,`<svg viewBox="0 0 28 28"><ellipse cx="14" cy="16" rx="10" ry="8" fill="#C09050" stroke="#8B6030" stroke-width="1"/><ellipse cx="10" cy="10" rx="4.5" ry="5" fill="#C09050" stroke="#8B6030" stroke-width=".9"/><circle cx="10" cy="7.2" r="1.3" fill="#4A7A30"/><ellipse cx="18" cy="15" rx=".8" ry="1.1" fill="#8B6030" opacity=".4"/><circle cx="11" cy="15" r="1.2" fill="#2A1000" opacity=".88"/><path d="M16 14.2 Q17.5 13.3 19 14.2" fill="none" stroke="#2A1000" stroke-width="1" stroke-linecap="round"/><path d="M12 18.2 Q14 20.2 16 18.2" fill="none" stroke="#2A1000" stroke-width=".9" stroke-linecap="round"/><circle cx="11.5" cy="14.7" r=".5" fill="#fff" opacity=".55"/></svg>`,`<svg viewBox="0 0 28 28"><ellipse cx="14" cy="16.5" rx="10" ry="8.5" fill="#C8A060" stroke="#8B6030" stroke-width="1"/><ellipse cx="10" cy="9.5" rx="4" ry="4.8" fill="#C8A060" stroke="#8B6030" stroke-width=".9"/><circle cx="10" cy="7" r="1.2" fill="#4A7A30"/><circle cx="11" cy="15.5" r="1.4" fill="#2A1000"/><circle cx="17" cy="15.5" r="1.4" fill="#2A1000"/><circle cx="11.5" cy="15" r=".55" fill="#fff" opacity=".65"/><circle cx="17.5" cy="15" r=".55" fill="#fff" opacity=".65"/><ellipse cx="14" cy="20" rx="2" ry="1.4" fill="none" stroke="#2A1000" stroke-width="1.1"/></svg>`,`<svg viewBox="0 0 28 28"><ellipse cx="14" cy="16" rx="10" ry="8" fill="#D4B070" stroke="#8B6030" stroke-width="1"/><ellipse cx="9.5" cy="10" rx="4.5" ry="5" fill="#D4B070" stroke="#8B6030" stroke-width=".9"/><circle cx="9.5" cy="7.2" r="1.2" fill="#4A7A30"/><rect x="9.5" y="14.2" width="4" height="2.4" rx="1.2" fill="#2A1000"/><rect x="15" y="14.2" width="4" height="2.4" rx="1.2" fill="#2A1000"/><line x1="13.5" y1="15.4" x2="15" y2="15.4" stroke="#2A1000" stroke-width="1"/><path d="M12.5 19 Q14 21 15.5 19" fill="none" stroke="#2A1000" stroke-width=".9" stroke-linecap="round"/></svg>`];
+const POTATOES=[
+  `<svg viewBox="0 0 28 28"><circle cx="5.5" cy="8.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="23" cy="15.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="8" cy="22" r=".45" fill="#A67438" opacity=".45"/><ellipse cx="6.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><ellipse cx="21.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><ellipse cx="9.5" cy="12" rx="1.6" ry="2.1" fill="#2A1200" transform="rotate(-8 9.5 12)"/><circle cx="9.2" cy="11.3" r="0.55" fill="#FFFFFF"/><ellipse cx="18.5" cy="12" rx="1.6" ry="2.1" fill="#2A1200" transform="rotate(8 18.5 12)"/><circle cx="18.2" cy="11.3" r="0.55" fill="#FFFFFF"/><path d="M12 18.5 Q14 21 16 18.5" fill="none" stroke="#2E1600" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  `<svg viewBox="0 0 28 28"><circle cx="5.5" cy="8.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="23" cy="15.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="8" cy="22" r=".45" fill="#A67438" opacity=".45"/><ellipse cx="6.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><ellipse cx="21.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><path d="M7.8 12 Q9.5 10.5 11.2 12" fill="none" stroke="#2A1200" stroke-width="1.7" stroke-linecap="round"/><ellipse cx="18.5" cy="12" rx="1.6" ry="2.1" fill="#2A1200" transform="rotate(8 18.5 12)"/><circle cx="18.2" cy="11.3" r="0.55" fill="#FFFFFF"/><path d="M12 18.5 Q14 21 16 18.5" fill="none" stroke="#2E1600" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  `<svg viewBox="0 0 28 28"><circle cx="5.5" cy="8.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="23" cy="15.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="8" cy="22" r=".45" fill="#A67438" opacity=".45"/><ellipse cx="6.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><ellipse cx="21.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><ellipse cx="9.5" cy="12" rx="1.6" ry="2.1" fill="#2A1200" transform="rotate(-8 9.5 12)"/><circle cx="9.2" cy="11.3" r="0.55" fill="#FFFFFF"/><ellipse cx="18.5" cy="12" rx="1.6" ry="2.1" fill="#2A1200" transform="rotate(8 18.5 12)"/><circle cx="18.2" cy="11.3" r="0.55" fill="#FFFFFF"/><path d="M10.5 18 Q14 22 17.5 18" fill="none" stroke="#2E1600" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  `<svg viewBox="0 0 28 28"><circle cx="5.5" cy="8.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="23" cy="15.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="8" cy="22" r=".45" fill="#A67438" opacity=".45"/><ellipse cx="6.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><ellipse cx="21.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><ellipse cx="9.5" cy="12" rx="1.6" ry="2.1" fill="#2A1200" transform="rotate(-8 9.5 12)"/><circle cx="9.2" cy="11.3" r="0.55" fill="#FFFFFF"/><ellipse cx="18.5" cy="12" rx="1.6" ry="2.1" fill="#2A1200" transform="rotate(8 18.5 12)"/><circle cx="18.2" cy="11.3" r="0.55" fill="#FFFFFF"/><path d="M12.5 19 Q14 20 15.5 19" fill="none" stroke="#2E1600" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  `<svg viewBox="0 0 28 28"><circle cx="5.5" cy="8.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="23" cy="15.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="8" cy="22" r=".45" fill="#A67438" opacity=".45"/><ellipse cx="6.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><ellipse cx="21.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><ellipse cx="9.5" cy="12" rx="1.6" ry="2.1" fill="#2A1200" transform="rotate(-8 9.5 12)"/><circle cx="9.2" cy="11.3" r="0.75" fill="#FFFFFF"/><ellipse cx="18.5" cy="12" rx="1.6" ry="2.1" fill="#2A1200" transform="rotate(8 18.5 12)"/><circle cx="18.2" cy="11.3" r="0.75" fill="#FFFFFF"/><path d="M12 18.5 Q14 21 16 18.5" fill="none" stroke="#2E1600" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  `<svg viewBox="0 0 28 28"><circle cx="5.5" cy="8.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="23" cy="15.5" r=".45" fill="#A67438" opacity=".45"/><circle cx="8" cy="22" r=".45" fill="#A67438" opacity=".45"/><ellipse cx="6.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><ellipse cx="21.5" cy="16" rx="1.8" ry="1.1" fill="#E9A06A" opacity=".85"/><path d="M16.5 8.3 L20 9" fill="none" stroke="#3A1F00" stroke-width="1.1" stroke-linecap="round"/><ellipse cx="9.5" cy="12" rx="1.6" ry="2.1" fill="#2A1200" transform="rotate(-8 9.5 12)"/><circle cx="9.2" cy="11.3" r="0.55" fill="#FFFFFF"/><ellipse cx="18.5" cy="12" rx="1.6" ry="2.1" fill="#2A1200" transform="rotate(8 18.5 12)"/><circle cx="18.2" cy="11.3" r="0.55" fill="#FFFFFF"/><path d="M11.5 18.5 Q14 21.5 16.5 18.5" fill="none" stroke="#2E1600" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+];
 
 // ═══ PIECE DATABASE ═══
 function normalizeShape(s){const minR=Math.min(...s.map(([r])=>r)),minC=Math.min(...s.map(([,c])=>c));return s.map(([r,c])=>[r-minR,c-minC])}
@@ -1607,6 +1834,56 @@ function streakBonus(n){const t=[0,0,50,120,240,400];if(n<t.length)return t[n];r
 let board=[],pieces=[],selIdx=null,score=0,best=0,streak=0,maxStreak=0,totalClears=0;
 let dragIdx=-1,dragActive=false,prevHover=[],cellEls=[],_boardFilled=0;
 let extendUsed=false,isTouchDrag=false,gameActive=false;
+
+// ═══ SPECIAL BLOCKS — 십자가 / 폭탄 / 얼음 ═══
+// boardSpecial[r][c]: null 또는 {type:'ice', stage:0|1}
+let boardSpecial=[];
+let _iceGenCounter=0;  // 얼음 생성 주기 카운터
+
+// 특수 블록 얼굴 SVG
+const CROSS_FACE=`<svg viewBox="0 0 28 28"><circle cx="5.5" cy="8.5" r=".45" fill="#FFF" opacity=".5"/><circle cx="23" cy="15.5" r=".45" fill="#FFF" opacity=".5"/><circle cx="8" cy="22" r=".45" fill="#FFF" opacity=".5"/><path d="M14 6 L14 22 M6 14 L22 14" stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" opacity=".95"/><path d="M14 6 L14 22 M6 14 L22 14" stroke="#FFE0F0" stroke-width="1.2" stroke-linecap="round"/><circle cx="14" cy="14" r="2" fill="#FFFFFF" opacity=".6"/></svg>`;
+
+const BOMB_FACE=`<svg viewBox="0 0 28 28"><circle cx="5.5" cy="8.5" r=".45" fill="#FF9060" opacity=".55"/><circle cx="23" cy="15.5" r=".45" fill="#FF9060" opacity=".55"/><circle cx="8" cy="22" r=".45" fill="#FF9060" opacity=".55"/><ellipse cx="9.5" cy="13" rx="1.7" ry="2.2" fill="#1A0800" transform="rotate(-8 9.5 13)"/><ellipse cx="9.1" cy="12.3" rx=".7" ry=".55" fill="#FFE3A3"/><ellipse cx="18.5" cy="13" rx="1.7" ry="2.2" fill="#1A0800" transform="rotate(8 18.5 13)"/><ellipse cx="18.1" cy="12.3" rx=".7" ry=".55" fill="#FFE3A3"/><path d="M10.5 19 Q14 21.5 17.5 19" fill="none" stroke="#1A0800" stroke-width="1.5" stroke-linecap="round"/><path d="M13 3 L14 5 L15 3" stroke="#FF6B1A" stroke-width="1.3" fill="none" stroke-linecap="round"/><circle cx="14" cy="2.3" r="1.2" fill="#FFD700" opacity=".9"/></svg>`;
+
+// ═══ 얼음 얼굴 동적 생성 — hits 남은 횟수 표시 + 크랙 단계 ═══
+// hitsLeft: 남은 타수 (2 → 1), maxHits: 최초 (2, 3, 4)
+function makeIceFace(hitsLeft, maxHits){
+  const cracked = hitsLeft < maxHits;
+  const crackLevel = maxHits - hitsLeft; // 0=깨끗, 1=금1, 2=금2...
+  let inner = '';
+  // 얼음 서리 (다이아몬드)
+  inner += '<path d="M10 6.5 L14 2.5 L18 6.5 L14 10.5 Z" fill="#E0F4FF" opacity=".55"/>';
+  inner += '<path d="M9 17 L14 21 L19 17 L14 13 Z" fill="#E0F4FF" opacity=".45"/>';
+  // 눈 (중앙 약간 아래)
+  inner += '<ellipse cx="9.5" cy="13" rx="1.2" ry="1.7" fill="#0A2040" transform="rotate(-5 9.5 13)"/>';
+  inner += '<circle cx="9.2" cy="12.4" r=".45" fill="#FFFFFF"/>';
+  inner += '<ellipse cx="18.5" cy="13" rx="1.2" ry="1.7" fill="#0A2040" transform="rotate(5 18.5 13)"/>';
+  inner += '<circle cx="18.2" cy="12.4" r=".45" fill="#FFFFFF"/>';
+  // 입
+  inner += '<path d="M11 18.5 L17 18.5" stroke="#0A2040" stroke-width="1.2" stroke-linecap="round" opacity=".75"/>';
+  // 크랙 라인 (단계별)
+  if(crackLevel>=1){
+    inner += '<path d="M3 3 L12 10 L9 14 L20 8" stroke="#FFFFFF" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".85"/>';
+    inner += '<path d="M3 3 L12 10 L9 14 L20 8" stroke="#0A2040" stroke-width=".4" fill="none" stroke-linecap="round" opacity=".5"/>';
+  }
+  if(crackLevel>=2){
+    inner += '<path d="M24 18 L15 16 L22 25 M5 22 L10 19" stroke="#FFFFFF" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".85"/>';
+    inner += '<path d="M24 18 L15 16 L22 25 M5 22 L10 19" stroke="#0A2040" stroke-width=".4" fill="none" stroke-linecap="round" opacity=".5"/>';
+  }
+  if(crackLevel>=3){
+    inner += '<path d="M2 14 L8 15 M20 22 L26 22" stroke="#FFFFFF" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".85"/>';
+  }
+  // 남은 횟수 배지 (크고 눈에 띄게 - 빨간 배경 + 굵은 흰 숫자)
+  inner += '<circle cx="21" cy="6.5" r="5.5" fill="#DC2626" stroke="#FFFFFF" stroke-width="1.1"/>';
+  inner += '<text x="21" y="6.5" text-anchor="middle" dominant-baseline="central" font-size="7.5" font-weight="900" fill="#FFFFFF" font-family="sans-serif">'+hitsLeft+'</text>';
+  return '<svg viewBox="0 0 28 28">'+inner+'</svg>';
+}
+// 점수 기반 얼음 최대 hits 결정
+function getIceMaxHitsForScore(){
+  if(score < 2000) return 2;
+  if(score < 5000) return 3;
+  return 4;
+}
 // ═══ UNDO SYSTEM ═══
 let _undoLeft=3,_undoStack=null;
 // P0-3 fix: 진행 중인 clearing 애니메이션 타임아웃 추적 (undo 시 취소하기 위함)
@@ -1614,45 +1891,43 @@ const _activeClearTimers=new Set();
 function saveUndoState(){
   _undoStack={
     board:board.map(r=>[...r]),
-    pieces:pieces.map(p=>({shape:p.shape.map(c=>[...c]),face:p.face,used:p.used})),
-    score,streak,maxStreak,totalClears,_boardFilled,
+    boardSpecial:boardSpecial.map(r=>r.map(s=>s?{...s}:null)),
+    pieces:pieces.map(p=>({shape:p.shape.map(c=>[...c]),face:p.face,used:p.used,special:p.special})),
+    score,streak,maxStreak,totalClears,_boardFilled,_iceCount,_iceGenCounter,
     totalTurns,recentClearTurns
   };
 }
 function undoPlace(){
   if(!gameActive||_undoLeft<=0||!_undoStack)return;
   _undoLeft--;
-  // P0-3 fix: 진행 중인 clearing 애니메이션 타임아웃 모두 취소
-  //           → 750ms 뒤에 el.className을 덮어써서 복원된 블록이 사라지는 버그 방지
   _activeClearTimers.forEach(id=>clearTimeout(id));
   _activeClearTimers.clear();
-  // 모든 셀에서 clearing 관련 클래스/인라인 스타일 강제 제거
   for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){
     const el=cellEls[r][c];if(!el)continue;
-    el.classList.remove('clearing','landing','shake','preview-valid','preview-invalid','preview-clear','preview-place');
+    el.classList.remove('clearing','landing','shake','preview-valid','preview-invalid','preview-clear','preview-place','ice-crack-shake');
   }
   // restore state
   board=_undoStack.board.map(r=>[...r]);
-  pieces=_undoStack.pieces.map(p=>({shape:p.shape.map(c=>[...c]),face:p.face,used:p.used}));
+  boardSpecial=_undoStack.boardSpecial.map(r=>r.map(s=>s?{...s}:null));
+  pieces=_undoStack.pieces.map(p=>({shape:p.shape.map(c=>[...c]),face:p.face,used:p.used,special:p.special}));
   score=_undoStack.score;streak=_undoStack.streak;
   maxStreak=_undoStack.maxStreak;totalClears=_undoStack.totalClears;
   _boardFilled=_undoStack._boardFilled;
+  _iceCount=_undoStack._iceCount||0;
+  _iceGenCounter=_undoStack._iceGenCounter||0;
   totalTurns=_undoStack.totalTurns;
   recentClearTurns=_undoStack.recentClearTurns;
-  // re-render (clearing 클래스 제거 후여서 블록 완전히 복원됨)
   renderBoard();selIdx=null;renderTray();
   document.getElementById('score-el').textContent=score.toLocaleString();
   document.getElementById('best-el').textContent=best.toLocaleString();
   showStreakUI();updateUndoUI();updateGoalHint();
   Sound.sfx.uiClick();haptic('success');
-  _undoStack=null; // 연속 undo 방지
-  // 되돌리기 성공 피드백
+  _undoStack=null;
   const btn=document.getElementById('undo-btn');
   const cnt=document.getElementById('undo-count');
   btn.classList.remove('flash');cnt.classList.remove('pop');
   requestAnimationFrame(()=>{btn.classList.add('flash');cnt.classList.add('pop')});
   setTimeout(()=>{btn.classList.remove('flash');cnt.classList.remove('pop')},400);
-  // 토스트
   const t=document.createElement('div');t.className='undo-toast';t.textContent='↩️ 되돌리기 완료!';
   document.getElementById('s-play').appendChild(t);
   setTimeout(()=>t.remove(),750);
@@ -1669,13 +1944,33 @@ function updateUndoUI(){
 function resetUndo(){_undoLeft=3;_undoStack=null;updateUndoUI()}
 Storage.get('pw2_best',val=>{best=+(val||0)});
 
-function initBoard(){board=Array.from({length:GRID},()=>Array(GRID).fill(null))}
+function initBoard(){board=Array.from({length:GRID},()=>Array(GRID).fill(null));boardSpecial=Array.from({length:GRID},()=>Array(GRID).fill(null));_iceGenCounter=0;_iceCount=0}
 function randPiece(){const picked=weightedPick(),cells=normalizeShape(picked.cells);return{shape:cells,face:Math.floor(Math.random()*POTATOES.length),used:false}}
 function randSmallPiece(){const picked=weightedPickSmall(),cells=normalizeShape(picked.cells);return{shape:cells,face:Math.floor(Math.random()*POTATOES.length),used:false}}
 // 초반 친화적 블록 풀 — 배치하기 쉽고 라인 완성에 유리한 조각
 const EARLY_FRIENDLY=['Dot3H','Dot3V','Sq2','Dot2H','Dot2V','L_NE','L_NW','L_SE','J_NE','J_NW','J_SE','T_N','T_S','T_E','T_W'];
 const EARLY_FILLER=['Joe','Dot2H','Dot2V','Diag2a','Diag2b','Dot3H','Dot3V'];
 function randEarlyPiece(pool){const p=pool[Math.floor(Math.random()*pool.length)];const db=PIECE_DB.find(d=>d.id===p);if(!db)return randPiece();return{shape:normalizeShape(db.cells),face:Math.floor(Math.random()*POTATOES.length),used:false}}
+// ── [버그 방지] 새 세트가 나오자마자 게임오버 방지 ──
+// 3개 모두 배치 불가한 상황이면 첫 슬롯을 배치 가능한 피스로 교체.
+// 최후의 수단으로 Joe(1칸) 강제 (빈 칸이 1개라도 있으면 무조건 배치 가능).
+function _canPlaceAnywhere(shape){
+  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)if(canPlace(shape,r,c))return true;
+  return false;
+}
+function _ensurePlaceable(){
+  if(pieces.some(p=>_canPlaceAnywhere(p.shape)))return; // 대부분의 경우 early return
+  // 20회 재추첨
+  for(let i=0;i<20;i++){
+    const cand=randPiece();
+    if(_canPlaceAnywhere(cand.shape)){pieces[0]=cand;return}
+  }
+  // Joe(1칸) fallback
+  const joeDef=PIECE_DB.find(p=>p.id==='Joe');
+  if(joeDef){
+    pieces[0]={shape:normalizeShape(joeDef.cells),face:Math.floor(Math.random()*POTATOES.length),used:false};
+  }
+}
 function newSet(){
   if(totalTurns<=3){
     // 첫 2세트: 라인빌더 1개 보장 + 쉬운 조합
@@ -1688,22 +1983,72 @@ function newSet(){
   }else{
     pieces=[randPiece(),randPiece(),randPiece()];
   }
+  // ★ 특수 블록 치환 — 영향력 반영, 10턴에 약 1번만 (귀한 보상)
+  // 전체 0.10 (트레이 3개 중 1개 나옴 = 10턴에 1번)
+  // 타입: 십자가 30% (영향력 큼) / 폭탄 70% (영향력 중간)
+  if(totalTurns>=4 && Math.random()<0.10){
+    const specialType = Math.random()<0.30 ? 'cross' : 'bomb';
+    const replaceIdx = Math.floor(Math.random()*3);
+    pieces[replaceIdx] = {
+      shape:[[0,0]],
+      face:Math.floor(Math.random()*POTATOES.length),
+      special:specialType,
+      used:false,
+      size:1,
+      id:'Special_'+specialType
+    };
+  }
+  _ensurePlaceable(); // ★ 적어도 1개 배치 가능 보장
   selIdx=null;renderTray();
+  // ★ 얼음 셀 생성 (초반 스킵 + 8턴마다)
+  generateIceIfNeeded();
+  // ★ 얼음 시각 일관성 보장 (어디선가 얼음 렌더 누락되어도 복구)
+  _ensureIceCellsVisible();
+}
+// ═══ 얼음 셀 자동 생성 (점수 기반 난이도) ═══
+function generateIceIfNeeded(){
+  _iceGenCounter++;
+  if(totalTurns<6)return; // 첫 6턴은 얼음 없음 (튜토리얼 격)
+  if(_iceGenCounter%8!==0)return; // 8턴마다
+  const empties=[];
+  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){
+    if(board[r][c]===null && !boardSpecial[r][c]) empties.push([r,c]);
+  }
+  if(empties.length<15)return; // 보드가 거의 찼으면 스킵
+  const count=1; // 항상 1개씩만 생성
+  const maxHits=getIceMaxHitsForScore();
+  for(let i=0;i<count && empties.length>0;i++){
+    const idx=Math.floor(Math.random()*empties.length);
+    const[r,c]=empties.splice(idx,1)[0];
+    boardSpecial[r][c]={type:'ice',hitsLeft:maxHits,maxHits:maxHits};
+    _iceCount++;
+    if(cellEls[r]&&cellEls[r][c])renderCell(r,c);
+  }
+  _boardBitmapHash=-1;
+}
+// ═══ 얼음 시각 정합성 보장: renderCell이 어디선가 누락되어 얼음이 안 보이는 경우 복구 ═══
+function _ensureIceCellsVisible(){
+  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){
+    const sp=boardSpecial[r][c];
+    if(sp&&sp.type==='ice'){
+      const el=cellEls[r]&&cellEls[r][c];
+      if(el&&!el.classList.contains('filled-ice')){
+        renderCell(r,c); // 얼음인데 클래스 없으면 복구
+      }
+    }
+  }
 }
 function isSectionAlt(r,c){const br=Math.floor(r/3),bc=Math.floor(c/3);const idx=br*3+bc+1;return idx===2||idx===4||idx===6||idx===8}
 function buildBoard(){const el=document.getElementById('board');el.innerHTML='';cellEls=[];for(let r=0;r<GRID;r++){cellEls[r]=[];for(let c=0;c<GRID;c++){const d=document.createElement('div');d.className='cell'+(isSectionAlt(r,c)?' section-alt':'');d.dataset.r=r;d.dataset.c=c;el.appendChild(d);cellEls[r][c]=d}}}
-function renderCell(r,c){const el=cellEls[r][c],v=board[r][c];const alt=isSectionAlt(r,c)?' section-alt':'';el.style.removeProperty('--clear-delay');if(v!==null){el.className='cell filled'+alt;el.dataset.r=r;el.dataset.c=c;el.innerHTML=`<div class="block-inner"></div><div class="potato-wrap">${POTATOES[v]}</div>`}else{el.className='cell'+alt;el.dataset.r=r;el.dataset.c=c;el.innerHTML=''}}
+function renderCell(r,c){const el=cellEls[r][c],v=board[r][c];const sp=boardSpecial[r][c];const alt=isSectionAlt(r,c)?' section-alt':'';el.style.removeProperty('--clear-delay');if(sp&&sp.type==='ice'){const cracked=sp.hitsLeft<sp.maxHits;el.className='cell filled-ice'+(cracked?' ice-cracked':'')+alt;el.dataset.r=r;el.dataset.c=c;el.innerHTML=`<div class="block-inner"></div><div class="potato-wrap">${makeIceFace(sp.hitsLeft,sp.maxHits)}</div>`}else if(v!==null){el.className='cell filled'+alt;el.dataset.r=r;el.dataset.c=c;el.innerHTML=`<div class="block-inner"></div><div class="potato-wrap">${POTATOES[v]}</div>`}else{el.className='cell'+alt;el.dataset.r=r;el.dataset.c=c;el.innerHTML=''}}
 function renderBoard(){for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)renderCell(r,c)}
-function makePieceGrid(shape,cellPx,face){const maxR=Math.max(...shape.map(([r])=>r)),maxC=Math.max(...shape.map(([,c])=>c));const rows=maxR+1,cols=maxC+1,maxDim=Math.max(rows,cols),slotPx=88;const pc=Math.max(10,Math.min(cellPx,Math.floor((slotPx-(maxDim-1)*2)/maxDim)));const mat=Array.from({length:rows},()=>Array(cols).fill(false));shape.forEach(([r,c])=>mat[r][c]=true);const grid=document.createElement('div');grid.className='piece-grid';grid.style.gridTemplateColumns=`repeat(${cols},${pc}px)`;grid.style.gridTemplateRows=`repeat(${rows},${pc}px)`;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const el=document.createElement('div');el.className='pc'+(mat[r][c]?' on':'');el.style.width=pc+'px';el.style.height=pc+'px';if(mat[r][c]&&face!==undefined)el.innerHTML=POTATOES[face];grid.appendChild(el)}return grid}
+function makePieceGrid(shape,cellPx,face,special){const maxR=Math.max(...shape.map(([r])=>r)),maxC=Math.max(...shape.map(([,c])=>c));const rows=maxR+1,cols=maxC+1,maxDim=Math.max(rows,cols),slotPx=96;const pc=Math.max(10,Math.min(cellPx,Math.floor((slotPx-(maxDim-1)*2)/maxDim)));const mat=Array.from({length:rows},()=>Array(cols).fill(false));shape.forEach(([r,c])=>mat[r][c]=true);const grid=document.createElement('div');grid.className='piece-grid';grid.style.gridTemplateColumns=`repeat(${cols},${pc}px)`;grid.style.gridTemplateRows=`repeat(${rows},${pc}px)`;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const el=document.createElement('div');let cls='pc'+(mat[r][c]?' on':'');if(mat[r][c]&&special)cls+=' special-'+special;el.className=cls;el.style.width=pc+'px';el.style.height=pc+'px';if(mat[r][c]){if(special==='cross')el.innerHTML=CROSS_FACE;else if(special==='bomb')el.innerHTML=BOMB_FACE;else if(face!==undefined)el.innerHTML=POTATOES[face]}grid.appendChild(el)}return grid}
 let _trayPieceIds=[null,null,null];
-function renderTray(){for(let i=0;i<3;i++){const slot=document.getElementById('slot-'+i),p=pieces[i],isUsed=!p||p.used,isSel=selIdx===i;slot.classList.toggle('used',isUsed);slot.classList.toggle('selected',!isUsed&&isSel);if(isUsed){slot.innerHTML='';_trayPieceIds[i]=null;continue}if(_trayPieceIds[i]!==p){slot.innerHTML='';slot.appendChild(makePieceGrid(p.shape,15,p.face));_trayPieceIds[i]=p}}}
-function canPlace(shape,sr,sc){return shape.every(([dr,dc])=>{const r=sr+dr,c=sc+dc;return r>=0&&r<GRID&&c>=0&&c<GRID&&board[r][c]===null})}
+function renderTray(){for(let i=0;i<3;i++){const slot=document.getElementById('slot-'+i),p=pieces[i],isUsed=!p||p.used,isSel=selIdx===i;slot.classList.toggle('used',isUsed);slot.classList.toggle('selected',!isUsed&&isSel);if(isUsed){slot.innerHTML='';_trayPieceIds[i]=null;continue}if(_trayPieceIds[i]!==p){slot.innerHTML='';slot.appendChild(makePieceGrid(p.shape,22,p.face,p.special));_trayPieceIds[i]=p}}}
+function canPlace(shape,sr,sc){return shape.every(([dr,dc])=>{const r=sr+dr,c=sc+dc;if(r<0||r>=GRID||c<0||c>=GRID)return false;if(board[r][c]!==null)return false;if(boardSpecial[r][c]&&boardSpecial[r][c].type==='ice')return false;return true})}
 function shapeAnchor(shape,hr,hc){const maxR=Math.max(...shape.map(([r])=>r)),maxC=Math.max(...shape.map(([,c])=>c));return[hr-Math.round(maxR/2),hc-Math.round(maxC/2)]}
 function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!canPlace(p.shape,sr,sc))return false;saveUndoState();
   // ── v6 블록 착지: 모든 셀 동시 트리거 (성능 최적화) ──
-  // stagger를 제거하고 모든 셀에 동시에 landing 클래스 부여.
-  // 이유: 셀마다 setTimeout은 이벤트 루프 압박. 5셀 블록 = 5개 타이머 → 렉.
-  // 시각적으로도 "투투툭" vs "탁"의 차이는 120ms 범위에서 거의 구분 안 됨.
   const landingCells = [];
   p.shape.forEach(([dr,dc])=>{
     const r=sr+dr,c=sc+dc;
@@ -1712,97 +2057,201 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
     el.classList.add('landing');
     landingCells.push(el);
   });
-  // 단 1개의 setTimeout으로 모든 셀의 landing 클래스 제거 (140ms 애니 + 20ms 여유)
   setTimeout(()=>{
     landingCells.forEach(el=>el.classList.remove('landing'));
   }, 160);
-  // 착지 햅틱 — 블록 크기에 따라 강도 조절
   haptic(p.shape.length>=5?'medium':'light');
   Sound.sfx.place();
   let pts=p.shape.length*PTS_PER_BLOCK;p.used=true;totalTurns++;
-  const cleared=clearLines(),numLines=cleared.lines,numCells=cleared.cells;
-  if(numLines>0){
-    streak++;maxStreak=Math.max(maxStreak,streak);totalClears+=numLines;
+  // ★ 특수 블록 발동 — 배치 즉시 광역 삭제
+  let specialExtraCells=null;
+  let specialBonusLines=0;  // 콤보 카운트에 포함할 가상 라인 수
+  if(p.special){
+    const[ar,ac]=[sr+p.shape[0][0],sc+p.shape[0][1]]; // 특수 블록은 1×1
+    const extra=[];
+    if(p.special==='cross'){
+      // 행 + 열 전체 (중심 포함)
+      for(let i=0;i<GRID;i++){
+        if(i!==ac)extra.push([ar,i]);
+        if(i!==ar)extra.push([i,ac]);
+      }
+      extra.push([ar,ac]); // 중심(특수블록 자기 자신)도 제거
+      specialBonusLines=2;  // 행+열 = 2 라인 어치
+    }else if(p.special==='bomb'){
+      // 2×2 범위 (폭탄 위치가 왼쪽 위, 우하 방향으로 확장)
+      for(let dr=0;dr<=1;dr++)for(let dc=0;dc<=1;dc++){
+        const nr=ar+dr,nc=ac+dc;
+        if(nr>=0&&nr<GRID&&nc>=0&&nc<GRID)extra.push([nr,nc]);
+      }
+      specialBonusLines=1;  // 2x2 폭발 = 1 라인 어치
+    }
+    specialExtraCells=extra;
+    // 발동 연출 (팝업 + 빛줄기/방사형)
+    const cx=_originLeft+ac*_strideW+_strideW/2;
+    const cy=_originTop+ar*_strideH+_strideH/2;
+    triggerSpecialEffect(p.special,ar,ac,cx,cy);
+    // 특수블록 햅틱
+    setTimeout(()=>haptic('medium'),30);
+  }
+  const cleared=clearLines(specialExtraCells),numLines=cleared.lines,numCells=cleared.cells;
+  const effectiveLines=numLines+specialBonusLines;
+  if(effectiveLines>0){
+    streak++;maxStreak=Math.max(maxStreak,streak);totalClears+=effectiveLines;
     recentClearTurns=0;
     pts+=numCells*PTS_PER_CLEAR;
-    // COMBO_BONUS[6]=900이 최대치. 7라인 이상도 900으로 clamp (현재 룰).
-    pts+=COMBO_BONUS[Math.min(numLines,COMBO_BONUS.length-1)];
+    pts+=COMBO_BONUS[Math.min(effectiveLines,COMBO_BONUS.length-1)];
     pts+=streakBonus(streak);
-    if(numLines>=2)Sound.sfx.multiClear(numLines);else Sound.sfx.clear();
+    // 특수 효과 추가 보너스
+    if(p.special==='cross')pts+=80;
+    else if(p.special==='bomb')pts+=60;
+    if(effectiveLines>=2)Sound.sfx.multiClear(effectiveLines);else Sound.sfx.clear();
     // 첫 클리어 보너스 강조
-    if(totalClears===numLines&&totalTurns<=6){
-      pts+=50; // 첫 클리어 보너스
+    if(totalClears===effectiveLines&&totalTurns<=6){
+      pts+=50;
     }
     if(streak>=2)Sound.sfx.streak(streak);
-    // 클리어 햅틱: 강도 3단계
     setTimeout(()=>{
-      if(streak>=3)       haptic('heavy');   // 3콤보+: 강하게
-      else if(numLines>=2)haptic('medium');  // 2줄+: 중간
-      else                haptic('light');   // 1줄: 가볍게
+      if(streak>=3)haptic('heavy');
+      else if(effectiveLines>=2)haptic('medium');
+      else haptic('light');
     },55);
-    // 3콤보 이상 또는 3줄+: 추가 햅틱 pulse
-    if(streak>=3||numLines>=3) setTimeout(()=>haptic('medium'),180);
-    if(numLines>=4) setTimeout(()=>haptic('heavy'),300);
+    if(streak>=3||effectiveLines>=3)setTimeout(()=>haptic('medium'),180);
+    if(effectiveLines>=4)setTimeout(()=>haptic('heavy'),300);
   }else{
     const hadStreak=streak>=2;
     streak=0;recentClearTurns=Math.min(3,recentClearTurns+1);
     if(hadStreak){
-      // 콤보 끊김 — 부드럽게 사라지는 피드백
       const bar=document.getElementById('streak-bar');
       bar.style.transition='opacity .4s ease,transform .4s ease';
       bar.classList.remove('show');
     }
-  }addScore(pts,numLines);showStreakUI();renderTray();const sr2=sr+Math.floor(Math.max(...p.shape.map(([r])=>r))/2),sc2=sc+Math.floor(Math.max(...p.shape.map(([,c])=>c))/2);if(sr2>=0&&sr2<GRID&&sc2>=0&&sc2<GRID){const rect=cellEls[sr2][sc2].getBoundingClientRect();const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;const labelSize=numLines>=4?32:numLines>=3?28:numLines>=2?24:numLines>=1?20:15;
-const labelColor=numLines>=3?'#FFD700':numLines>=1?'#F5C842':'rgba(247,250,252,0.7)';
-spawnLabel('+'+pts,cx,cy,labelColor,labelSize,numLines>=3);if(numLines>0)triggerClearFX(cx,cy,numLines,cleared.removed)}if(numLines>=2)haptic('success');if(pieces.every(p=>p.used)){setTimeout(()=>{newSet();setTimeout(checkGameOver,50)},180)}else{setTimeout(checkGameOver,50)}updateUndoUI();return true}
-function clearLines(){
+  }
+  addScore(pts,effectiveLines);showStreakUI();renderTray();
+  const sr2=sr+Math.floor(Math.max(...p.shape.map(([r])=>r))/2),sc2=sc+Math.floor(Math.max(...p.shape.map(([,c])=>c))/2);
+  if(sr2>=0&&sr2<GRID&&sc2>=0&&sc2<GRID){
+    const rect=cellEls[sr2][sc2].getBoundingClientRect();
+    const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+    const labelSize=effectiveLines>=4?48:effectiveLines>=3?40:effectiveLines>=2?34:effectiveLines>=1?28:22;
+    const labelColor=effectiveLines>=3?'#FFD700':effectiveLines>=1?'#F5C842':'rgba(247,250,252,0.7)';
+    spawnLabel('+'+pts,cx,cy,labelColor,labelSize,effectiveLines>=3);
+    if(effectiveLines>0)triggerClearFX(cx,cy,effectiveLines,cleared.removed);
+  }
+  if(effectiveLines>=2)haptic('success');
+  if(pieces.every(p=>p.used)){setTimeout(()=>{newSet();setTimeout(checkGameOver,50)},180)}else{setTimeout(checkGameOver,50)}
+  updateUndoUI();
+  // ★ 얼음 시각 정합성 방어 (clearLines setTimeout 콜백 후에도 얼음 유지 보장)
+  const CLEAR_DUR_WAIT = 780;
+  setTimeout(()=>_ensureIceCellsVisible(), CLEAR_DUR_WAIT);
+  return true;
+}
+// ═══ 얼음 상태 카운터 (bitmap 캐시 무효화용) ═══
+let _iceCount=0;
+
+function clearLines(extraCells){
   const toRemove=[],seen=new Uint8Array(GRID*GRID);
-  function mark(r,c){const idx=r*GRID+c;if(!seen[idx]){seen[idx]=1;toRemove.push([r,c])}}
+  function mark(r,c){if(r<0||r>=GRID||c<0||c>=GRID)return;const idx=r*GRID+c;if(!seen[idx]){seen[idx]=1;toRemove.push([r,c])}}
+  // ★ 얼음 셀도 "채워진 것"으로 카운트 (장애물이지만 라인 완성 기여)
+  const isFilledOrIce=(r,c)=>board[r][c]!==null || (boardSpecial[r][c]&&boardSpecial[r][c].type==='ice');
   let rowCount=0,colCount=0,boxCount=0;
-  for(let r=0;r<GRID;r++)if(board[r].every(v=>v!==null)){rowCount++;for(let c=0;c<GRID;c++)mark(r,c)}
-  for(let c=0;c<GRID;c++)if(board.every(row=>row[c]!==null)){colCount++;for(let r=0;r<GRID;r++)mark(r,c)}
+  for(let r=0;r<GRID;r++){
+    let full=true;
+    for(let c=0;c<GRID;c++)if(!isFilledOrIce(r,c)){full=false;break}
+    if(full){rowCount++;for(let c=0;c<GRID;c++)mark(r,c)}
+  }
+  for(let c=0;c<GRID;c++){
+    let full=true;
+    for(let r=0;r<GRID;r++)if(!isFilledOrIce(r,c)){full=false;break}
+    if(full){colCount++;for(let r=0;r<GRID;r++)mark(r,c)}
+  }
   for(let br=0;br<3;br++)for(let bc=0;bc<3;bc++){
     let full=true;
-    outer:for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)if(board[r][c]===null){full=false;break outer}
+    outer:for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)if(!isFilledOrIce(r,c)){full=false;break outer}
     if(full){boxCount++;for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)mark(r,c)}
   }
-  if(!toRemove.length)return{lines:0,cells:0};
-  _boardFilled-=toRemove.length;
-  for(const[r,c]of toRemove){board[r][c]=null}
+  // ★ 특수 효과(십자가/폭탄)로 터질 셀 추가
+  if(extraCells&&extraCells.length){
+    extraCells.forEach(([r,c])=>mark(r,c));
+  }
+  if(!toRemove.length)return{lines:0,cells:0,removed:[]};
+  // ★ 얼음 셀 hits 처리: hitsLeft 감소, 1이면 완전 제거
+  const actuallyRemoved=[];
+  const iceShake=[];
+  for(const[r,c]of toRemove){
+    const sp=boardSpecial[r][c];
+    if(sp&&sp.type==='ice'){
+      if(sp.hitsLeft>1){
+        // hits 감소 → 금 간 얼음 (fast path: 얼굴 SVG만 교체)
+        sp.hitsLeft--;
+        const cEl=cellEls[r][c];
+        if(cEl){
+          cEl.classList.add('ice-cracked');
+          const wrap=cEl.querySelector('.potato-wrap');
+          if(wrap)wrap.innerHTML=makeIceFace(sp.hitsLeft,sp.maxHits);
+        }
+        iceShake.push([r,c]);
+      }else{
+        // hitsLeft === 1 → 완전 제거
+        boardSpecial[r][c]=null;
+        _iceCount--;
+        actuallyRemoved.push([r,c]);
+      }
+    }else if(board[r][c]!==null){
+      actuallyRemoved.push([r,c]);
+    }
+  }
+  // 얼음 크랙 shake
+  iceShake.forEach(([r,c])=>{
+    cellEls[r][c].classList.add('ice-crack-shake');
+    setTimeout(()=>cellEls[r][c]&&cellEls[r][c].classList.remove('ice-crack-shake'),320);
+  });
+  if(!actuallyRemoved.length){
+    // 얼음만 금 간 경우: 애니메이션 없이 바로 리턴 (라인 카운트는 유지 — 장식 피드백에 필요)
+    return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:[]};
+  }
+  _boardFilled-=actuallyRemoved.filter(([r,c])=>board[r][c]!==null).length;
+  for(const[r,c]of actuallyRemoved){board[r][c]=null}
   // ═══ Woodoku Stagger: 좌상→우하 파도타기 연출 ═══
-  //    각 셀이 자기 위치에 따라 delay를 갖고 순차적으로 녹음
-  //    저사양: 계수 절반(6ms)으로 총 시간 단축
-  const minRow = toRemove.reduce((m,[r,_])=>Math.min(m,r), GRID);
-  const minCol = toRemove.reduce((m,[_,c])=>Math.min(m,c), GRID);
-  let maxDelay = 0;
-  const coef = window._lowPerf ? 6 : 12;
-  toRemove.forEach(([r,c])=>{
-    const el = cellEls[r][c];
-    const delay = (c - minCol) * coef + (r - minRow) * coef;
-    if(delay > maxDelay) maxDelay = delay;
-    el.style.setProperty('--clear-delay', delay + 'ms');
+  const minRow=actuallyRemoved.reduce((m,[r,_])=>Math.min(m,r),GRID);
+  const minCol=actuallyRemoved.reduce((m,[_,c])=>Math.min(m,c),GRID);
+  let maxDelay=0;
+  const coef=window._lowPerf?6:12;
+  actuallyRemoved.forEach(([r,c])=>{
+    const el=cellEls[r][c];
+    const delay=(c-minCol)*coef+(r-minRow)*coef;
+    if(delay>maxDelay)maxDelay=delay;
+    el.style.setProperty('--clear-delay',delay+'ms');
     el.classList.add('clearing');
   });
-  const CLEAR_DUR = 450; // CSS와 일치
-  // 총 대기 시간 = Dissolve duration + 최대 delay + 여유
-  const totalWait = CLEAR_DUR + maxDelay + 30;
+  const CLEAR_DUR=700;
+  const totalWait=CLEAR_DUR+maxDelay+30;
   const _timerId=setTimeout(()=>{
     _activeClearTimers.delete(_timerId);
-    for(const[r,c]of toRemove){
+    for(const[r,c]of actuallyRemoved){
       const el=cellEls[r][c];
       el.className='cell'+(isSectionAlt(r,c)?' section-alt':'');
       el.dataset.r=r;el.dataset.c=c;el.innerHTML='';
-      el.style.removeProperty('--clear-delay'); // 다음 클리어를 위해 정리
+      el.style.removeProperty('--clear-delay');
     }
-  }, totalWait);
+  },totalWait);
   _activeClearTimers.add(_timerId);
-  return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:toRemove};
+  return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:actuallyRemoved};
 }
 function addScore(pts,numLines){
+  const prevScore=score;
   const prevPhase=getPhase();score+=pts;
   if(score>best){best=score;Storage.set('pw2_best',best)}
   const newPhase=getPhase();
   if(newPhase>prevPhase){haptic('success');updatePhaseBadge(newPhase)}
+  // ★ 마일스톤 감지 (점수 임계치 돌파)
+  const milestones=[100,500,1000,2500,5000,10000,25000,50000,100000];
+  for(const m of milestones){
+    if(prevScore<m && score>=m){
+      // 클리어 시 지연: 2줄+ 800ms (콤보 연출 완전히 끝난 후), 1줄 300ms, 클리어 없으면 즉시
+      const delay = numLines>=2 ? 800 : numLines===1 ? 300 : 0;
+      setTimeout(()=>showMilestonePopup(m), delay);
+      break;  // 한 턴에 하나만
+    }
+  }
   const sv=document.getElementById('score-el');
   if(pts>0){
     const cls=numLines>=4?'bump-mega':numLines>=3?'bump-big':'bump';
@@ -1820,13 +2269,15 @@ function updateGoalHint(){
   const el=document.getElementById('goal-hint');if(!el)return;
   const cut=getTop10Cut();
   const diff=cut-score;
-  if(diff>0){
-    el.textContent='상위 10% · '+diff.toLocaleString()+'점 남음';
-    el.classList.remove('achieved');
-  }else if(score>0){
+  if(diff<=0&&score>0){
+    // 달성 순간만 표시
     el.textContent='🏆 상위 10% 달성!';
     el.classList.add('achieved');
-  }else{el.textContent=''}
+  }else{
+    // 평소엔 숨김 (원작 스타일 — 점수만 담백하게)
+    el.textContent='';
+    el.classList.remove('achieved');
+  }
 }
 const PHASE_LABELS=['','🔥','⚡','💀'];function updatePhaseBadge(phase){const badge=document.getElementById('phase-badge');if(badge){badge.textContent=PHASE_LABELS[phase]||'';badge.style.animation='none';requestAnimationFrame(()=>badge.style.animation='scoreBump var(--dur-score) var(--ease-out) both')}}
 function showStreakUI(){
@@ -1846,19 +2297,60 @@ function showStreakUI(){
   }else{bar.classList.remove('show')}
 }
 // ── 클리어 이펙트 ────────────────────────────────────────────────
-const STAR_CHARS=['★','◆','✦','·'];
+const STAR_CHARS=['★','✦','◆','✨','·','✧'];
+const STAR_COLORS=['#FFD700','#FFF8C7','#FFA94D','#FFE4B5','#FFF'];
+
+// ═══ 특수 블록 발동 연출 (렉 방지: DOM 생성 rAF로 지연) ═══
+function triggerSpecialEffect(type,ar,ac,cx,cy){
+  // 2프레임 지연: 블록 배치/렌더 프레임과 분리해서 jank 방지
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      if(type==='cross'){
+        const boardEl=document.getElementById('board');
+        if(boardEl){
+          const br=boardEl.getBoundingClientRect();
+          // 빛줄기를 짧게 - 중심 기준 셀 5칸 범위만 (보드 전체 X)
+          const armLen=_strideW?_strideW*3:120;
+          const hRow=document.createElement('div');
+          hRow.className='special-burst-row';
+          hRow.style.cssText=`left:${cx-armLen}px;top:${cy-14}px;width:${armLen*2}px;--burst-h:28px`;
+          document.body.appendChild(hRow);
+          const vCol=document.createElement('div');
+          vCol.className='special-burst-col';
+          vCol.style.cssText=`left:${cx-14}px;top:${cy-armLen}px;height:${armLen*2}px;--burst-w:28px`;
+          document.body.appendChild(vCol);
+          setTimeout(()=>{hRow.remove();vCol.remove()},420);
+        }
+        spawnLabel('✚ CROSS!',cx,cy-70,'#FF8AC5',26,true);
+      }else if(type==='bomb'){
+        const radial=document.createElement('div');
+        radial.className='special-burst-radial';
+        // 2x2 범위에 맞게 크기 축소 (3.6 → 2.6)
+        const size=_strideW?Math.round(_strideW*2.6):110;
+        // 2x2 중심은 폭탄 위치의 우하 대각선 방향 (0.5, 0.5 오프셋)
+        const offsetCx=cx+(_strideW?_strideW*0.5:20);
+        const offsetCy=cy+(_strideH?_strideH*0.5:20);
+        radial.style.cssText=`left:${offsetCx}px;top:${offsetCy}px;width:${size}px;height:${size}px`;
+        document.body.appendChild(radial);
+        setTimeout(()=>radial.remove(),570);
+        spawnLabel('💣 BOOM!',cx,cy-60,'#FF9850',28,true);
+      }
+    });
+  });
+}
 
 function triggerClearFX(cx, cy, numLines, removed){
-  if(numLines>=2) showComboBanner(cx, cy, numLines);
+  // ═══ 1순위: 셀 dissolve가 방해받지 않도록 보드 진동 + flash만 즉시 ═══
+  // 팝업(콤보 배너/멀티/위기/마일스톤)은 다음 프레임으로 지연 → 같은 프레임에 DOM 폭탄 방지
 
-  // v6 토스 스타일 보드 진동 — 3단계 차등 (epic은 heavy와 동일)
+  // v6 토스 스타일 보드 진동 — 3라인 이상 콤보에서만 적용
+  // (1-2라인 진동은 "뒷 셀이 잠시 떨렸다 돌아오는" 이물감 유발 → 제거)
   const bf=document.getElementById('board-frame-el')||document.querySelector('.board-frame');
-  if(bf){
+  if(bf && numLines>=3){
     let cls, dur;
     if(numLines>=5){      cls='shaking-epic';   dur=320; }
     else if(numLines>=4){ cls='shaking-heavy';  dur=320; }
-    else if(numLines>=3){ cls='shaking-medium'; dur=280; }
-    else {                cls='shaking';        dur=220; }
+    else {                cls='shaking-medium'; dur=280; }  // numLines===3
     bf.classList.remove('shaking','shaking-medium','shaking-heavy','shaking-epic');
     requestAnimationFrame(()=>{
       bf.classList.add(cls);
@@ -1866,7 +2358,7 @@ function triggerClearFX(cx, cy, numLines, removed){
     });
   }
 
-  // 흰빛 flash — 크기 차등 완화 (토스 스타일)
+  // 흰빛 flash — 크기 차등 완화
   const flashSize=numLines>=4?160:numLines>=3?140:120;
   const flash=document.createElement('div');
   flash.className='clear-flash';
@@ -1874,14 +2366,30 @@ function triggerClearFX(cx, cy, numLines, removed){
   document.body.appendChild(flash);
   setTimeout(()=>flash.remove(),300);
 
-  // 이미 화면에 파티클이 많으면 새로 생성 안 함
-  if(document.querySelectorAll('.star-particle').length>10) return;
+  // ═══ 2순위: 팝업들은 다음 프레임으로 지연 ═══
+  // 셀 dissolve 애니메이션이 시작된 후에 팝업 DOM 생성 → jank 완화
+  if(numLines>=2){
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{  // 2프레임 지연 (약 32ms, 셀 dissolve가 자리잡은 후)
+        showComboBanner(cx, cy, numLines);
+        showComboMultiplier(numLines);
+        // 위기 탈출 (보드 꽉 찬 상태에서 대량 클리어)
+        const filledBefore=_boardFilled+(removed?removed.length:0);
+        if(filledBefore >= 57){
+          showCrisisBanner(numLines);
+        }
+      });
+    });
+  }
+
+  // ═══ 3순위: 파티클 — 대폭 감량 + 다음 프레임 지연 ═══
+  // 이미 화면에 파티클이 있으면 스킵 (동시 폭발 방지)
+  if(document.querySelectorAll('.star-particle').length>15) return;
   if(!removed||!removed.length) return;
 
   const low=window._lowPerf;
-  // v6 토스 스타일: 파티클 수 더 축소 (고사양 step 4, 저사양 step 6)
-  // 45셀 클리어 → 고사양 최대 11개, 저사양 최대 7개
-  const step=low?6:4;
+  // 감량: 저사양 step 8 (6개 내외), 고사양 step 5 (9개 내외). 이전 step 2(25개)에서 대폭 축소
+  const step=low?8:5;
 
   // 파티클 데이터: 클리어된 셀 위치에서 발사
   const pts=[];
@@ -1893,42 +2401,45 @@ function triggerClearFX(cx, cy, numLines, removed){
     pts.push({x:px,y:py,char,i:idx});
   });
 
-  const frag=document.createDocumentFragment();
-  const elems=[];
-  pts.forEach(({x,y,char})=>{
-    const p=document.createElement('div');
-    p.className='star-particle';
-    p.textContent=char;
-    p.style.cssText=`left:${x}px;top:${y}px;font-size:${11+Math.random()*4}px;`;
-    frag.appendChild(p);
-    elems.push(p);
-  });
-  document.body.appendChild(frag);
-
-  // ── 토스 스타일 파티클 모션 ──
-  // 포물선·중력·회전 제거 — 위로 살짝 퍼지며 페이드아웃만
-  // 고/저사양 동일 (이미 충분히 가벼움)
+  // 파티클 생성/애니메이션도 다음 프레임으로 지연
   requestAnimationFrame(()=>{
-    pts.forEach((_,idx)=>{
-      const el=elems[idx];
-      // 랜덤한 상향 방향 (부채꼴 ±40deg)
-      const ang = -Math.PI/2 + (Math.random()-.5)*Math.PI*0.45;
-      const sp = 28 + Math.random()*18;  // 이동 거리 축소 (이전 55~95 → 28~46)
-      const tx = Math.cos(ang)*sp;
-      const ty = Math.sin(ang)*sp;
-      const dur = 420+Math.random()*80;  // 420~500ms
-      const kf=[
-        {transform:`translate(-50%,-50%) scale(0.5)`, opacity:0.9, offset:0},
-        {transform:`translate(calc(-50% + ${tx*0.5}px), calc(-50% + ${ty*0.5}px)) scale(1)`, opacity:1, offset:0.3},
-        {transform:`translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.8)`, opacity:0, offset:1},
-      ];
-      const a=el.animate(kf,{
-        duration: dur,
-        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-        fill: 'forwards',
-        delay: idx*12  // 아주 미세한 stagger
+    const frag=document.createDocumentFragment();
+    const elems=[];
+    pts.forEach(({x,y,char})=>{
+      const p=document.createElement('div');
+      p.className='star-particle';
+      p.textContent=char;
+      const color=STAR_COLORS[Math.floor(Math.random()*STAR_COLORS.length)];
+      const size=13+Math.random()*5;  // 13~18px (살짝 축소)
+      p.style.cssText=`left:${x}px;top:${y}px;font-size:${size}px;color:${color};text-shadow:0 0 4px ${color}`;  // glow 단순화 (2중→1중)
+      frag.appendChild(p);
+      elems.push(p);
+    });
+    document.body.appendChild(frag);
+
+    // ── 간소화된 파티클 모션 ──
+    requestAnimationFrame(()=>{
+      pts.forEach((_,idx)=>{
+        const el=elems[idx];
+        const ang = -Math.PI/2 + (Math.random()-.5)*Math.PI*0.67;
+        const sp = 40 + Math.random()*30;  // 이동 거리 살짝 감소 (44-80 → 40-70)
+        const tx = Math.cos(ang)*sp;
+        const ty = Math.sin(ang)*sp;
+        const dur = 480+Math.random()*80;  // 480~560ms
+        const kf=[
+          {transform:`translate(-50%,-50%) scale(0.5)`, opacity:0.9, offset:0},
+          {transform:`translate(calc(-50% + ${tx*0.5}px), calc(-50% + ${ty*0.5}px)) scale(1.1)`, opacity:1, offset:0.3},
+          {transform:`translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.7)`, opacity:0, offset:1},
+          // 회전 제거 → 렌더링 단순화
+        ];
+        const a=el.animate(kf,{
+          duration: dur,
+          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          fill: 'forwards',
+          delay: idx*6  // stagger 단축 (8 → 6)
+        });
+        a.onfinish=()=>el.remove();
       });
-      a.onfinish=()=>el.remove();
     });
   });
 }
@@ -2036,6 +2547,79 @@ function showComboBanner(cx, cy, numLines){
     _comboBannerTimer = null;
   }, 1050);
 }
+// ── 콤보 멀티플라이어 (×2, ×3, ×4+) — DOM 풀링 (매번 재생성 대신 재사용) ──
+let _comboMultEl = null;
+let _comboMultTimer = null;
+function showComboMultiplier(numLines){
+  if(numLines<2) return;
+  const mult=Math.min(numLines, 5);
+  // 풀링: 한 번 생성 후 재사용
+  if(!_comboMultEl){
+    _comboMultEl = document.createElement('div');
+    document.body.appendChild(_comboMultEl);
+  }
+  const el = _comboMultEl;
+  el.className = 'combo-multiplier m'+mult;
+  el.textContent = '×'+numLines;
+  // 보드 상단 바깥쪽
+  const boardEl=document.getElementById('board');
+  let cx=window.innerWidth/2, cy=window.innerHeight*0.22;
+  if(boardEl){
+    const br=boardEl.getBoundingClientRect();
+    cx=br.left+br.width/2;
+    cy=Math.max(br.top-30, 80);
+  }
+  el.style.left=cx+'px';
+  el.style.top=cy+'px';
+  el.style.display='block';
+  // 애니메이션 재시작
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+  // 숨김 타이머
+  if(_comboMultTimer) clearTimeout(_comboMultTimer);
+  _comboMultTimer = setTimeout(()=>{
+    if(_comboMultEl) _comboMultEl.style.display='none';
+    _comboMultTimer = null;
+  }, window._lowPerf?600:900);
+}
+// ── 마일스톤 팝업 (100/500/1000 등 점수 임계치 돌파) ──
+let _lastMilestoneEl=null;
+function showMilestonePopup(milestoneValue){
+  // 이전 팝업 아직 있으면 즉시 제거
+  if(_lastMilestoneEl){_lastMilestoneEl.remove();_lastMilestoneEl=null}
+  const el=document.createElement('div');
+  el.className='milestone-pop';
+  if(milestoneValue>=10000) el.classList.add('m-epic');
+  else if(milestoneValue>=2500) el.classList.add('m-high');
+  const subText = milestoneValue>=10000?'LEGENDARY!':milestoneValue>=5000?'AMAZING!':milestoneValue>=1000?'GREAT MILESTONE':'NICE!';
+  el.innerHTML=`
+    <div class="m-label">MILESTONE</div>
+    <div class="m-num">${milestoneValue.toLocaleString()}</div>
+    <div class="m-sub">${subText}</div>
+  `;
+  document.body.appendChild(el);
+  _lastMilestoneEl=el;
+  haptic(milestoneValue>=5000?'heavy':milestoneValue>=1000?'medium':'light');
+  // 마일스톤 사운드 (이미 있는 SFX 재활용)
+  if(Sound?.sfx?.extend) Sound.sfx.extend();
+  const dur = window._lowPerf?900:1600;
+  setTimeout(()=>{if(el.parentNode)el.remove();if(_lastMilestoneEl===el)_lastMilestoneEl=null}, dur);
+}
+// ── 위기 탈출 배너 (보드 거의 꽉 찬 상태에서 대량 클리어 시) ──
+function showCrisisBanner(numLines){
+  const el=document.createElement('div');
+  el.className='milestone-pop m-high crisis-banner';  // 위치 오버라이드용 별도 클래스
+  el.innerHTML=`
+    <div class="m-label">CLUTCH!</div>
+    <div class="m-num">위기 탈출</div>
+    <div class="m-sub">+${numLines} LINES CLEARED</div>
+  `;
+  document.body.appendChild(el);
+  haptic('heavy');
+  const dur = window._lowPerf?900:1400;
+  setTimeout(()=>el.remove(), dur);
+}
 function spawnLabel(txt, x, y, color='#F5C842', fontSize=20, big=false){
   const el=document.createElement('div');
   el.className='float-label'+(big?' big':'');
@@ -2047,14 +2631,27 @@ function spawnLabel(txt, x, y, color='#F5C842', fontSize=20, big=false){
   setTimeout(()=>el.remove(), big?650:550);
 }
 function clearPreview(){if(!prevHover.length)return;prevHover.forEach(([r,c])=>{if(cellEls[r]&&cellEls[r][c])cellEls[r][c].classList.remove('preview-valid','preview-invalid','preview-clear','preview-place')});prevHover=[]}
+// Board bitmap 캐시 - board hash 바뀔 때만 재구성 (얼음 포함)
+let _boardBitmap=null, _boardBitmapHash=-1;
+function _getBoardBitmap(){
+  const hash=_boardFilled*100+_iceCount;
+  if(_boardBitmapHash===hash && _boardBitmap) return _boardBitmap;
+  const bmp=new Uint8Array(81);
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+    // 일반 블록 또는 얼음 셀은 "채워진 것"으로 카운트
+    if(board[r][c]!==null || (boardSpecial[r][c]&&boardSpecial[r][c].type==='ice'))bmp[r*9+c]=1;
+  }
+  _boardBitmap=bmp;
+  _boardBitmapHash=hash;
+  return bmp;
+}
+
 function showPreview(shape,sr,sc){
   const valid=canPlace(shape,sr,sc);
   const cls=valid?'preview-valid':'preview-invalid';
   const newCells=[];
   shape.forEach(([dr,dc])=>{const r=sr+dr,c=sc+dc;if(r>=0&&r<GRID&&c>=0&&c<GRID)newCells.push([r,c])});
-  // key: 위치+valid여부+보드변화감지(채워진셀수) — 클리어 예측 재계산 트리거
-  const boardHash=_boardFilled;  // board flat 제거 — 배치/클리어 시 갱신되는 카운터 사용
-  const key=newCells.map(([r,c])=>r*9+c).join(',')+cls+boardHash;
+  const key=newCells.map(([r,c])=>r*9+c).join(',')+cls+_boardFilled+'.'+_iceCount;
   if(key===_lastPreviewKey)return;
   _lastPreviewKey=key;
   clearPreview();
@@ -2062,9 +2659,9 @@ function showPreview(shape,sr,sc){
   // 배치 시 터질 셀 계산 (valid일 때 항상)
   const willClearSet=new Set();
   if(valid){
-    // 가상 보드: Uint8Array(81) — 배열 생성 없이 비트맵으로 처리
-    const filled=new Uint8Array(81);
-    for(let r=0;r<9;r++)for(let c=0;c<9;c++)if(board[r][c]!==null)filled[r*9+c]=1;
+    // 캐시된 board bitmap 사용 - 매번 재생성 안 함
+    const boardBmp=_getBoardBitmap();
+    const filled=new Uint8Array(boardBmp);  // 복사 (O(81) 빠름)
     newCells.forEach(([r,c])=>filled[r*9+c]=1);
     // 행 완성
     for(let r=0;r<9;r++){
@@ -2084,19 +2681,22 @@ function showPreview(shape,sr,sc){
     }
   }
 
-  // newCells: 터질 라인에 포함되면 preview-clear, 아니면 preview-valid
-  // 착수 위치이면서 클리어 예정이면 preview-place도 추가
+  // classList 일괄 추가 (MutationObserver 폭발 방지)
   newCells.forEach(([r,c])=>{
-    const isClear = willClearSet.has(r*9+c);
-    cellEls[r][c].classList.add(isClear?'preview-clear':cls);
-    if(isClear) cellEls[r][c].classList.add('preview-place');
-    prevHover.push([r,c]);
+    if(willClearSet.has(r*9+c)){
+      cellEls[r][c].classList.add('preview-clear','preview-place');
+      prevHover.push([r,c]);
+    }
   });
-  // 기존 채워진 셀 중 터질 셀 강조
   if(willClearSet.size){
     for(const k of willClearSet){
-      const r=Math.floor(k/9),c=k%9;
-      if(newCells.some(([nr,nc])=>nr===r&&nc===c))continue; // 위에서 처리됨
+      const r=(k/9)|0, c=k%9;  // Math.floor → bitwise
+      // newCells에 있으면 스킵 (위에서 처리)
+      let inNew=false;
+      for(let i=0;i<newCells.length;i++){
+        if(newCells[i][0]===r&&newCells[i][1]===c){inNew=true;break}
+      }
+      if(inNew)continue;
       if(cellEls[r]&&cellEls[r][c]&&board[r][c]!==null){
         cellEls[r][c].classList.add('preview-clear');
         prevHover.push([r,c]);
@@ -2117,16 +2717,16 @@ function measureBoard(){
 
 function cellAt(x,y){
   if(_strideW===0)measureBoard();
-  // 셀 중심 기준 + 1.3셀 snap 허용 (보드 경계 근처도 인식)
+  // 셀 중심 기준 + 1.5셀 snap 허용 (보드 경계 근처도 관대하게 인식 — iOS 왼쪽 엣지 등 대응)
   const c=Math.round((x-_originLeft)/_strideW);
   const r=Math.round((y-_originTop)/_strideH);
   // 보드 범위 clamp — 약간 벗어나도 가장 가까운 셀로
   const cr=Math.max(0,Math.min(GRID-1,r));
   const cc=Math.max(0,Math.min(GRID-1,c));
-  // 완전히 벗어난 경우(1.3셀 초과)는 null
+  // 완전히 벗어난 경우(1.5셀 초과)는 null
   const dx=x-(_originLeft+cc*_strideW+_strideW/2);
   const dy=y-(_originTop +cr*_strideH+_strideH/2);
-  if(Math.abs(dx)>_strideW*1.1||Math.abs(dy)>_strideH*1.1)return null;
+  if(Math.abs(dx)>_strideW*1.5||Math.abs(dy)>_strideH*1.5)return null;
   return[cr,cc];
 }
 
@@ -2151,9 +2751,25 @@ function buildGhost(idx){
 
   // CSS 변수 실제값 읽기
   const cs=getComputedStyle(document.documentElement);
+  // 기본 크림 블록
   const bLight=cs.getPropertyValue('--block-light').trim();
   const bMid  =cs.getPropertyValue('--block').trim();
   const bDark =cs.getPropertyValue('--block-dark').trim();
+  // 특수 블록 색상
+  let gLight=bLight,gMid=bMid,gDark=bDark,gFace=null,gShadow='inset 0 2px 1px rgba(255,255,255,.45),inset 0 -2px 2px rgba(75,45,15,.35),inset 0 0 0 1px rgba(60,34,12,.18)';
+  if(p.special==='cross'){
+    gLight=cs.getPropertyValue('--block-cross-light').trim();
+    gMid=cs.getPropertyValue('--block-cross').trim();
+    gDark=cs.getPropertyValue('--block-cross-dark').trim();
+    gShadow='inset 0 2px 1px rgba(255,255,255,.55),inset 0 -2px 2px rgba(120,32,80,.4),inset 0 0 0 1.5px rgba(176,56,128,.35)';
+    gFace=CROSS_FACE;
+  }else if(p.special==='bomb'){
+    gLight=cs.getPropertyValue('--block-bomb-light').trim();
+    gMid=cs.getPropertyValue('--block-bomb').trim();
+    gDark=cs.getPropertyValue('--block-bomb-dark').trim();
+    gShadow='inset 0 2px 1px rgba(255,180,100,.32),inset 0 -2px 2px rgba(0,0,0,.5),inset 0 0 0 1.5px rgba(0,0,0,.45)';
+    gFace=BOMB_FACE;
+  }
 
   const mat=Array.from({length:rows},()=>Array(cols).fill(false));
   p.shape.forEach(([r,c])=>mat[r][c]=true);
@@ -2163,13 +2779,10 @@ function buildGhost(idx){
       if(mat[r][c]){
         pc.style.cssText=`width:${cw}px;height:${ch}px;display:flex;align-items:center;justify-content:center;`;
         const inner=document.createElement('div');
-        inner.style.cssText=`width:${Math.round(_cellW)-8}px;height:${Math.round(_cellH)-8}px;border-radius:5px;position:relative;overflow:hidden;background:linear-gradient(148deg,${bLight} 0%,${bMid} 48%,${bDark} 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.28),inset 0 -2px 0 rgba(0,0,0,.30),inset 0 0 0 1px rgba(60,34,12,.15);opacity:.92;`;
-        inner.innerHTML=POTATOES[p.face];
+        inner.style.cssText=`width:${Math.round(_cellW)-4}px;height:${Math.round(_cellH)-4}px;border-radius:9px;position:relative;overflow:hidden;background:linear-gradient(155deg,${gLight} 0%,${gMid} 55%,${gDark} 100%);box-shadow:${gShadow};opacity:.92;`;
+        inner.innerHTML = gFace || POTATOES[p.face];
         const svg=inner.querySelector('svg');
-        if(svg)svg.style.cssText='position:absolute;inset:17.5%;width:65%;height:65%;';
-        const shine=document.createElement('div');
-        shine.style.cssText='position:absolute;inset:0;border-radius:inherit;background:linear-gradient(175deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,.02) 50%,rgba(0,0,0,.08) 100%);pointer-events:none;';
-        inner.appendChild(shine);
+        if(svg)svg.style.cssText='position:absolute;inset:7.5%;width:85%;height:85%;';
         pc.appendChild(inner);
       } else {
         pc.style.cssText=`width:${cw}px;height:${ch}px;`;
@@ -2177,6 +2790,68 @@ function buildGhost(idx){
       gg.appendChild(pc);
     }
   }
+}
+
+// ── Preview Overlay: 드래그 중 예상 착수 위치 (물 흐르듯 transform 이동) ──
+let _poEl=null, _poGridEl=null;
+let _poShape=null;
+let _poTargetX=0, _poTargetY=0;      // 목표 위치 (hit 셀 기준)
+let _poRenderX=0, _poRenderY=0;      // 현재 렌더 위치 (LERP로 수렴)
+let _poRows=0, _poCols=0;
+function buildPreviewOverlay(shape){
+  if(!_poEl)_poEl=document.getElementById('preview-overlay');
+  if(!_poEl)return;
+  // 기존 grid 제거
+  _poEl.innerHTML='';
+  _poShape=shape;
+  const cw=Math.round(_strideW)||42, ch=Math.round(_strideH)||42;
+  const rows=Math.max(...shape.map(([r])=>r))+1;
+  const cols=Math.max(...shape.map(([,c])=>c))+1;
+  _poRows=rows; _poCols=cols;
+  const grid=document.createElement('div');
+  grid.className='po-grid';
+  grid.style.gridTemplateColumns=`repeat(${cols},${cw}px)`;
+  grid.style.gridTemplateRows=`repeat(${rows},${ch}px)`;
+  const mat=Array.from({length:rows},()=>Array(cols).fill(false));
+  shape.forEach(([r,c])=>mat[r][c]=true);
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const cell=document.createElement('div');
+      cell.className='po-cell'+(mat[r][c]?' on':'');
+      // 내부 on 요소는 셀 크기보다 살짝 작게 (4px inset)
+      cell.style.cssText=`width:${cw}px;height:${ch}px;box-sizing:border-box;`;
+      if(mat[r][c]){
+        const inner=document.createElement('div');
+        inner.style.cssText=`position:absolute;width:${cw-8}px;height:${ch-8}px;margin:4px;border-radius:5px;background:rgba(255,255,255,.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.10);`;
+        cell.appendChild(inner);
+      }
+      grid.appendChild(cell);
+    }
+  }
+  _poEl.appendChild(grid);
+  _poGridEl=grid;
+}
+function showPreviewOverlay(sr,sc,valid){
+  if(!_poEl||!_poGridEl||_poShape==null)return;
+  const cw=Math.round(_strideW)||42, ch=Math.round(_strideH)||42;
+  // sr,sc = 피스 좌상단 셀 좌표 (정수) → 셀 중심으로 target 세팅
+  const targetX=sc*cw;
+  const targetY=sr*ch;
+  _poTargetX=targetX;
+  _poTargetY=targetY;
+  if(!_poEl.classList.contains('visible')){
+    // 첫 등장: 깜빡임 없이 즉시 위치 잡고 fade in
+    _poRenderX=targetX;
+    _poRenderY=targetY;
+    _poGridEl.style.transform=`translate3d(${targetX}px,${targetY}px,0)`;
+    _poEl.classList.add('visible');
+  }
+  // valid/invalid 클래스 토글
+  _poEl.classList.toggle('invalid',!valid);
+}
+function hidePreviewOverlay(){
+  if(!_poEl)return;
+  _poEl.classList.remove('visible','invalid');
 }
 
 // ── Ghost 렌더 루프 ───────────────────────────────────────────
@@ -2206,19 +2881,38 @@ function _ghostRenderLoop(){
   const dx=_ghostTargetX-_ghostRenderX;
   const dy=_ghostTargetY-_ghostRenderY;
   const dist=Math.sqrt(dx*dx+dy*dy);
-  // 저사양: 하한 0.50, 고사양: 하한 0.35 / 거리 멀수록 최대 +0.35 부스트
-  const base=window._lowPerf?0.50:0.35;
-  const lerp=base+Math.min(dist/80,1)*0.35;
+  // v6-responsive: Ghost 반응성 상향
+  const base=window._lowPerf?0.60:0.45;
+  const lerp=base+Math.min(dist/80,1)*0.40;
   _ghostRenderX+=dx*lerp;
   _ghostRenderY+=dy*lerp;
-  // 더 정밀한 착지 (0.5 → 0.3px)
-  const snappedX = Math.abs(dx)<0.3;
-  const snappedY = Math.abs(dy)<0.3;
+  // snap threshold 0.3 → 0.8 (루프 일찍 종료해 rAF 낭비 방지)
+  const snappedX = Math.abs(dx)<0.8;
+  const snappedY = Math.abs(dy)<0.8;
   if(snappedX)_ghostRenderX=_ghostTargetX;
   if(snappedY)_ghostRenderY=_ghostTargetY;
 
   if(!_ghostEl)_ghostEl=document.getElementById('ghost');
   _ghostEl.style.transform=`translate3d(${_ghostRenderX}px,${_ghostRenderY}px,0)`;
+
+  // ── Preview Overlay LERP ──
+  let poSnapped = true;
+  if(_poGridEl && _poEl && _poEl.classList.contains('visible')){
+    const poDx=_poTargetX-_poRenderX;
+    const poDy=_poTargetY-_poRenderY;
+    const poDist=Math.sqrt(poDx*poDx+poDy*poDy);
+    const poBase=window._lowPerf?0.45:0.30;
+    const poLerp=poBase+Math.min(poDist/40,1)*0.45;
+    _poRenderX+=poDx*poLerp;
+    _poRenderY+=poDy*poLerp;
+    // snap 0.3 → 0.8 (일찍 종료)
+    const poSx=Math.abs(poDx)<0.8;
+    const poSy=Math.abs(poDy)<0.8;
+    if(poSx)_poRenderX=_poTargetX;
+    if(poSy)_poRenderY=_poTargetY;
+    _poGridEl.style.transform=`translate3d(${_poRenderX}px,${_poRenderY}px,0)`;
+    poSnapped = poSx && poSy;
+  }
 
   // preview: hit 바뀔 때만 업데이트
   let hitChanged = false;
@@ -2227,19 +2921,18 @@ function _ghostRenderLoop(){
     if(hk!==_lastHitKey){
       hitChanged = true;
       _lastHitKey=hk;
-      if(_ghostHit&&hk!==_prevHitKey){
-        _prevHitKey=hk;
-        const now=performance.now();
-        if(!_ghostLastHaptic||now-_ghostLastHaptic>80){_ghostLastHaptic=now;haptic('light')}
+      if(_ghostHit){
+        const[hr2,hc2]=_ghostHit,[sr2,sc2]=shapeAnchor(_ghostShape,hr2,hc2);
+        showPreview(_ghostShape,sr2,sc2);
+        const valid=canPlace(_ghostShape,sr2,sc2);
+        showPreviewOverlay(sr2,sc2,valid);
       }
-      if(_ghostHit){const[hr2,hc2]=_ghostHit,[sr2,sc2]=shapeAnchor(_ghostShape,hr2,hc2);showPreview(_ghostShape,sr2,sc2)}
-      else clearPreview();
+      else {clearPreview();hidePreviewOverlay();}
     }
   }
 
-  // v6-perf: target 완전 도달 + hit 안정 시 rAF 루프 종료 (배터리 친화)
-  // moveGhost가 다시 호출되면 루프 재개
-  if(snappedX && snappedY && !hitChanged){
+  // v6-perf: target 완전 도달 + hit 안정 + overlay 안착 시 루프 종료
+  if(snappedX && snappedY && !hitChanged && poSnapped){
     _ghostLoopId=0;
     return;
   }
@@ -2248,13 +2941,19 @@ function _ghostRenderLoop(){
 
 function moveGhost(cx,cy,shape,hit){
   if(!dragActive)return;
-  // target만 갱신 — 실제 이동은 rAF 루프에서 lerp
-  _ghostTargetX=cx+_dragAnchorOffX;
-  _ghostTargetY=cy+_dragAnchorOffY;
+  const newX=cx+_dragAnchorOffX;
+  const newY=cy+_dragAnchorOffY;
+  // 동일 target + hit이면 스킵 (120Hz touchmove 과잉 호출 방지)
+  if(Math.abs(newX-_ghostTargetX)<0.5 && Math.abs(newY-_ghostTargetY)<0.5 &&
+     ((hit===null && _ghostHit===null) ||
+      (hit && _ghostHit && hit[0]===_ghostHit[0] && hit[1]===_ghostHit[1]))){
+    return;
+  }
+  _ghostTargetX=newX;
+  _ghostTargetY=newY;
   _ghostShape=shape;
   _ghostHit=hit;
   if(!_ghostEl)_ghostEl=document.getElementById('ghost');
-  // v6-perf: on-board 상태가 실제 변했을 때만 classList 조작 (불필요한 style 재계산 방지)
   const shouldBeOnBoard = !!hit;
   const isOnBoard = _ghostEl.classList.contains('on-board');
   if(shouldBeOnBoard !== isOnBoard){
@@ -2320,12 +3019,17 @@ function onUp(e){
   // P0-MED-1 fix: 드래그 궤적이 보드까지 닿았을 때만 합성 click 억제.
   //               단순 탭(움직임 없음)은 click 핸들러에 그대로 위임 → 슬롯 선택 기능 유지.
   if(attemptedPlace)_suppressClickUntil=performance.now()+350;
+  // ★ 모든 슬롯에서 dragging 클래스 제거 (트레이 블록 재표시)
+  document.querySelectorAll('.piece-slot.dragging').forEach(s=>s.classList.remove('dragging'));
   dragActive=false;dragIdx=-1;selIdx=null;isTouchDrag=false;_lastPreviewKey='';renderTray();
+  hidePreviewOverlay();
 }
 
 function onCancel(){
   if(!dragActive)return;
-  hideGhost();clearPreview();
+  hideGhost();clearPreview();hidePreviewOverlay();
+  // ★ 모든 슬롯에서 dragging 클래스 제거
+  document.querySelectorAll('.piece-slot.dragging').forEach(s=>s.classList.remove('dragging'));
   dragActive=false;dragIdx=-1;selIdx=null;isTouchDrag=false;_lastPreviewKey='';renderTray();
 }
 
@@ -2339,7 +3043,11 @@ function slotDown(e,idx){
   if(!gameActive||pieces[idx]?.used)return;
   e.preventDefault();
   dragIdx=idx;dragActive=true;selIdx=idx;renderTray();
+  // ★ 드래그 중 표시 (CSS에서 opacity:0으로 원본 숨김, Ghost가 대신)
+  const slotEl=document.getElementById('slot-'+idx);
+  if(slotEl)slotEl.classList.add('dragging');
   measureBoard();buildGhost(idx);
+  buildPreviewOverlay(pieces[idx].shape);
   const[cx,cy]=getClient(e);
   if(!_ghostEl)_ghostEl=document.getElementById('ghost');
   const g=_ghostEl;
@@ -2419,16 +3127,132 @@ function attachEvents(){
 }
 
 function checkGameOver(){if(!gameActive)return;const available=pieces.filter(p=>!p.used);if(!available.length)return;const canAny=available.some(p=>{for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)if(canPlace(p.shape,r,c))return true;return false});if(!canAny)setTimeout(showGameOver,350)}
-function showGameOver(){gameActive=false;Sound.sfx.gameOver();haptic('error');if(!extendUsed){document.getElementById('ext-diamond').disabled=diamondBalance<2;document.getElementById('gameover-overlay').classList.add('on')}else{showResultScreen()}}
+function showGameOver(){
+  gameActive=false;Sound.sfx.gameOver();haptic('error');
+  // ★ GAME OVER 스플래시 먼저 표시 (쓰리매치에서 이식)
+  const splash=document.getElementById('gameover-splash');
+  const afterSplash=()=>{
+    if(splash)splash.classList.remove('on');
+    if(!extendUsed){
+      document.getElementById('ext-diamond').disabled=diamondBalance<2;
+      document.getElementById('gameover-overlay').classList.add('on');
+    }else{
+      showResultScreen();
+    }
+  };
+  if(splash){
+    splash.classList.add('on');
+    setTimeout(afterSplash,900);
+  }else{
+    afterSplash();
+  }
+}
+
+// ★ 3-2-1-GO 카운트다운 (쓰리매치에서 이식) — done() 콜백에서 실제 게임 재개
+function runCountdown(done){
+  const cd=document.getElementById('countdown');
+  const num=document.getElementById('cd-num');
+  const dots=document.getElementById('cd-dots');
+  if(!cd||!num||!dots){done&&done();return}
+  // 점 6개 랜덤 배치
+  dots.innerHTML='';
+  for(let i=0;i<6;i++){
+    const d=document.createElement('div');
+    d.className='cd-dot';
+    d.style.left=(Math.random()*100)+'%';
+    d.style.top=(40+Math.random()*40)+'%';
+    d.style.animationDelay=(Math.random()*2)+'s';
+    d.style.animationDuration=(1.5+Math.random())+'s';
+    dots.appendChild(d);
+  }
+  cd.classList.add('on');
+  let n=3;
+  const showNum=(v)=>{num.textContent=v;num.className='cd-num pop';Sound.sfx.countTick(v)};
+  const step=()=>{
+    num.className='cd-num out';
+    setTimeout(()=>{
+      n--;
+      if(n>0){showNum(n);setTimeout(step,600)}
+      else{
+        num.textContent='GO!';
+        num.className='cd-num pop';
+        Sound.sfx.countGo();
+        setTimeout(()=>{
+          num.className='cd-num out';
+          setTimeout(()=>{
+            cd.classList.remove('on');
+            dots.innerHTML='';
+            done&&done();
+          },250);
+        },500);
+      }
+    },250);
+  };
+  showNum(n);
+  setTimeout(step,600);
+}
 function skipExtend(){Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');showResultScreen()}
 
 // ═══ EXTEND ═══
-function extendDiamond(){if(extendUsed)return;if(!spendDiamonds(2)){showToast('다이아가 부족합니다!');return}extendUsed=true;Sound.sfx.extend();haptic('success');document.getElementById('gameover-overlay').classList.remove('on');let bestRow=-1,bestCount=-1;for(let r=0;r<GRID;r++){const count=board[r].filter(v=>v!==null).length;if(count>bestCount){bestCount=count;bestRow=r}}if(bestRow>=0){// ★ board 즉시 비움
-for(let c=0;c<GRID;c++)if(board[bestRow][c]!==null){cellEls[bestRow][c].style.setProperty('--clear-delay',(c*(window._lowPerf?6:12))+'ms');cellEls[bestRow][c].classList.add('clearing');board[bestRow][c]=null}
-const clearDur=(window._lowPerf?500:750)+30+GRID*(window._lowPerf?6:12);
-const _t=setTimeout(()=>{_activeClearTimers.delete(_t);for(let c=0;c<GRID;c++){const el=cellEls[bestRow][c];el.className='cell'+(isSectionAlt(bestRow,c)?' section-alt':'');el.dataset.r=bestRow;el.dataset.c=c;el.innerHTML='';el.style.removeProperty('--clear-delay')}},clearDur);
-_activeClearTimers.add(_t);
-setTimeout(()=>{if(pieces.every(p=>p.used))newSet();gameActive=true;setTimeout(checkGameOver,50)},clearDur+50)}}
+function extendDiamond(){
+  if(extendUsed)return;
+  if(!spendDiamonds(2)){showToast('다이아가 부족합니다!');return}
+  extendUsed=true;Sound.sfx.extend();haptic('success');
+  document.getElementById('gameover-overlay').classList.remove('on');
+  // ★ 가장 채워진 상위 2줄 찾기 (블록+얼음 합산, 빈 줄 제외)
+  const rowCounts=[];
+  for(let r=0;r<GRID;r++){
+    let cnt=0;
+    for(let c=0;c<GRID;c++){
+      if(board[r][c]!==null)cnt++;
+      else if(boardSpecial[r][c]&&boardSpecial[r][c].type==='ice')cnt++;
+    }
+    if(cnt>0)rowCounts.push({r,cnt});
+  }
+  rowCounts.sort((a,b)=>b.cnt-a.cnt);
+  const topRows=rowCounts.slice(0,2).map(x=>x.r);
+  if(topRows.length>0){
+    const coef=window._lowPerf?6:12;
+    let maxDelay=0;
+    const cellsToClear=[];
+    topRows.forEach((r,rowIdx)=>{
+      for(let c=0;c<GRID;c++){
+        const hasBlock=board[r][c]!==null;
+        const hasIce=boardSpecial[r][c]&&boardSpecial[r][c].type==='ice';
+        if(hasBlock||hasIce){
+          const delay=c*coef+rowIdx*60; // 행마다 60ms 파도
+          if(delay>maxDelay)maxDelay=delay;
+          cellEls[r][c].style.setProperty('--clear-delay',delay+'ms');
+          cellEls[r][c].classList.add('clearing');
+          cellsToClear.push([r,c]);
+          if(hasBlock)board[r][c]=null;
+          if(hasIce){boardSpecial[r][c]=null;_iceCount--}
+        }
+      }
+    });
+    _boardBitmapHash=-1;
+    const CLEAR_DUR=700;
+    const totalWait=CLEAR_DUR+maxDelay+30;
+    const _t=setTimeout(()=>{
+      _activeClearTimers.delete(_t);
+      cellsToClear.forEach(([r,c])=>{
+        const el=cellEls[r][c];
+        el.className='cell'+(isSectionAlt(r,c)?' section-alt':'');
+        el.dataset.r=r;el.dataset.c=c;el.innerHTML='';
+        el.style.removeProperty('--clear-delay');
+      });
+    },totalWait);
+    _activeClearTimers.add(_t);
+    // ★ 클리어 애니메이션 완료 후 3-2-1-GO 카운트다운 → 게임 재개
+    setTimeout(()=>{
+      if(pieces.every(p=>p.used))newSet();
+      runCountdown(()=>{gameActive=true;setTimeout(checkGameOver,50)});
+    },totalWait+50);
+  }else{
+    // 보드가 비어있는 예외: 카운트다운 후 복귀
+    runCountdown(()=>{gameActive=true;setTimeout(checkGameOver,400)});
+  }
+}
 // extendAd: 광고 시뮬레이션 중 취소 가능하도록 interval을 모듈 변수로 보관
 let _extendAdTimer=null;
 function cancelExtendAd(){
@@ -2439,32 +3263,47 @@ function cancelExtendAd(){
   if(extendUsed&&!gameActive)extendUsed=false;
 }
 function extendAd(){if(extendUsed)return;extendUsed=true;Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');const adOv=document.getElementById('ad-overlay'),adTimer=document.getElementById('ad-timer');adOv.classList.add('on');let count=3;adTimer.textContent=count;_extendAdTimer=setInterval(()=>{count--;if(count<=0){clearInterval(_extendAdTimer);_extendAdTimer=null;adOv.classList.remove('on');Sound.sfx.extend();haptic('success');
-  // ═══ 광고 보상 (C안 밸런스): 가장 찬 3줄 클리어 + 새 블록 3개 ═══
+  // ═══ 광고 보상: 6×6 구역 클리어 + 새 블록 3개 ═══
   // 1) 새 블록 3개 지급
   pieces=[randSmallPiece(),randSmallPiece(),randSmallPiece()];selIdx=null;
-  // 2) 가장 찬 3줄 찾기 (빈 줄 제외)
-  const rowCounts=[];
-  for(let r=0;r<GRID;r++){const cnt=board[r].filter(v=>v!==null).length;if(cnt>0)rowCounts.push({r,cnt})}
-  rowCounts.sort((a,b)=>b.cnt-a.cnt);
-  const topRows=rowCounts.slice(0,3).map(x=>x.r);
-  if(topRows.length>0){
-    // 3줄 셀에 stagger delay 주입 (row 단위로 간격 벌려 파도감 더 강조)
-    const coef=window._lowPerf?6:12;
+  // 2) 9×9 보드에서 가장 많이 채워진 6×6 구역 찾기
+  //    가능한 시작점: (0~3, 0~3) = 16개 위치
+  let bestSr=0,bestSc=0,bestCount=-1;
+  for(let sr=0;sr<=GRID-6;sr++){
+    for(let sc=0;sc<=GRID-6;sc++){
+      let cnt=0;
+      for(let r=sr;r<sr+6;r++){
+        for(let c=sc;c<sc+6;c++){
+          if(board[r][c]!==null)cnt++;
+          else if(boardSpecial[r][c]&&boardSpecial[r][c].type==='ice')cnt++;
+        }
+      }
+      if(cnt>bestCount){bestCount=cnt;bestSr=sr;bestSc=sc}
+    }
+  }
+  if(bestCount>0){
+    // 6×6 구역 클리어 — 좌상 → 우하 stagger 파도 (cross-axis 동일 속도)
+    const coef=window._lowPerf?5:9; // 6×6 셀 많으니 기본 stagger보다 조금 빠르게
     let maxDelay=0;
     const cellsToClear=[];
-    topRows.forEach((r,rowIdx)=>{
-      for(let c=0;c<GRID;c++){
-        if(board[r][c]!==null){
-          const delay=c*coef+rowIdx*60; // 행마다 60ms 추가 → 3줄 순차
+    for(let dr=0;dr<6;dr++){
+      for(let dc=0;dc<6;dc++){
+        const r=bestSr+dr,c=bestSc+dc;
+        const hasBlock=board[r][c]!==null;
+        const hasIce=boardSpecial[r][c]&&boardSpecial[r][c].type==='ice';
+        if(hasBlock||hasIce){
+          const delay=(dr+dc)*coef; // 대각선 파도
           if(delay>maxDelay)maxDelay=delay;
           cellEls[r][c].style.setProperty('--clear-delay',delay+'ms');
           cellEls[r][c].classList.add('clearing');
           cellsToClear.push([r,c]);
-          board[r][c]=null;
+          if(hasBlock)board[r][c]=null;
+          if(hasIce){boardSpecial[r][c]=null;_iceCount--}
         }
       }
-    });
-    const CLEAR_DUR=450;
+    }
+    _boardBitmapHash=-1;
+    const CLEAR_DUR=700;
     const totalWait=CLEAR_DUR+maxDelay+30;
     const _t2=setTimeout(()=>{
       _activeClearTimers.delete(_t2);
@@ -2476,16 +3315,27 @@ function extendAd(){if(extendUsed)return;extendUsed=true;Sound.sfx.uiClick();doc
       });
     },totalWait);
     _activeClearTimers.add(_t2);
-    renderTray();gameActive=true;
-    setTimeout(checkGameOver,totalWait+100);
+    _ensurePlaceable();
+    renderTray();
+    // ★ 6×6 클리어 애니메이션 대기 후 3-2-1-GO 카운트다운 → 게임 재개
+    setTimeout(()=>{
+      runCountdown(()=>{gameActive=true;setTimeout(checkGameOver,50)});
+    },totalWait+50);
     return;
   }
-  // 보드가 거의 비어있는 경우 (예외적 상황) — 블록만 지급
-  renderTray();gameActive=true;setTimeout(checkGameOver,400)
+  // 보드가 거의 비어있는 경우 — 블록만 지급 + 카운트다운
+  _ensurePlaceable();
+  renderTray();
+  runCountdown(()=>{gameActive=true;setTimeout(checkGameOver,400)});
 }else adTimer.textContent=count},1e3)}
 function showToast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('phone').appendChild(el);setTimeout(()=>el.remove(),2100)}
 
 function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;recentClearTurns=0;totalTurns=0;extendUsed=false;gameActive=true;
+  // ★ 특수 블록 시스템 리셋
+  boardSpecial=Array.from({length:GRID},()=>Array(GRID).fill(null));
+  _iceCount=0;_iceGenCounter=0;_boardBitmapHash=-1;
+  // ★ 드래그 잔여 클래스 청소 (새 게임 진입 시 트레이 블록 안 보이는 버그 방지)
+  document.querySelectorAll('.piece-slot.dragging').forEach(s=>s.classList.remove('dragging'));
   // P0-1 fix: 신규 게임 진입 시 점수 2배 버프 상태 초기화 (startNewGame 누락 방지)
   _scoreMultiplier=1;resetAdDouble();
   // P0-3 fix: 이전 게임의 clearing 타임아웃이 새 게임에 영향 주지 않도록 정리
@@ -2501,14 +3351,75 @@ let eventsAttached=false;
 function start(){buildBoard();initBoard();renderBoard();if(!eventsAttached){attachEvents();eventsAttached=true}Storage.get('pw2_muted',val=>{if(val==='1')Sound.setMute(true)});loadCoins(()=>{loadDiamonds(()=>{loadWeekly(()=>{loadAdBoost(()=>{updateLobby();showScreen('s-lobby')})})})})}
 
 document.addEventListener('touchstart',e=>{if(e.touches.length>1)e.preventDefault()},{passive:false});
+// ═══ Telegram iOS swipe-to-minimize 방어 (1px Buffer 트릭) ═══
+// window.scrollY=0이 되면 Telegram이 "스크롤 끝" 판단 → 아래 swipe 시 앱 최소화
+// 그래서 scrollY를 항상 1 이상으로 유지해 Telegram이 계속 "스크롤 중"으로 인식하게 함
+window.addEventListener('scroll',()=>{
+  // 드래그 중에는 강제 스크롤 금지 (간섭 방지)
+  if(dragActive)return;
+  // 0이 되면 1로 복귀 (최상단은 1, 완전 0이 아님)
+  if(window.scrollY===0)window.scrollTo(0,1);
+},{passive:true});
+// 초기 로드 및 viewport 변경 시 1px 스크롤 상태 세팅
+function _setScrollBuffer(){if(!dragActive)window.scrollTo(0,1)}
+window.addEventListener('load',_setScrollBuffer);
+window.addEventListener('resize',_setScrollBuffer);
+window.addEventListener('orientationchange',()=>setTimeout(_setScrollBuffer,300));
+// ═══ 게임 중 화면 고정 ═══
+// 게임 화면(s-play)에서는 보드/트레이/슬롯 외 모든 터치 차단 — body 스크롤로 인한 Telegram 창 닫힘 방어
+// 로비/결과/가이드 화면에서는 해당 스크롤 영역 허용 (기존 UX 유지)
 // P1-C fix: iOS 드래그 씹힘 방어 — dragActive 중에는 preventDefault 금지, e.target null 가드
 document.addEventListener('touchmove',e=>{
   // 드래그 중일 때는 onMove가 별도로 preventDefault를 처리하므로 이중 호출 금지
   if(dragActive)return;
   // iOS Safari에서 e.target이 null인 경우(removed DOM 등)에 대한 안전 가드
   if(!e.target||typeof e.target.closest!=='function')return;
-  if(!e.target.closest('#board,#tray,.piece-slot,.lobby-scroll,.result-scroll,.guide-card'))e.preventDefault();
+  // 게임 화면 active 시: board/tray/piece-slot 외 모든 터치 차단 (창 닫힘 방어)
+  const gameOn = document.getElementById('s-play')?.classList.contains('active');
+  if(gameOn){
+    if(!e.target.closest('#board,#tray,.piece-slot'))e.preventDefault();
+  } else {
+    // 로비/결과 등: 해당 스크롤 영역만 허용
+    if(!e.target.closest('.lobby-scroll,.result-scroll,.guide-card'))e.preventDefault();
+  }
 },{passive:false});
+// ═══ PC/데스크톱: wheel 이벤트 방어 (게임 중 마우스 휠 스크롤 차단) ═══
+document.addEventListener('wheel',e=>{
+  if(document.getElementById('s-play')?.classList.contains('active')){
+    e.preventDefault();
+  }
+},{passive:false});
+
+// ═══ window capture phase: 브라우저 기본 처리 선점 (Telegram swipe-to-close 최종 방어) ═══
+// document보다 먼저 실행되어 브라우저/Telegram이 swipe를 "close" 신호로 해석하기 전 차단
+window.addEventListener('touchmove',e=>{
+  if(dragActive)return;  // 드래그는 onMove가 처리
+  if(!e.target||typeof e.target.closest!=='function')return;
+  // 게임 화면에서는 무조건 차단, 다른 화면은 명시적 scroll 영역만 허용
+  const gameOn=document.getElementById('s-play')?.classList.contains('active');
+  if(gameOn){
+    if(!e.target.closest('#board,#tray,.piece-slot'))e.preventDefault();
+  }else{
+    if(!e.target.closest('.lobby-scroll,.result-scroll,.guide-card'))e.preventDefault();
+  }
+},{passive:false,capture:true});
+
+// ═══ PC/데스크톱: 키보드 스크롤 키 차단 (게임 중) ═══
+// Space, Arrow, PageUp/Down, Home/End로 화면 스크롤 방지
+window.addEventListener('keydown',e=>{
+  if(!document.getElementById('s-play')?.classList.contains('active'))return;
+  // input/textarea 등 입력 필드가 포커스되어 있으면 예외
+  const t=e.target;
+  if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable))return;
+  const blockedKeys=[' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','PageUp','PageDown','Home','End'];
+  if(blockedKeys.includes(e.key))e.preventDefault();
+},{passive:false});
+
+// ═══ 스크롤 강제 0 고정 (혹시 스크롤이 발생한 경우 즉시 복원) ═══
+window.addEventListener('scroll',()=>{
+  if(window.scrollY!==0||window.scrollX!==0)window.scrollTo(0,0);
+},{passive:true});
+
 document.addEventListener('touchstart',function unlock(){Sound.resumeCtx();document.removeEventListener('touchstart',unlock)},{once:true});
 document.addEventListener('DOMContentLoaded',start);
 </script>
