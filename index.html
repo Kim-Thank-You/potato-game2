@@ -84,13 +84,18 @@
   --ease-press:cubic-bezier(0.2,0.8,0.2,1);
 }
 :root{--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);
-  /* ═══ 통합 상단 여백: iOS safe-area + Telegram chrome(닫기/메뉴 버튼) 최대값 ═══
-     - 일반 웹: env(safe-area-inset-top)만 (0~59px)
-     - Telegram: JS가 --tg-chrome-top 측정 후 덮어씀 (44~100px)
-     - 최소 보장: 8px (상단이 딱 붙지 않게)
-     어떤 기기에서도 HUD가 시스템 UI 뒤에 숨지 않음 */
+  /* ═══ 통합 safe-area (4방향) ═══
+     JS가 --tg-chrome-*를 실측 주입 (Telegram contentSafeAreaInset / safeAreaInset)
+     env()는 iOS/Android 시스템 노치/홀펀치/홈바 대응
+     둘 중 큰 값을 우선 (+ 최소 여백 보장) → 어떤 기기·어떤 TG 버전에서도 HUD 안 가려짐 */
   --tg-chrome-top:0px;
+  --tg-chrome-left:0px;
+  --tg-chrome-right:0px;
+  --tg-chrome-bottom:0px;
   --safe-top:max(env(safe-area-inset-top,0px), var(--tg-chrome-top), 8px);
+  --safe-left:max(env(safe-area-inset-left,0px), var(--tg-chrome-left), 0px);
+  --safe-right:max(env(safe-area-inset-right,0px), var(--tg-chrome-right), 0px);
+  --safe-bottom:max(env(safe-area-inset-bottom,0px), var(--tg-chrome-bottom), 0px);
   color-scheme:dark}
 *,*:before,*:after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 /* ═══ Telegram iOS swipe-to-minimize 방어: 1px Buffer 트릭 ═══
@@ -109,7 +114,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background-size:100% 100%;
   background-repeat:no-repeat;
 }
-.phone{position:fixed;inset:0;width:100%;height:100dvh;height:var(--tg-viewport-stable-height,100dvh);background:transparent;display:flex;flex-direction:column;overflow:hidden;padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);z-index:1}
+.phone{position:fixed;inset:0;width:100%;height:100dvh;height:var(--tg-viewport-stable-height,100dvh);background:transparent;display:flex;flex-direction:column;overflow:hidden;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);padding-left:var(--safe-left);padding-right:var(--safe-right);z-index:1}
 @media(min-width:600px){body{background:#000000}.phone{position:relative;inset:auto;width:390px;height:min(820px,95dvh);border-radius:40px;border:1px solid var(--border2);box-shadow:0 0 0 1px rgba(0,0,0,.5),0 32px 80px rgba(0,0,0,.8);background:transparent}}
 
 /* ═══ SCREENS ═══ */
@@ -203,7 +208,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 @keyframes startPulse{0%,100%{box-shadow:inset 0 2px 1px rgba(255,255,255,.6),inset 0 -1px 2px rgba(0,0,0,.1),0 4px 14px rgba(251,191,36,.35)}50%{box-shadow:inset 0 2px 1px rgba(255,255,255,.6),inset 0 -1px 2px rgba(0,0,0,.1),0 4px 20px rgba(251,191,36,.55),0 0 24px rgba(251,191,36,.15)}}
 
 /* ═══ GAME (PLAY) SCREEN ═══ */
-.hud{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:calc(var(--safe-top) + clamp(8px,1.5vh,16px)) 18px clamp(2px,.5vh,4px);gap:12px}
+.hud{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:clamp(8px,1.5vh,16px) max(18px,env(safe-area-inset-right,0px)) clamp(2px,.5vh,4px) max(18px,env(safe-area-inset-left,0px));gap:12px}
 .hud-left{display:flex;align-items:center;gap:10px}
 .crown-icon{font-size:20px;line-height:1;opacity:.85}
 .best-score{font-size:15px;font-weight:700;color:var(--gold);letter-spacing:.3px;opacity:.85}
@@ -253,7 +258,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 @keyframes streakPop{0%{transform:scale(.7)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
 .goal-hint{font-size:11px;font-weight:600;color:rgba(74,222,128,.85);letter-spacing:0;margin-top:6px;height:0;opacity:0;overflow:hidden;transition:opacity .4s var(--ease-snap),height .4s var(--ease-snap)}
 .goal-hint.achieved{height:16px;opacity:1}
-.board-area{flex:1;display:flex;align-items:center;justify-content:center;padding:clamp(4px,1vh,12px) clamp(2px,.5vw,4px);min-height:0;contain:layout;overflow:hidden}
+.board-area{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:clamp(4px,1vh,12px) clamp(2px,.5vw,4px) 0;min-height:0;contain:layout;overflow:hidden}
 .board-outer{width:var(--board-size,100%);max-width:var(--board-size,100%)}
 /* ── 보드 프레임: 1단 레이어 — 가장 깊고 무거운 바깥틀 ── */
 .board-frame{background:transparent;border-radius:12px;padding:0;border:none;box-shadow:none;position:relative}
@@ -1278,8 +1283,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   tg.disableVerticalSwipes?.();
   // 창 닫기 시도 시 확인창 (실수 방지)
   tg.enableClosingConfirmation?.();
-  // 전체 화면 모드 시도 (지원되는 클라이언트에서만)
-  tg.requestFullscreen?.();
+  // ★ fullscreen은 요청하지 않음 — requestFullscreen 시 TG chrome(닫기/∨/⋯)이
+  //   앱 위를 덮어 HUD와 겹침. fullscreen 안 하면 TG가 자기 chrome 외부 영역에만
+  //   앱을 렌더 → 상단 겹침 버그 원천 차단 (근본 해결)
+  // tg.requestFullscreen?.(); ← 제거
   tg.setBackgroundColor?.('#000000');tg.setHeaderColor?.('#000000');
   // viewportChanged: 축소(swipe-down) 감지 시 즉시 재확장 + disableVerticalSwipes 재호출
   tg.onEvent?.('viewportChanged',()=>{
@@ -1288,58 +1295,50 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     fixVH();
     detectChrome();
   });
-  // ★ 공식 이벤트: safeArea / contentSafeArea / fullscreen 변경 시 재측정
-  // Bot API 8.0+에서 제공하는 이벤트 — 구버전은 무시됨
+  // ★ 공식 이벤트: safeArea / contentSafeArea 변경 시 재측정
   tg.onEvent?.('safeAreaChanged',()=>detectChrome());
   tg.onEvent?.('contentSafeAreaChanged',()=>detectChrome());
-  tg.onEvent?.('fullscreenChanged',()=>{setTimeout(detectChrome,50);setTimeout(detectChrome,300)});
-  tg.onEvent?.('fullscreenFailed',()=>detectChrome());
-  // 게임 시작 후에도 주기적으로 swipe 차단 재확인 (Telegram 버전마다 리셋될 가능성 방어)
+  // 게임 시작 후에도 주기적으로 swipe 차단 재확인
   window._tgSafeMode = ()=>{
     try{tg.disableVerticalSwipes?.();tg.enableClosingConfirmation?.();tg.expand?.();detectChrome();}catch(e){}
   };
 })();
 function fixVH(){const tg=window.Telegram?.WebApp;const h=tg?.viewportStableHeight||tg?.viewportHeight||window.innerHeight;document.documentElement.style.setProperty('--tg-viewport-stable-height',h+'px');fitBoard()}
-// ═══ 근본 해결: Telegram/iOS/Android 시스템 UI 높이 실측 ═══
-// Bot API 8.0+ 공식 API 사용: tg.contentSafeAreaInset.top
-//   = "Telegram UI element와 겹치지 않도록 하는 상단 여백" (정답)
-// 신규 API 미지원 클라이언트 fallback:
-//   - tg.isFullscreen=true일 때만 보정 필요 (fullscreen 중엔 TG header가 우리 UI를 덮음)
-//   - fullscreen=false면 TG header가 이미 우리 영역 밖에 렌더됨 → 보정 0
+// ═══ 근본 해결: Telegram/iOS/Android safe-area 전방향 처리 ═══
+// fullscreen을 요청하지 않으므로 대부분의 경우 chromeTop=0 (TG가 알아서 chrome 영역 밖에 렌더)
+// 단, Bot API 8.0+ 신버전은 safeAreaInset / contentSafeAreaInset 제공 → 사용
+// 구버전 fallback: env(safe-area-inset-*) + 안전 최소값 보장
 function detectChrome(){
   const tg=window.Telegram?.WebApp;
-  let chromeTop=0;
-  // env(safe-area-inset-top) 실제 값 (--sat 선언을 통해 읽기)
-  const cs=getComputedStyle(document.documentElement);
-  const safeAreaTop=parseFloat(cs.getPropertyValue('--sat'))||0;
+  let top=0, left=0, right=0, bottom=0;
   if(tg){
-    // 1순위: 공식 API (Bot API 8.0+, 가장 정확) — 이미 누적된 전체 값
+    // contentSafeAreaInset: Telegram UI 요소를 피하기 위한 여백 (가장 정확)
     const csai=tg.contentSafeAreaInset;
-    if(csai&&typeof csai.top==='number'&&csai.top>=0){
-      chromeTop=csai.top;
-    }else{
-      // 2순위 fallback: Bot API 8.0 미만 → 플랫폼별 상수 × safe-area 누적
-      // ★ fullscreen 여부와 무관하게 Telegram iOS/Android는 항상 닫기/메뉴 chrome이 content 위를 덮음
-      // ★ iOS Telegram WebApp 내 env(safe-area-inset-top)은 dynamic island를 정확히
-      //   반영하지 않는 경우가 있어, 플랫폼별 최소값을 보장함
-      const p=(tg.platform||'').toLowerCase();
-      if(p==='ios'){
-        // iOS Telegram: safe-area + 닫기 chrome(~44px) + 여유(~8px)
-        // dynamic island/노치 기기에서도 확실히 chrome 아래로 배치되도록 최소 110px 보장
-        const hdr=tg.isFullscreen?64:52;
-        chromeTop=Math.max(safeAreaTop+hdr, 110);
-      }else if(p==='android'){
-        const hdr=tg.isFullscreen?64:52;
-        // Android Telegram: 최소 80px 보장 (여유 8px 포함)
-        chromeTop=Math.max(safeAreaTop+hdr, 80);
-      }
-      // desktop/web/macos/tdesktop는 chrome이 외부에 있음 → 0 유지
+    if(csai){
+      if(typeof csai.top==='number'&&csai.top>=0)top=csai.top;
+      if(typeof csai.left==='number'&&csai.left>=0)left=csai.left;
+      if(typeof csai.right==='number'&&csai.right>=0)right=csai.right;
+      if(typeof csai.bottom==='number'&&csai.bottom>=0)bottom=csai.bottom;
+    }
+    // safeAreaInset: 시스템 노치/홀펀치/홈바 (env()가 안 먹히는 TG 환경 대비)
+    const sai=tg.safeAreaInset;
+    if(sai){
+      if(typeof sai.top==='number'&&sai.top>top)top=sai.top;
+      if(typeof sai.left==='number'&&sai.left>left)left=sai.left;
+      if(typeof sai.right==='number'&&sai.right>right)right=sai.right;
+      if(typeof sai.bottom==='number'&&sai.bottom>bottom)bottom=sai.bottom;
     }
   }
-  // 안전 상한 (과도한 값 방지)
-  if(chromeTop>160)chromeTop=160;
-  document.documentElement.style.setProperty('--tg-chrome-top',chromeTop+'px');
-  // chrome 변화 시 보드 크기도 재계산
+  // 안전 상한 (과도값 방어) — 일반적으로 어떤 기기도 120px 넘지 않음
+  if(top>120)top=120;
+  if(left>60)left=60;
+  if(right>60)right=60;
+  if(bottom>60)bottom=60;
+  const root=document.documentElement.style;
+  root.setProperty('--tg-chrome-top',top+'px');
+  root.setProperty('--tg-chrome-left',left+'px');
+  root.setProperty('--tg-chrome-right',right+'px');
+  root.setProperty('--tg-chrome-bottom',bottom+'px');
   if(typeof fitBoard==='function')fitBoard();
 }
 function fitBoard(){
@@ -1407,6 +1406,30 @@ function fitBoard(){
 }
 fixVH();
 detectChrome();
+// ★ ?debug=1 URL 파라미터로 safe-area 측정값 실기기에서 확인 (좌상단 오버레이)
+if(/[?&]debug=1/.test(location.search)){
+  const d=document.createElement('div');
+  d.id='__dbg';
+  d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(0,0,0,.85);color:#0ff;font:10px/1.3 monospace;padding:4px 8px;white-space:pre;pointer-events:none;max-height:40vh;overflow:hidden';
+  document.body.appendChild(d);
+  const upd=()=>{
+    const tg=window.Telegram?.WebApp;
+    const cs=getComputedStyle(document.documentElement);
+    const csai=tg?.contentSafeAreaInset;
+    const sai=tg?.safeAreaInset;
+    d.textContent=[
+      `platform: ${tg?.platform||'-'} ver: ${tg?.version||'-'}`,
+      `isFS: ${tg?.isFullscreen} isExp: ${tg?.isExpanded}`,
+      `vhStable: ${tg?.viewportStableHeight} vh: ${tg?.viewportHeight}`,
+      `winH: ${window.innerHeight} vvH: ${window.visualViewport?.height||'-'}`,
+      `csai: T${csai?.top||'-'} L${csai?.left||'-'} R${csai?.right||'-'} B${csai?.bottom||'-'}`,
+      `sai:  T${sai?.top||'-'} L${sai?.left||'-'} R${sai?.right||'-'} B${sai?.bottom||'-'}`,
+      `--tg-chrome: T${cs.getPropertyValue('--tg-chrome-top').trim()} L${cs.getPropertyValue('--tg-chrome-left').trim()} R${cs.getPropertyValue('--tg-chrome-right').trim()} B${cs.getPropertyValue('--tg-chrome-bottom').trim()}`,
+      `--safe:      T${cs.getPropertyValue('--safe-top').trim()} L${cs.getPropertyValue('--safe-left').trim()} R${cs.getPropertyValue('--safe-right').trim()} B${cs.getPropertyValue('--safe-bottom').trim()}`,
+    ].join('\n');
+  };
+  upd();setInterval(upd,500);
+}
 window.addEventListener('resize',()=>{fixVH();detectChrome();_strideW=0;_strideH=0});
 window.addEventListener('orientationchange',()=>{setTimeout(()=>{fixVH();detectChrome();_strideW=0;_strideH=0},200)});
 // ★ visualViewport: 키보드 팝업/폐쇄 시 viewport 변화 (chrome 측정과는 무관하나 fitBoard 재계산 필요)
