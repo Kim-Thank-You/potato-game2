@@ -1320,20 +1320,24 @@ function detectChrome(){
     }else{
       // 2순위 fallback: Bot API 8.0 미만 → 플랫폼별 상수 × safe-area 누적
       // ★ fullscreen 여부와 무관하게 Telegram iOS/Android는 항상 닫기/메뉴 chrome이 content 위를 덮음
+      // ★ iOS Telegram WebApp 내 env(safe-area-inset-top)은 dynamic island를 정확히
+      //   반영하지 않는 경우가 있어, 플랫폼별 최소값을 보장함
       const p=(tg.platform||'').toLowerCase();
       if(p==='ios'){
-        // iOS Telegram: safe-area(notch/dynamic island) + chrome header(닫기/메뉴)
-        const hdr=tg.isFullscreen?56:44;
-        chromeTop=safeAreaTop+hdr;
+        // iOS Telegram: safe-area + 닫기 chrome(~44px) + 여유(~8px)
+        // dynamic island/노치 기기에서도 확실히 chrome 아래로 배치되도록 최소 110px 보장
+        const hdr=tg.isFullscreen?64:52;
+        chromeTop=Math.max(safeAreaTop+hdr, 110);
       }else if(p==='android'){
-        const hdr=tg.isFullscreen?48:36;
-        chromeTop=safeAreaTop+hdr;
+        const hdr=tg.isFullscreen?64:52;
+        // Android Telegram: 최소 80px 보장 (여유 8px 포함)
+        chromeTop=Math.max(safeAreaTop+hdr, 80);
       }
       // desktop/web/macos/tdesktop는 chrome이 외부에 있음 → 0 유지
     }
   }
   // 안전 상한 (과도한 값 방지)
-  if(chromeTop>140)chromeTop=140;
+  if(chromeTop>160)chromeTop=160;
   document.documentElement.style.setProperty('--tg-chrome-top',chromeTop+'px');
   // chrome 변화 시 보드 크기도 재계산
   if(typeof fitBoard==='function')fitBoard();
