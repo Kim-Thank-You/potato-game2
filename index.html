@@ -253,7 +253,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 @keyframes streakPop{0%{transform:scale(.7)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
 .goal-hint{font-size:11px;font-weight:600;color:rgba(74,222,128,.85);letter-spacing:0;margin-top:6px;height:0;opacity:0;overflow:hidden;transition:opacity .4s var(--ease-snap),height .4s var(--ease-snap)}
 .goal-hint.achieved{height:16px;opacity:1}
-.board-area{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:clamp(4px,1vh,12px) clamp(2px,.5vw,4px) 0;min-height:0;contain:layout;overflow:hidden}
+.board-area{flex:1;display:flex;align-items:center;justify-content:center;padding:clamp(4px,1vh,12px) clamp(2px,.5vw,4px);min-height:0;contain:layout;overflow:hidden}
 .board-outer{width:var(--board-size,100%);max-width:var(--board-size,100%)}
 /* ── 보드 프레임: 1단 레이어 — 가장 깊고 무거운 바깥틀 ── */
 .board-frame{background:transparent;border-radius:12px;padding:0;border:none;box-shadow:none;position:relative}
