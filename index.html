@@ -53,7 +53,7 @@
   --block:#DCB87A;--block-light:#F0D8A5;--block-dark:#8B6630;
   /* 특수 블록 색상 3종 */
   --block-cross-light:#FFBCE0;--block-cross:#FF70B8;--block-cross-dark:#B03880;
-  --block-bomb-light:#8A6A4A;--block-bomb:#4A3220;--block-bomb-dark:#1A0E00;
+  --block-bomb-light:#FFD766;--block-bomb:#FF5A1A;--block-bomb-dark:#6A1208;
   --block-ice-light:#E8F6FF;--block-ice:#88C4F0;--block-ice-dark:#2870A8;
   --gold:#B8975C;--gold-dim:rgba(184,151,92,0.10);
   --cyan:#63B3ED;--cyan-dim:rgba(99,179,237,0.10);
@@ -123,7 +123,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 @keyframes screenIn{0%{opacity:0}100%{opacity:1}}
 
 /* ═══ LOBBY SCREEN ═══ */
-#s-lobby{background:linear-gradient(170deg,#0b0f1c,#060810)}
+/* 우주 배경(body::before) 비치도록 transparent — glow overlay는 .lobby-bg가 담당 */
+#s-lobby{background:transparent}
 .lobby-bg{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 35% at 50% 0%,rgba(251,191,36,.05),transparent 60%),radial-gradient(ellipse 40% 40% at 80% 85%,rgba(139,92,246,.04),transparent 60%)}
 .lobby-inner{position:relative;z-index:1;display:flex;flex-direction:column;flex:1;overflow:hidden}
 .lobby-scroll{flex:1;overflow:hidden;-webkit-overflow-scrolling:touch;padding:calc(var(--safe-top) + clamp(12px,2.5vh,24px)) 22px clamp(8px,1.5vh,16px);display:flex;flex-direction:column;gap:clamp(8px,1.4vh,14px);overscroll-behavior:contain}
@@ -293,8 +294,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .cell.filled .block-inner{position:absolute;inset:2px;border-radius:9px;background:linear-gradient(155deg,var(--block-light) 0%,var(--block) 55%,var(--block-dark) 100%);box-shadow:inset 0 2px 1px rgba(255,255,255,.45),inset 0 -2px 2px rgba(75,45,15,.35),inset 0 0 0 1px rgba(60,34,12,.18)}
 /* 특수 블록: 크로스 (마젠타/핑크) - inset shadow만 (외부 glow 제거, paint 비용 차단) */
 .cell.special-cross .block-inner,.pc.on.special-cross{background:linear-gradient(155deg,var(--block-cross-light) 0%,var(--block-cross) 55%,var(--block-cross-dark) 100%) !important;box-shadow:inset 0 2px 1px rgba(255,255,255,.55),inset 0 -2px 2px rgba(120,32,80,.4),inset 0 0 0 1.5px rgba(176,56,128,.35) !important}
-/* 특수 블록: 폭탄 (다크 그레이/오렌지) */
-.cell.special-bomb .block-inner,.pc.on.special-bomb{background:linear-gradient(155deg,var(--block-bomb-light) 0%,var(--block-bomb) 55%,var(--block-bomb-dark) 100%) !important;box-shadow:inset 0 2px 1px rgba(255,180,100,.32),inset 0 -2px 2px rgba(0,0,0,.5),inset 0 0 0 1.5px rgba(0,0,0,.45) !important}
+/* 특수 블록: 폭탄 (화약/불꽃 — 황금 주황 → 불꽃 빨강 → 다크 레드) */
+.cell.special-bomb .block-inner,.pc.on.special-bomb{background:linear-gradient(155deg,var(--block-bomb-light) 0%,var(--block-bomb) 55%,var(--block-bomb-dark) 100%) !important;box-shadow:inset 0 2px 1px rgba(255,230,140,.7),inset 0 -2px 2px rgba(100,10,0,.55),inset 0 0 0 1.5px rgba(255,100,40,.55),inset 0 0 8px rgba(255,150,50,.3) !important}
 /* 특수 블록: 얼음 (블루/서리) */
 .cell.filled-ice .block-inner{position:absolute;inset:2px;border-radius:9px;background:linear-gradient(155deg,var(--block-ice-light) 0%,var(--block-ice) 55%,var(--block-ice-dark) 100%) !important;box-shadow:inset 0 2px 1px rgba(255,255,255,.65),inset 0 -2px 2px rgba(16,64,120,.4),inset 0 0 0 1.5px rgba(40,112,168,.4) !important}
 .cell.filled-ice.ice-cracked .block-inner{opacity:.88}
@@ -302,24 +303,223 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .cell.filled-ice svg{width:85%;height:85%;display:block}
 .pc.on.special-cross::after,.pc.on.special-bomb::after{display:none}
 /* ═══ 특수 효과 발동 애니메이션 (GPU-only: transform+opacity) ═══ */
+/* ═══ 고급 레이저 빔 — 중앙에서 양쪽으로 쭉 퍼지는 느낌 ═══ */
+/* 코어 빔: 중앙 0 → 양쪽으로 부드럽게 확장 (살짝 두께 부풀어오르다 안정) */
 @keyframes specialBurstRow{
-  0%{opacity:0;transform:scaleX(0.2)}
-  30%{opacity:.75;transform:scaleX(1)}
-  100%{opacity:0;transform:scaleX(1)}
+  0%  {opacity:0;transform:scaleX(0)    scaleY(0.3);filter:blur(5px)}
+  10% {opacity:1;transform:scaleX(0.15) scaleY(1.3);filter:blur(0)}
+  38% {opacity:1;transform:scaleX(1)    scaleY(1)  ;filter:blur(0.3px)}
+  70% {opacity:.95;transform:scaleX(1.02) scaleY(.95);filter:blur(0.6px)}
+  100%{opacity:0;transform:scaleX(1.1)  scaleY(.25);filter:blur(3px)}
 }
 @keyframes specialBurstCol{
-  0%{opacity:0;transform:scaleY(0.2)}
-  30%{opacity:.75;transform:scaleY(1)}
-  100%{opacity:0;transform:scaleY(1)}
+  0%  {opacity:0;transform:scaleY(0)    scaleX(0.3);filter:blur(5px)}
+  10% {opacity:1;transform:scaleY(0.15) scaleX(1.3);filter:blur(0)}
+  38% {opacity:1;transform:scaleY(1)    scaleX(1)  ;filter:blur(0.3px)}
+  70% {opacity:.95;transform:scaleY(1.02) scaleX(.95);filter:blur(0.6px)}
+  100%{opacity:0;transform:scaleY(1.1)  scaleX(.25);filter:blur(3px)}
+}
+/* Halo 레이저: 코어보다 천천히 + 더 크게 + 진한 blur (외곽 기운) */
+@keyframes specialBurstRowHalo{
+  0%  {opacity:0;transform:scaleX(0)    scaleY(0.2);filter:blur(10px)}
+  22% {opacity:.7;transform:scaleX(.5)  scaleY(1.1);filter:blur(8px)}
+  55% {opacity:.5;transform:scaleX(1.05) scaleY(.9);filter:blur(9px)}
+  100%{opacity:0;transform:scaleX(1.2)  scaleY(.2);filter:blur(14px)}
+}
+@keyframes specialBurstColHalo{
+  0%  {opacity:0;transform:scaleY(0)    scaleX(0.2);filter:blur(10px)}
+  22% {opacity:.7;transform:scaleY(.5)  scaleX(1.1);filter:blur(8px)}
+  55% {opacity:.5;transform:scaleY(1.05) scaleX(.9);filter:blur(9px)}
+  100%{opacity:0;transform:scaleY(1.2)  scaleX(.2);filter:blur(14px)}
 }
 @keyframes specialBurstRadial{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(0)}
-  40%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
-  100%{opacity:0;transform:translate(-50%,-50%) scale(1.35)}
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0);filter:blur(0)}
+  20%{opacity:1;transform:translate(-50%,-50%) scale(.7);filter:blur(0.4px)}
+  55%{opacity:1;transform:translate(-50%,-50%) scale(1.15);filter:blur(0.6px)}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.6);filter:blur(2px)}
 }
-.special-burst-row{position:fixed;background:linear-gradient(90deg,transparent,rgba(255,200,230,.55) 25%,rgba(255,255,255,.75) 50%,rgba(255,200,230,.55) 75%,transparent);height:var(--burst-h,28px);pointer-events:none;z-index:900;border-radius:3px;transform-origin:center;animation:specialBurstRow 380ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;will-change:transform,opacity}
-.special-burst-col{position:fixed;background:linear-gradient(180deg,transparent,rgba(255,200,230,.55) 25%,rgba(255,255,255,.75) 50%,rgba(255,200,230,.55) 75%,transparent);width:var(--burst-w,28px);pointer-events:none;z-index:900;border-radius:3px;transform-origin:center;animation:specialBurstCol 380ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;will-change:transform,opacity}
-.special-burst-radial{position:fixed;background:radial-gradient(circle,rgba(255,220,130,1) 0%,rgba(255,140,50,.85) 40%,rgba(120,50,0,.25) 75%,transparent 100%);border-radius:50%;pointer-events:none;z-index:900;transform:translate(-50%,-50%) scale(0);animation:specialBurstRadial 520ms cubic-bezier(0.25, 0.1, 0.25, 1) forwards;will-change:transform,opacity}
+/* 가로 레이저 — 다층 그라디언트 (외곽 핑크 → 코어 순백) + 강한 글로우 */
+.special-burst-row{
+  position:fixed;pointer-events:none;z-index:900;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,150,210,.15) 4%,
+    rgba(255,200,230,.5) 15%,
+    rgba(255,240,250,.85) 40%,
+    rgba(255,255,255,.98) 50%,
+    rgba(255,240,250,.85) 60%,
+    rgba(255,200,230,.5) 85%,
+    rgba(255,150,210,.15) 96%,
+    transparent 100%);
+  height:var(--burst-h,20px);
+  border-radius:100px;
+  transform-origin:center;
+  box-shadow:0 0 24px rgba(255,140,200,.7),0 0 10px rgba(255,220,240,.9),0 0 48px rgba(255,100,180,.35);
+  mix-blend-mode:screen;
+  animation:specialBurstRow 720ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  will-change:transform,opacity,filter;
+}
+.special-burst-col{
+  position:fixed;pointer-events:none;z-index:900;
+  background:linear-gradient(180deg,
+    transparent 0%,
+    rgba(255,150,210,.15) 4%,
+    rgba(255,200,230,.5) 15%,
+    rgba(255,240,250,.85) 40%,
+    rgba(255,255,255,.98) 50%,
+    rgba(255,240,250,.85) 60%,
+    rgba(255,200,230,.5) 85%,
+    rgba(255,150,210,.15) 96%,
+    transparent 100%);
+  width:var(--burst-w,20px);
+  border-radius:100px;
+  transform-origin:center;
+  box-shadow:0 0 24px rgba(255,140,200,.7),0 0 10px rgba(255,220,240,.9),0 0 48px rgba(255,100,180,.35);
+  mix-blend-mode:screen;
+  animation:specialBurstCol 720ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  will-change:transform,opacity,filter;
+}
+/* Halo 빔 — 코어 외곽의 큰 glow */
+.special-burst-row-halo{
+  position:fixed;pointer-events:none;z-index:899;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,140,200,.2) 10%,
+    rgba(255,180,220,.45) 35%,
+    rgba(255,210,235,.6) 50%,
+    rgba(255,180,220,.45) 65%,
+    rgba(255,140,200,.2) 90%,
+    transparent 100%);
+  height:var(--halo-h,40px);
+  border-radius:100px;
+  transform-origin:center;
+  mix-blend-mode:screen;
+  animation:specialBurstRowHalo 760ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  will-change:transform,opacity,filter;
+}
+.special-burst-col-halo{
+  position:fixed;pointer-events:none;z-index:899;
+  background:linear-gradient(180deg,
+    transparent 0%,
+    rgba(255,140,200,.2) 10%,
+    rgba(255,180,220,.45) 35%,
+    rgba(255,210,235,.6) 50%,
+    rgba(255,180,220,.45) 65%,
+    rgba(255,140,200,.2) 90%,
+    transparent 100%);
+  width:var(--halo-w,40px);
+  border-radius:100px;
+  transform-origin:center;
+  mix-blend-mode:screen;
+  animation:specialBurstColHalo 760ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  will-change:transform,opacity,filter;
+}
+/* 저전력에서는 halo 비활성화 (렌더 비용 절감) */
+.low-perf .special-burst-row-halo,.low-perf .special-burst-col-halo{display:none}
+/* 모바일 감쇠 — halo 비활성화 (iOS/Android 공통, mix-blend+blur 부하 차단) */
+.mobile-reduce .special-burst-row-halo,.mobile-reduce .special-burst-col-halo{display:none}
+@media (prefers-reduced-motion:reduce){
+  .special-burst-row-halo,.special-burst-col-halo{animation:none !important;opacity:0 !important}
+}
+/* 폭탄 방사 — 밝은 코어 + 주황 쉘 + 진한 다크레드 외곽 */
+.special-burst-radial{
+  position:fixed;pointer-events:none;z-index:900;border-radius:50%;
+  background:radial-gradient(circle,
+    rgba(255,255,220,1) 0%,
+    rgba(255,220,120,.95) 20%,
+    rgba(255,140,50,.85) 45%,
+    rgba(200,60,20,.45) 72%,
+    rgba(100,20,5,.15) 90%,
+    transparent 100%);
+  box-shadow:0 0 40px rgba(255,160,60,.75),0 0 80px rgba(255,100,40,.4);
+  transform:translate(-50%,-50%) scale(0);
+  mix-blend-mode:screen;
+  animation:specialBurstRadial 780ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  will-change:transform,opacity,filter;
+}
+/* 저전력/reduced-motion */
+.low-perf .special-burst-row,.low-perf .special-burst-col,.low-perf .special-burst-radial{animation-duration:420ms !important;mix-blend-mode:normal;box-shadow:none !important;filter:none !important}
+/* 모바일 감쇠: mix-blend/filter blur 차단 (iOS Safari 렉 방지), 박스 섀도는 단순화 */
+.mobile-reduce .special-burst-row,.mobile-reduce .special-burst-col{
+  mix-blend-mode:normal !important;
+  box-shadow:0 0 14px rgba(255,140,200,.6),0 0 6px rgba(255,220,240,.7) !important;
+}
+.mobile-reduce .special-burst-radial{
+  mix-blend-mode:normal !important;
+  box-shadow:0 0 24px rgba(255,160,60,.6) !important;
+}
+/* 모바일: 빔 keyframes filter:blur 중화 (애니 override는 불가, 허용) */
+@media (prefers-reduced-motion:reduce){
+  .special-burst-row,.special-burst-col,.special-burst-radial{animation:none !important;opacity:0 !important}
+}
+/* ═══ 세트 B: 폭죽/파티 효과 (Cross=색종이 · Bomb=카툰구름+별파편) ═══ */
+/* 색종이 파티클 (cross) */
+@keyframes confettiFly{
+  0%{transform:translate(0,0) rotate(0deg);opacity:1}
+  100%{transform:translate(var(--tx),var(--ty)) rotate(var(--rot));opacity:0}
+}
+.confetti{position:fixed;width:8px;height:10px;pointer-events:none;z-index:901;border-radius:1px;animation:confettiFly 680ms cubic-bezier(0.25,0.46,0.45,0.94) forwards;will-change:transform,opacity}
+/* ✦ Cross 스파크 — 가로/세로 축을 따라 샤프하게 발사되는 핑크 입자 */
+@keyframes crossSparkFly{
+  0%{transform:translate(0,0) scale(0.4);opacity:1;filter:blur(0)}
+  20%{transform:translate(calc(var(--tx)*.3),calc(var(--ty)*.3)) scale(1.3);opacity:1;filter:blur(0)}
+  100%{transform:translate(var(--tx),var(--ty)) scale(0.25);opacity:0;filter:blur(1.2px)}
+}
+.cross-spark{position:fixed;pointer-events:none;z-index:902;border-radius:50%;background:radial-gradient(circle,#FFFFFF 0%,#FFC2E1 32%,#FF4A9A 62%,rgba(176,56,128,0) 90%);animation:crossSparkFly 620ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity,filter;mix-blend-mode:screen}
+/* ◎ Cross 플래시 링 — 중심 충격파 */
+@keyframes crossFlashRing{
+  0%{transform:translate(-50%,-50%) scale(0.15);opacity:1;border-width:3px}
+  100%{transform:translate(-50%,-50%) scale(2.3);opacity:0;border-width:1px}
+}
+.cross-flash-ring{position:fixed;pointer-events:none;z-index:901;width:64px;height:64px;border-radius:50%;border:3px solid rgba(255,200,230,.85);background:radial-gradient(circle,rgba(255,220,240,.28) 0%,transparent 70%);animation:crossFlashRing 540ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity}
+.low-perf .cross-spark{animation-duration:380ms !important;mix-blend-mode:normal}
+.low-perf .cross-flash-ring{animation-duration:340ms !important}
+/* 모바일: screen blend / blur 차단 */
+.mobile-reduce .cross-spark{mix-blend-mode:normal !important}
+.mobile-reduce .flame-particle{mix-blend-mode:normal !important}
+.mobile-reduce .puff-cloud{mix-blend-mode:normal !important}
+@media (prefers-reduced-motion:reduce){.cross-spark,.cross-flash-ring{animation:none !important;opacity:0 !important}}
+/* 카툰 구름 (bomb) */
+@keyframes puffExpand{
+  0%{transform:translate(-50%,-50%) scale(0.2);opacity:0.2}
+  35%{transform:translate(-50%,-50%) scale(1.1);opacity:1}
+  70%{transform:translate(-50%,-50%) scale(1.4);opacity:0.7}
+  100%{transform:translate(-50%,-50%) scale(1.7);opacity:0}
+}
+.puff-cloud{position:fixed;pointer-events:none;z-index:901;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(255,220,150,.95) 0%,rgba(255,160,80,.75) 40%,rgba(180,90,20,.3) 75%,transparent 100%);animation:puffExpand 600ms cubic-bezier(0.25,0.46,0.45,0.94) forwards;will-change:transform,opacity;mix-blend-mode:screen}
+/* 별 파편 (bomb) */
+@keyframes starBurstFly{
+  0%{transform:translate(0,0) scale(0) rotate(0deg);opacity:1}
+  30%{transform:translate(calc(var(--tx)*.45),calc(var(--ty)*.45)) scale(1.2) rotate(120deg);opacity:1}
+  100%{transform:translate(var(--tx),var(--ty)) scale(0.4) rotate(360deg);opacity:0}
+}
+.star-burst{position:fixed;pointer-events:none;z-index:902;font-size:16px;line-height:1;text-shadow:0 0 8px rgba(255,200,100,.9);animation:starBurstFly 700ms cubic-bezier(0.25,0.46,0.45,0.94) forwards;will-change:transform,opacity}
+/* 🔥 불꽃 파편 (bomb) — 황금→주황→빨강 그라디언트 구체가 사방으로 튀며 꺼짐 */
+@keyframes flameBurstFly{
+  0%{transform:translate(0,0) scale(0.3);opacity:1;filter:blur(0)}
+  25%{transform:translate(calc(var(--tx)*.3),calc(var(--ty)*.3)) scale(1.5);opacity:1;filter:blur(0.5px)}
+  60%{transform:translate(calc(var(--tx)*.78),calc(var(--ty)*.78)) scale(1);opacity:.85;filter:blur(0.8px)}
+  100%{transform:translate(var(--tx),var(--ty)) scale(0.15);opacity:0;filter:blur(1.8px)}
+}
+.flame-particle{position:fixed;pointer-events:none;z-index:902;border-radius:50%;background:radial-gradient(circle,#FFF4A0 0%,#FFB040 28%,#FF4A10 58%,rgba(120,16,2,0) 90%);animation:flameBurstFly 680ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity,filter;mix-blend-mode:screen}
+.low-perf .flame-particle{animation-duration:420ms !important;mix-blend-mode:normal}
+@media (prefers-reduced-motion:reduce){.flame-particle{animation:none !important;opacity:0 !important}}
+/* 보드 쉐이크 (bomb) */
+@keyframes boardPangShake{
+  0%,100%{transform:translate(0,0)}
+  15%{transform:translate(-4px,2px)}
+  30%{transform:translate(4px,-2px)}
+  45%{transform:translate(-3px,3px)}
+  60%{transform:translate(3px,-1px)}
+  80%{transform:translate(-1px,1px)}
+}
+.board-frame.board-pang-shake{animation:boardPangShake 340ms cubic-bezier(0.36,0.07,0.19,0.97)}
+/* 저전력/reduced-motion 대응 */
+.low-perf .confetti,.low-perf .star-burst,.low-perf .puff-cloud{animation-duration:400ms !important}
+.low-perf .board-frame.board-pang-shake{animation:none !important}
+@media (prefers-reduced-motion:reduce){
+  .confetti,.star-burst,.puff-cloud,.board-frame.board-pang-shake{animation:none !important;opacity:0 !important}
+}
 /* 얼음 깨짐 shake */
 @keyframes iceCrackShake{
   0%,100%{transform:translate(0,0)}
@@ -371,6 +571,79 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background:rgba(255,255,255,.25) !important;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.35) !important;
   z-index:7;
+}
+/* ═══ 특수블록 효과 범위 프리뷰 (고급 시각화) ═══ */
+/* preview-clear와 공존 가능 — 특수 전용 레이어로 덮어씌움 */
+/* ═══ 고급 다층 그라디언트 + 부드러운 bevel shadow ═══ */
+@keyframes crossBeamPulse{
+  0%,100%{
+    background:radial-gradient(ellipse at center,rgba(255,180,225,.24) 0%,rgba(255,120,190,.16) 55%,rgba(190,60,140,.06) 100%),linear-gradient(180deg,rgba(255,200,230,.12) 0%,rgba(255,100,175,.18) 100%);
+    box-shadow:inset 0 1px 0 rgba(255,230,245,.35),inset 0 -1px 0 rgba(140,30,95,.3),inset 0 0 0 1px rgba(255,180,220,.22),inset 0 0 18px rgba(255,130,195,.22);
+  }
+  50%{
+    background:radial-gradient(ellipse at center,rgba(255,200,235,.4) 0%,rgba(255,140,200,.28) 55%,rgba(210,80,160,.12) 100%),linear-gradient(180deg,rgba(255,220,240,.2) 0%,rgba(255,120,190,.32) 100%);
+    box-shadow:inset 0 1px 0 rgba(255,245,250,.55),inset 0 -1px 0 rgba(150,40,105,.4),inset 0 0 0 1px rgba(255,210,235,.4),inset 0 0 22px rgba(255,150,210,.38);
+  }
+}
+@keyframes bombRadialPulse{
+  0%,100%{
+    background:radial-gradient(ellipse at center,rgba(255,180,80,.32) 0%,rgba(255,110,35,.22) 55%,rgba(160,50,15,.1) 100%),linear-gradient(180deg,rgba(255,170,70,.15) 0%,rgba(255,85,20,.26) 100%);
+    box-shadow:inset 0 1px 0 rgba(255,225,145,.45),inset 0 -1px 0 rgba(110,25,10,.4),inset 0 0 0 1px rgba(255,160,60,.25),inset 0 0 20px rgba(255,120,45,.3);
+  }
+  50%{
+    background:radial-gradient(ellipse at center,rgba(255,215,110,.48) 0%,rgba(255,140,50,.36) 55%,rgba(180,60,20,.16) 100%),linear-gradient(180deg,rgba(255,200,100,.22) 0%,rgba(255,100,30,.4) 100%);
+    box-shadow:inset 0 1px 0 rgba(255,245,180,.65),inset 0 -1px 0 rgba(120,30,12,.5),inset 0 0 0 1px rgba(255,190,80,.45),inset 0 0 26px rgba(255,150,60,.5);
+  }
+}
+.cell.special-preview-cross{
+  background:radial-gradient(ellipse at center,rgba(255,180,225,.24) 0%,rgba(255,120,190,.16) 55%,rgba(190,60,140,.06) 100%),linear-gradient(180deg,rgba(255,200,230,.12) 0%,rgba(255,100,175,.18) 100%) !important;
+  box-shadow:inset 0 1px 0 rgba(255,230,245,.35),inset 0 -1px 0 rgba(140,30,95,.3),inset 0 0 0 1px rgba(255,180,220,.22),inset 0 0 18px rgba(255,130,195,.22) !important;
+  animation:crossBeamPulse 1100ms ease-in-out infinite;
+  z-index:6;
+}
+/* 가로줄 셀(row 방향) — 부드러운 수평 빛줄기 (넓은 그라디언트 퍼짐) */
+.cell.special-preview-cross.cross-h::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:linear-gradient(0deg,transparent 36%,rgba(255,200,230,.2) 44%,rgba(255,240,250,.62) 50%,rgba(255,200,230,.2) 56%,transparent 64%);
+}
+/* 세로줄 셀(col 방향) — 부드러운 수직 빛줄기 */
+.cell.special-preview-cross.cross-v::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:linear-gradient(90deg,transparent 36%,rgba(255,200,230,.2) 44%,rgba(255,240,250,.62) 50%,rgba(255,200,230,.2) 56%,transparent 64%);
+}
+/* 교차점(중앙 셀) — 십자 + 중앙 방사 글로우 */
+.cell.special-preview-cross.cross-h.cross-v::after{
+  background:
+    radial-gradient(circle at center,rgba(255,255,255,.5) 0%,rgba(255,220,240,.28) 28%,transparent 60%),
+    linear-gradient(90deg,transparent 36%,rgba(255,240,250,.68) 50%,transparent 64%),
+    linear-gradient(0deg,transparent 36%,rgba(255,240,250,.68) 50%,transparent 64%);
+}
+.cell.special-preview-bomb{
+  background:radial-gradient(ellipse at center,rgba(255,180,80,.32) 0%,rgba(255,110,35,.22) 55%,rgba(160,50,15,.1) 100%),linear-gradient(180deg,rgba(255,170,70,.15) 0%,rgba(255,85,20,.26) 100%) !important;
+  box-shadow:inset 0 1px 0 rgba(255,225,145,.45),inset 0 -1px 0 rgba(110,25,10,.4),inset 0 0 0 1px rgba(255,160,60,.25),inset 0 0 20px rgba(255,120,45,.3) !important;
+  animation:bombRadialPulse 1000ms ease-in-out infinite;
+  z-index:6;
+}
+.cell.special-preview-bomb::after{
+  content:'';position:absolute;inset:12%;pointer-events:none;z-index:5;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(255,240,160,.75) 0%,rgba(255,170,60,.45) 38%,rgba(210,80,20,.2) 72%,transparent 100%);
+  filter:blur(0.5px);
+}
+/* 특수 프리뷰 중 preview-clear 노란 오버라이드 차단 (고급 팔레트 복원) */
+.cell.special-preview-cross.preview-clear:not(.filled){
+  background:radial-gradient(ellipse at center,rgba(255,180,225,.24) 0%,rgba(255,120,190,.16) 55%,rgba(190,60,140,.06) 100%),linear-gradient(180deg,rgba(255,200,230,.12) 0%,rgba(255,100,175,.18) 100%) !important;
+  box-shadow:inset 0 1px 0 rgba(255,230,245,.35),inset 0 -1px 0 rgba(140,30,95,.3),inset 0 0 0 1px rgba(255,180,220,.22),inset 0 0 18px rgba(255,130,195,.22) !important;
+}
+.cell.special-preview-bomb.preview-clear:not(.filled){
+  background:radial-gradient(ellipse at center,rgba(255,180,80,.32) 0%,rgba(255,110,35,.22) 55%,rgba(160,50,15,.1) 100%),linear-gradient(180deg,rgba(255,170,70,.15) 0%,rgba(255,85,20,.26) 100%) !important;
+  box-shadow:inset 0 1px 0 rgba(255,225,145,.45),inset 0 -1px 0 rgba(110,25,10,.4),inset 0 0 0 1px rgba(255,160,60,.25),inset 0 0 20px rgba(255,120,45,.3) !important;
+}
+/* ★ 저전력 단말: 애니메이션 비활성화, 정적 색상만 */
+.low-perf .cell.special-preview-cross,
+.low-perf .cell.special-preview-bomb{animation:none !important}
+@media (prefers-reduced-motion:reduce){
+  .cell.special-preview-cross,.cell.special-preview-bomb{animation:none !important}
 }
 .cell.preview-valid::after{background:rgba(99,179,237,.08)}
 /* preview-invalid::before 제거 — overlay 레이어가 대체 */
@@ -548,7 +821,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .ad-label{font-size:14px;color:var(--text-2)}
 
 /* ═══ RESULT SCREEN ═══ */
-#s-result{background:linear-gradient(170deg,#0c1020,#070a14)}
+/* 우주 배경(body::before) 비치도록 transparent + 은은한 보랏빛 radial overlay */
+#s-result{background:transparent;position:relative}
+#s-result::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 70% 40% at 50% 5%,rgba(251,191,36,.04),transparent 60%),radial-gradient(ellipse 50% 50% at 80% 90%,rgba(139,92,246,.05),transparent 60%)}
+#s-result > *{position:relative;z-index:1}
 .result-inner{display:flex;flex-direction:column;flex:1;overflow:hidden;opacity:0;transform:translateY(30px) scale(.96);transition:opacity .4s cubic-bezier(.16,1,.3,1),transform .4s cubic-bezier(.16,1,.3,1)}
 .result-inner.show{opacity:1;transform:translateY(0) scale(1)}
 .result-scroll{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;flex:1;overflow-y:auto;overflow-x:hidden;padding:calc(var(--safe-top) + 20px) 18px 12px;display:flex;flex-direction:column;contain:layout style;gap:10px}
@@ -1127,7 +1403,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="hud-left">
       <span class="crown-icon">👑</span>
       <span class="best-score" id="best-el">0</span>
-      <span id="phase-badge" style="font-size:16px;line-height:1"></span>
     </div>
     <div class="hud-right">
       <button class="hud-btn undo-btn" id="undo-btn" onclick="undoPlace()" title="되돌리기"><span style="font-size:14px">↩️</span><span class="undo-label">되돌리기</span><span class="undo-count" id="undo-count">3</span></button>
@@ -1468,10 +1743,41 @@ function haptic(type){
   }catch(e){}
 }
 
+// Storage wrapper — DeviceStorage(9.0+, 감자팡과 호환) → CloudStorage(6.9+) → localStorage 3단 fallback
+// 버전 체크로 미지원 환경(Telegram 6.0 등) 경고 방지
+function _tgSupports(method){
+  try{
+    const tg=window.Telegram?.WebApp;
+    if(!tg) return false;
+    if(typeof tg.isVersionAtLeast==='function'){
+      if(method==='DeviceStorage') return tg.isVersionAtLeast('9.0') && !!tg.DeviceStorage;
+      if(method==='CloudStorage') return tg.isVersionAtLeast('6.9') && !!tg.CloudStorage;
+    }
+    return !!tg[method];
+  }catch(e){return false}
+}
 const Storage={
-  get(key,cb){try{const cs=window.Telegram?.WebApp?.CloudStorage;if(cs){cs.getItem(key,(err,val)=>cb(err?null:val));return}}catch(e){}cb(localStorage.getItem(key))},
-  set(key,val){try{const cs=window.Telegram?.WebApp?.CloudStorage;if(cs){cs.setItem(key,String(val));return}}catch(e){}localStorage.setItem(key,String(val))},
-  remove(key){try{const cs=window.Telegram?.WebApp?.CloudStorage;if(cs){cs.removeItem(key);return}}catch(e){}localStorage.removeItem(key)}
+  get(key,cb){
+    try{
+      if(_tgSupports('DeviceStorage')){window.Telegram.WebApp.DeviceStorage.getItem(key,(err,val)=>cb(err?null:val));return}
+      if(_tgSupports('CloudStorage')){window.Telegram.WebApp.CloudStorage.getItem(key,(err,val)=>cb(err?null:val));return}
+    }catch(e){}
+    cb(localStorage.getItem(key))
+  },
+  set(key,val){
+    try{
+      if(_tgSupports('DeviceStorage')){window.Telegram.WebApp.DeviceStorage.setItem(key,String(val),()=>{});return}
+      if(_tgSupports('CloudStorage')){window.Telegram.WebApp.CloudStorage.setItem(key,String(val));return}
+    }catch(e){}
+    localStorage.setItem(key,String(val))
+  },
+  remove(key){
+    try{
+      if(_tgSupports('DeviceStorage')){window.Telegram.WebApp.DeviceStorage.removeItem(key,()=>{});return}
+      if(_tgSupports('CloudStorage')){window.Telegram.WebApp.CloudStorage.removeItem(key);return}
+    }catch(e){}
+    localStorage.removeItem(key)
+  }
 };
 
 // ═══ SOUND ENGINE — 숲속 힐링 ═══
@@ -1768,6 +2074,64 @@ function cancelQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay'
 function doQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay').classList.remove('on');endGameToResult()}
 function retryGame(){Sound.sfx.uiClick();window._tgSafeMode?.();showScreen('s-play');resetGame()}
 function goToLobby(){Sound.sfx.uiClick();cancelExtendAd();resetAdDouble();if(_comboBannerTimer){clearTimeout(_comboBannerTimer);_comboBannerTimer=null}if(_comboBannerEl){_comboBannerEl.style.display='none'}updateLobby();showScreen('s-lobby')}
+
+// ═══ window._g 네임스페이스 (감자팡팡과 호환) ═══
+// 감자팡팡은 onclick="window._g.startGame()" 등으로 호출. 우도쿠도 동일 인터페이스 노출하여 양쪽 호환.
+// 기존 직접 호출(onclick="startNewGame()" 등)도 그대로 작동.
+window._g = {
+  // 이름 매핑: 감자팡팡 표준 → 우도쿠 실함수
+  startGame: () => startNewGame(),
+  goLobby: () => goToLobby(),
+  replay: () => retryGame(),
+  toggleAd: () => adDoubleScore(),
+  toggleMute: () => toggleMute(),
+  showQuitConfirm: () => confirmQuit(),
+  cancelQuit: () => cancelQuit(),
+  confirmQuit: () => doQuit(),
+  extendDiamond: () => extendDiamond(),
+  extendAd: () => extendAd(),
+  // 우도쿠 고유 (감자팡팡에 없음)
+  forceEnd: () => endGameToResult?.(),
+  undo: () => undoPlace?.(),
+  openGuide: () => openGuide(),
+  closeGuide: () => closeGuide()
+};
+// ★ 테스트 모드 토글 — setTest(false)로 OFF, setTest(true) 또는 setTest()로 ON
+window.setTest = function(on){
+  on = on !== false;  // 인자 없거나 true면 ON
+  try{
+    localStorage.setItem('pw2_testMode', on ? '1' : '0');
+    return on ? '✓ 테스트 모드 ON — 매 세트 slot0=cross, slot1=bomb 자동 스폰 (새 세트부터 적용)' : '✓ 테스트 모드 OFF — 정상 랜덤 스폰 복구 (새 세트부터 적용)';
+  }catch(e){return '⚠️ localStorage 접근 불가'}
+};
+// ★ 테스트용 전역 함수 — 콘솔에서 spawn('cross') / spawn('bomb') 호출
+window.spawn = function(type, idx){
+  type = type || 'cross';
+  idx = (typeof idx === 'number') ? idx : 0;
+  if(type!=='cross' && type!=='bomb') return '⚠️ Usage: spawn("cross"|"bomb", 0~2)';
+  if(typeof pieces === 'undefined' || !pieces[idx]) return '⚠️ 게임 시작 후 호출하세요';
+  pieces[idx] = {
+    shape:[[0,0]],
+    face:Math.floor(Math.random()*(typeof POTATOES!=='undefined'?POTATOES.length:1)),
+    special:type,
+    used:false,
+    size:1,
+    id:'Special_'+type
+  };
+  if(typeof renderTray==='function') renderTray();
+  return '✓ spawned '+type+' at slot '+idx+' — 드래그해서 테스트';
+};
+// 게임 로드 시 콘솔 안내
+setTimeout(()=>{
+  try{
+    console.log('%c🔥 테스트 모드 기본 ON','color:#FF5A1A;font-weight:bold;font-size:14px','— 매 세트 slot0=cross, slot1=bomb 자동 스폰');
+    console.log('%c💡 테스트 조작:','color:#FF70B8;font-weight:bold;font-size:13px');
+    console.log('  • 해제: %csetTest(false)','color:#F87171;font-weight:bold');
+    console.log('  • 재활성: %csetTest()','color:#66D18F;font-weight:bold');
+    console.log('  • 단발 스폰: %cspawn("cross")%c 또는 %cspawn("bomb")','color:#7CC8FF;font-weight:bold','','color:#FFB84A;font-weight:bold');
+    console.log('  • URL 우선 지정: %c?spawn=cross%c / %c?spawn=bomb%c / %c?spawn=both','color:#7CC8FF','','color:#FFB84A','','color:#66D18F');
+  }catch(e){}
+},500);
 function openGuide(){document.getElementById('guide-overlay').classList.add('on')}
 function closeGuide(){document.getElementById('guide-overlay').classList.remove('on')}
 
@@ -1915,13 +2279,13 @@ const POTATOES=[
 
 // ═══ PIECE DATABASE ═══
 function normalizeShape(s){const minR=Math.min(...s.map(([r])=>r)),minC=Math.min(...s.map(([,c])=>c));return s.map(([r,c])=>[r-minR,c-minC])}
-const PIECE_DB=[{id:'Joe',cells:[[0,0]],size:1},{id:'Dot2H',cells:[[0,0],[0,1]],size:2},{id:'Dot2V',cells:[[0,0],[1,0]],size:2},{id:'Dot3H',cells:[[0,0],[0,1],[0,2]],size:3},{id:'Dot3V',cells:[[0,0],[1,0],[2,0]],size:3},{id:'Dot4H',cells:[[0,0],[0,1],[0,2],[0,3]],size:4},{id:'Dot4V',cells:[[0,0],[1,0],[2,0],[3,0]],size:4},{id:'Dot5H',cells:[[0,0],[0,1],[0,2],[0,3],[0,4]],size:5},{id:'Dot5V',cells:[[0,0],[1,0],[2,0],[3,0],[4,0]],size:5},{id:'Sq2',cells:[[0,0],[0,1],[1,0],[1,1]],size:4},{id:'Rect2x3',cells:[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]],size:6},{id:'Rect3x2',cells:[[0,0],[0,1],[1,0],[1,1],[2,0],[2,1]],size:6},{id:'Sq3',cells:[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],size:9},{id:'Cross',cells:[[0,1],[1,0],[1,1],[1,2],[2,1]],size:5},{id:'Diag2a',cells:[[0,0],[1,1]],size:2},{id:'Diag2b',cells:[[0,1],[1,0]],size:2},{id:'Diag3a',cells:[[0,0],[1,1],[2,2]],size:3},{id:'Diag3b',cells:[[0,2],[1,1],[2,0]],size:3},{id:'Diag4a',cells:[[0,0],[1,1],[2,2],[3,3]],size:4,earlyBlock:true},{id:'Diag4b',cells:[[0,3],[1,2],[2,1],[3,0]],size:4,earlyBlock:true},{id:'L_NE',cells:[[0,0],[1,0],[2,0],[2,1]],size:4},{id:'L_NW',cells:[[0,1],[1,1],[2,0],[2,1]],size:4},{id:'L_SE',cells:[[0,0],[0,1],[1,0],[2,0]],size:4},{id:'Luigi',cells:[[0,0],[0,1],[1,1],[2,1]],size:4,banned:true},{id:'J_NE',cells:[[0,0],[0,1],[0,2],[1,0]],size:4},{id:'J_NW',cells:[[0,0],[1,0],[1,1],[1,2]],size:4},{id:'J_SE',cells:[[0,2],[1,0],[1,1],[1,2]],size:4},{id:'Waluigi',cells:[[0,0],[0,1],[0,2],[1,2]],size:4,banned:true},{id:'S_H',cells:[[0,1],[0,2],[1,0],[1,1]],size:4},{id:'Z_H',cells:[[0,0],[0,1],[1,1],[1,2]],size:4},{id:'S_V',cells:[[0,0],[1,0],[1,1],[2,1]],size:4},{id:'Z_V',cells:[[0,1],[1,0],[1,1],[2,0]],size:4},{id:'T_N',cells:[[0,0],[0,1],[0,2],[1,1]],size:4},{id:'T_S',cells:[[0,1],[1,0],[1,1],[1,2]],size:4},{id:'T_E',cells:[[0,0],[0,1],[1,1],[2,1]],size:4},{id:'T_W',cells:[[0,0],[1,0],[1,1],[2,0]],size:4},{id:'L5_NE',cells:[[0,0],[1,0],[2,0],[3,0],[3,1]],size:5,earlyBlock:true},{id:'L5_NW',cells:[[0,1],[1,1],[2,1],[3,0],[3,1]],size:5,earlyBlock:true},{id:'L5_SE',cells:[[0,0],[0,1],[1,0],[2,0],[3,0]],size:5,earlyBlock:true},{id:'L5_SW',cells:[[0,0],[0,1],[1,1],[2,1],[3,1]],size:5,earlyBlock:true},{id:'PacN',cells:[[0,0],[0,2],[1,0],[1,1],[1,2]],size:5},{id:'PacS',cells:[[0,0],[0,1],[0,2],[1,0],[1,2]],size:5},{id:'PacE',cells:[[0,0],[0,1],[1,0],[2,0],[2,1]],size:5},{id:'PacW',cells:[[0,0],[0,1],[1,1],[2,0],[2,1]],size:5},{id:'C_E',cells:[[0,0],[0,1],[1,0],[2,0],[2,1]],size:5},{id:'Helmet',cells:[[0,0],[0,1],[1,1],[2,0],[2,1]],size:5,banned:true}];
+const PIECE_DB=[{id:'Joe',cells:[[0,0]],size:1},{id:'Dot2H',cells:[[0,0],[0,1]],size:2},{id:'Dot2V',cells:[[0,0],[1,0]],size:2},{id:'Dot3H',cells:[[0,0],[0,1],[0,2]],size:3},{id:'Dot3V',cells:[[0,0],[1,0],[2,0]],size:3},{id:'Dot4H',cells:[[0,0],[0,1],[0,2],[0,3]],size:4},{id:'Dot4V',cells:[[0,0],[1,0],[2,0],[3,0]],size:4},{id:'Dot5H',cells:[[0,0],[0,1],[0,2],[0,3],[0,4]],size:5},{id:'Dot5V',cells:[[0,0],[1,0],[2,0],[3,0],[4,0]],size:5},{id:'Sq2',cells:[[0,0],[0,1],[1,0],[1,1]],size:4},{id:'Rect2x3',cells:[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]],size:6},{id:'Rect3x2',cells:[[0,0],[0,1],[1,0],[1,1],[2,0],[2,1]],size:6},{id:'Cross',cells:[[0,1],[1,0],[1,1],[1,2],[2,1]],size:5},{id:'Diag2a',cells:[[0,0],[1,1]],size:2},{id:'Diag2b',cells:[[0,1],[1,0]],size:2},{id:'Diag3a',cells:[[0,0],[1,1],[2,2]],size:3},{id:'Diag3b',cells:[[0,2],[1,1],[2,0]],size:3},{id:'Diag4a',cells:[[0,0],[1,1],[2,2],[3,3]],size:4,earlyBlock:true},{id:'Diag4b',cells:[[0,3],[1,2],[2,1],[3,0]],size:4,earlyBlock:true},{id:'L_NE',cells:[[0,0],[1,0],[2,0],[2,1]],size:4},{id:'L_NW',cells:[[0,1],[1,1],[2,0],[2,1]],size:4},{id:'L_SE',cells:[[0,0],[0,1],[1,0],[2,0]],size:4},{id:'Luigi',cells:[[0,0],[0,1],[1,1],[2,1]],size:4,banned:true},{id:'J_NE',cells:[[0,0],[0,1],[0,2],[1,0]],size:4},{id:'J_NW',cells:[[0,0],[1,0],[1,1],[1,2]],size:4},{id:'J_SE',cells:[[0,2],[1,0],[1,1],[1,2]],size:4},{id:'Waluigi',cells:[[0,0],[0,1],[0,2],[1,2]],size:4,banned:true},{id:'S_H',cells:[[0,1],[0,2],[1,0],[1,1]],size:4},{id:'Z_H',cells:[[0,0],[0,1],[1,1],[1,2]],size:4},{id:'S_V',cells:[[0,0],[1,0],[1,1],[2,1]],size:4},{id:'Z_V',cells:[[0,1],[1,0],[1,1],[2,0]],size:4},{id:'T_N',cells:[[0,0],[0,1],[0,2],[1,1]],size:4},{id:'T_S',cells:[[0,1],[1,0],[1,1],[1,2]],size:4},{id:'T_E',cells:[[0,0],[0,1],[1,1],[2,1]],size:4},{id:'T_W',cells:[[0,0],[1,0],[1,1],[2,0]],size:4},{id:'L5_NE',cells:[[0,0],[1,0],[2,0],[3,0],[3,1]],size:5,earlyBlock:true},{id:'L5_NW',cells:[[0,1],[1,1],[2,1],[3,0],[3,1]],size:5,earlyBlock:true},{id:'L5_SE',cells:[[0,0],[0,1],[1,0],[2,0],[3,0]],size:5,earlyBlock:true},{id:'L5_SW',cells:[[0,0],[0,1],[1,1],[2,1],[3,1]],size:5,earlyBlock:true},{id:'PacN',cells:[[0,0],[0,2],[1,0],[1,1],[1,2]],size:5},{id:'PacS',cells:[[0,0],[0,1],[0,2],[1,0],[1,2]],size:5},{id:'PacE',cells:[[0,0],[0,1],[1,0],[2,0],[2,1]],size:5},{id:'PacW',cells:[[0,0],[0,1],[1,1],[2,0],[2,1]],size:5},{id:'C_E',cells:[[0,0],[0,1],[1,0],[2,0],[2,1]],size:5},{id:'Helmet',cells:[[0,0],[0,1],[1,1],[2,0],[2,1]],size:5,banned:true},{id:'Xmark',cells:[[0,0],[0,2],[1,1],[2,0],[2,2]],size:5},{id:'V3U',cells:[[0,1],[1,0],[1,2]],size:3},{id:'V3D',cells:[[0,0],[0,2],[1,1]],size:3},{id:'Hook_NE',cells:[[0,0],[0,1],[0,2],[1,2],[2,2]],size:5},{id:'Hook_SW',cells:[[0,0],[1,0],[2,0],[2,1],[2,2]],size:5},{id:'L3_NW',cells:[[0,0],[0,1],[1,0]],size:3},{id:'T5_N',cells:[[0,0],[0,1],[0,2],[1,1],[2,1]],size:5},{id:'T5_S',cells:[[0,1],[1,1],[2,0],[2,1],[2,2]],size:5}];
 
 // ═══ SPAWN SYSTEM ═══
 let recentClearTurns=0,totalTurns=0;
 function countEmpty(){let n=0;for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)if(board[r][c]===null)n++;return n}
 function getPhase(){if(score<600)return 0;if(score<2e3)return 1;if(score<5e3)return 2;if(score<12e3)return 3;return 4}
-const WEIGHT_OVERRIDE={0:{Joe:5,Dot2H:8,Dot2V:8,Dot3H:7.5,Dot3V:7.5,Sq2:6.5,Diag2a:4,Diag2b:4,Diag3a:2.5,Diag3b:2.5,Dot4H:1.5,Dot4V:1.5,L_NE:1,L_NW:1,L_SE:1,J_NE:1,J_NW:1,J_SE:1,S_H:1,Z_H:1,S_V:1,Z_V:1,T_N:1,T_S:1,T_E:1,T_W:1,Cross:.5,PacN:.5,PacS:.5,PacE:.5,PacW:.5,C_E:.3,Sq3:0,Rect2x3:0,Rect3x2:0,Diag4a:0,Diag4b:0,L5_NE:0,L5_NW:0,L5_SE:0,L5_SW:0,Dot5H:0,Dot5V:0},1:{Joe:5,Dot2H:6.5,Dot2V:6.5,Dot3H:6,Dot3V:6,Sq2:5,Diag2a:3.5,Diag2b:3.5,Diag3a:3,Diag3b:3,Dot4H:3,Dot4V:3,L_NE:2,L_NW:2,L_SE:2,J_NE:2,J_NW:2,J_SE:2,S_H:2,Z_H:2,S_V:2,Z_V:2,T_N:2,T_S:2,T_E:2,T_W:2,Cross:1.5,PacN:1.5,PacS:1.5,PacE:1.5,PacW:1.5,C_E:1,Sq3:.3,Rect2x3:.5,Rect3x2:.5,Diag4a:.5,Diag4b:.5,L5_NE:0,L5_NW:0,L5_SE:0,L5_SW:0,Dot5H:0,Dot5V:0},2:{Joe:5,Dot2H:5,Dot2V:5,Dot3H:5,Dot3V:5,Sq2:4,Diag2a:3,Diag2b:3,Diag3a:2.5,Diag3b:2.5,Dot4H:4,Dot4V:4,L_NE:3,L_NW:3,L_SE:3,J_NE:3,J_NW:3,J_SE:3,S_H:2.5,Z_H:2.5,S_V:2.5,Z_V:2.5,T_N:2.5,T_S:2.5,T_E:2.5,T_W:2.5,Cross:2,PacN:2,PacS:2,PacE:2,PacW:2,C_E:1.5,Sq3:1,Rect2x3:1.5,Rect3x2:1.5,Diag4a:1.5,Diag4b:1.5,L5_NE:.8,L5_NW:.8,L5_SE:.8,L5_SW:.8,Dot5H:2.5,Dot5V:2.5},3:{Joe:4.5,Dot2H:3.5,Dot2V:3.5,Dot3H:4,Dot3V:4,Sq2:3,Diag2a:2.5,Diag2b:2.5,Diag3a:2.5,Diag3b:2.5,Dot4H:4,Dot4V:4,L_NE:3.5,L_NW:3.5,L_SE:3.5,J_NE:3.5,J_NW:3.5,J_SE:3.5,S_H:3,Z_H:3,S_V:3,Z_V:3,T_N:3,T_S:3,T_E:3,T_W:3,Cross:2.5,PacN:2.5,PacS:2.5,PacE:2.5,PacW:2.5,C_E:2,Sq3:2,Rect2x3:2.5,Rect3x2:2.5,Diag4a:2.5,Diag4b:2.5,L5_NE:2,L5_NW:2,L5_SE:2,L5_SW:2,Dot5H:4.5,Dot5V:4.5},4:{Joe:4,Dot2H:2.5,Dot2V:2.5,Dot3H:3,Dot3V:3,Sq2:2,Diag2a:2,Diag2b:2,Diag3a:2.5,Diag3b:2.5,Dot4H:3.5,Dot4V:3.5,L_NE:3.5,L_NW:3.5,L_SE:3.5,J_NE:3.5,J_NW:3.5,J_SE:3.5,S_H:3,Z_H:3,S_V:3,Z_V:3,T_N:3,T_S:3,T_E:3,T_W:3,Cross:3,PacN:3,PacS:3,PacE:3,PacW:3,C_E:2.5,Sq3:3,Rect2x3:3,Rect3x2:3,Diag4a:3,Diag4b:3,L5_NE:2.5,L5_NW:2.5,L5_SE:2.5,L5_SW:2.5,Dot5H:6,Dot5V:6}};
+const WEIGHT_OVERRIDE={0:{Joe:5,Dot2H:8,Dot2V:8,Dot3H:7.5,Dot3V:7.5,Sq2:6.5,Diag2a:4,Diag2b:4,Diag3a:2.5,Diag3b:2.5,Dot4H:1.5,Dot4V:1.5,L_NE:1,L_NW:1,L_SE:1,J_NE:1,J_NW:1,J_SE:1,S_H:1,Z_H:1,S_V:1,Z_V:1,T_N:1,T_S:1,T_E:1,T_W:1,Cross:.5,PacN:.5,PacS:.5,PacE:.5,PacW:.5,C_E:.3,Rect2x3:0,Rect3x2:0,Diag4a:0,Diag4b:0,L5_NE:0,L5_NW:0,L5_SE:0,L5_SW:0,Dot5H:0,Dot5V:0,Xmark:0,V3U:2,V3D:2,Hook_NE:0,Hook_SW:0,L3_NW:3,T5_N:0,T5_S:0},1:{Joe:5,Dot2H:6.5,Dot2V:6.5,Dot3H:6,Dot3V:6,Sq2:5,Diag2a:3.5,Diag2b:3.5,Diag3a:3,Diag3b:3,Dot4H:3,Dot4V:3,L_NE:2,L_NW:2,L_SE:2,J_NE:2,J_NW:2,J_SE:2,S_H:2,Z_H:2,S_V:2,Z_V:2,T_N:2,T_S:2,T_E:2,T_W:2,Cross:1.5,PacN:1.5,PacS:1.5,PacE:1.5,PacW:1.5,C_E:1,Rect2x3:.5,Rect3x2:.5,Diag4a:.5,Diag4b:.5,L5_NE:0,L5_NW:0,L5_SE:0,L5_SW:0,Dot5H:0,Dot5V:0,Xmark:.3,V3U:2.5,V3D:2.5,Hook_NE:.5,Hook_SW:.5,L3_NW:3,T5_N:.8,T5_S:.8},2:{Joe:5,Dot2H:5,Dot2V:5,Dot3H:5,Dot3V:5,Sq2:4,Diag2a:3,Diag2b:3,Diag3a:2.5,Diag3b:2.5,Dot4H:4,Dot4V:4,L_NE:3,L_NW:3,L_SE:3,J_NE:3,J_NW:3,J_SE:3,S_H:2.5,Z_H:2.5,S_V:2.5,Z_V:2.5,T_N:2.5,T_S:2.5,T_E:2.5,T_W:2.5,Cross:2,PacN:2,PacS:2,PacE:2,PacW:2,C_E:1.5,Rect2x3:1.5,Rect3x2:1.5,Diag4a:1.5,Diag4b:1.5,L5_NE:.8,L5_NW:.8,L5_SE:.8,L5_SW:.8,Dot5H:2.5,Dot5V:2.5,Xmark:1.5,V3U:2.5,V3D:2.5,Hook_NE:1.5,Hook_SW:1.5,L3_NW:2.5,T5_N:2,T5_S:2},3:{Joe:4.5,Dot2H:3.5,Dot2V:3.5,Dot3H:4,Dot3V:4,Sq2:3,Diag2a:2.5,Diag2b:2.5,Diag3a:2.5,Diag3b:2.5,Dot4H:4,Dot4V:4,L_NE:3.5,L_NW:3.5,L_SE:3.5,J_NE:3.5,J_NW:3.5,J_SE:3.5,S_H:3,Z_H:3,S_V:3,Z_V:3,T_N:3,T_S:3,T_E:3,T_W:3,Cross:2.5,PacN:2.5,PacS:2.5,PacE:2.5,PacW:2.5,C_E:2,Rect2x3:2.5,Rect3x2:2.5,Diag4a:2.5,Diag4b:2.5,L5_NE:2,L5_NW:2,L5_SE:2,L5_SW:2,Dot5H:4.5,Dot5V:4.5,Xmark:2.5,V3U:2,V3D:2,Hook_NE:2,Hook_SW:2,T5_N:2.5,T5_S:2.5},4:{Joe:4,Dot2H:2.5,Dot2V:2.5,Dot3H:3,Dot3V:3,Sq2:2,Diag2a:2,Diag2b:2,Diag3a:2.5,Diag3b:2.5,Dot4H:3.5,Dot4V:3.5,L_NE:3.5,L_NW:3.5,L_SE:3.5,J_NE:3.5,J_NW:3.5,J_SE:3.5,S_H:3,Z_H:3,S_V:3,Z_V:3,T_N:3,T_S:3,T_E:3,T_W:3,Cross:3,PacN:3,PacS:3,PacE:3,PacW:3,C_E:2.5,Rect2x3:3,Rect3x2:3,Diag4a:3,Diag4b:3,L5_NE:2.5,L5_NW:2.5,L5_SE:2.5,L5_SW:2.5,Dot5H:6,Dot5V:6,Xmark:3,V3U:1.5,V3D:1.5,Hook_NE:2.5,Hook_SW:2.5,T5_N:3,T5_S:3}};
 const SPAWN_POOL=PIECE_DB.filter(p=>!p.banned);
 function getBoardPressure(){const empty=countEmpty(),pressureRatio=Math.max(0,Math.min(1,(40-empty)/40));return{empty,pressureRatio,clearMult:recentClearTurns===0?1.2:.9}}
 function weightedPick(){const phase=getPhase(),table=WEIGHT_OVERRIDE[phase];const{empty,pressureRatio,clearMult}=getBoardPressure();const weights=SPAWN_POOL.map(p=>{let w=table[p.id];if(w===undefined)w=Math.max(.5,5-(p.size-1)*.8);w=Math.max(0,w);if(w===0)return 0;if(empty<15){if(p.size>=5)return w*.08;if(p.size>=4)return w*.35}else if(empty<30){if(p.size>=5)return w*(1-pressureRatio*.55);if(p.size>=4)return w*(1-pressureRatio*.28)}if(empty>=30&&p.size>=4)w*=clearMult;return w});const total=weights.reduce((a,b)=>a+b,0);if(total<=0)return SPAWN_POOL[0];let rand=Math.random()*total;for(let i=0;i<SPAWN_POOL.length;i++){rand-=weights[i];if(rand<=0)return SPAWN_POOL[i]}return SPAWN_POOL[SPAWN_POOL.length-1]}
@@ -2103,6 +2467,25 @@ function newSet(){
       id:'Special_'+specialType
     };
   }
+  // ★ 테스트용 강제 스폰 — URL ?spawn=... 또는 localStorage pw2_testMode=1 (매 세트마다 반영)
+  // ★ 테스트 모드 기본 ON (slot0=cross, slot1=bomb) — 해제: setTest(false)
+  try{
+    const _urlSpawn = new URLSearchParams(location.search).get('spawn');
+    const _lsTest = (()=>{try{return localStorage.getItem('pw2_testMode')}catch(e){return null}})();
+    // 우선순위: URL 파라미터 > localStorage > 기본('both')
+    let _devSpawn = _urlSpawn;
+    if(!_devSpawn){
+      if(_lsTest === '0' || _lsTest === 'off') _devSpawn = null;  // 명시적 OFF
+      else _devSpawn = 'both';  // 기본 테스트 모드 ON
+    }
+    const _mkSpec = (t)=>({shape:[[0,0]],face:Math.floor(Math.random()*POTATOES.length),special:t,used:false,size:1,id:'Special_'+t});
+    if(_devSpawn==='cross'||_devSpawn==='bomb'){
+      pieces[0] = _mkSpec(_devSpawn);
+    }else if(_devSpawn==='both'){
+      pieces[0] = _mkSpec('cross');
+      pieces[1] = _mkSpec('bomb');
+    }
+  }catch(e){}
   _ensurePlaceable(); // ★ 적어도 1개 배치 가능 보장
   selIdx=null;renderTray();
   // ★ 얼음 셀 생성 (초반 스킵 + 8턴마다)
@@ -2396,10 +2779,8 @@ function clearLines(extraCells){
 }
 function addScore(pts,numLines){
   const prevScore=score;
-  const prevPhase=getPhase();score+=pts;
+  score+=pts;
   if(score>best){best=score;Storage.set('pw2_best',best)}
-  const newPhase=getPhase();
-  if(newPhase>prevPhase){haptic('success');updatePhaseBadge(newPhase)}
   // ★ 마일스톤 감지 (점수 임계치 돌파)
   const milestones=[100,500,1000,2500,5000,10000,25000,50000,100000];
   for(const m of milestones){
@@ -2472,7 +2853,6 @@ function updateGoalHint(){
     el.classList.remove('achieved');
   }
 }
-const PHASE_LABELS=['','🔥','⚡','💀'];function updatePhaseBadge(phase){const badge=document.getElementById('phase-badge');if(badge){badge.textContent=PHASE_LABELS[phase]||'';badge.style.animation='none';requestAnimationFrame(()=>badge.style.animation='scoreBump var(--dur-score) var(--ease-out) both')}}
 function showStreakUI(){
   const bar=document.getElementById('streak-bar'),el=document.getElementById('streak-el');
   bar.classList.remove('s3','s4','s5');
@@ -2494,6 +2874,123 @@ const STAR_CHARS=['★','✦','◆','✨','·','✧'];
 const STAR_COLORS=['#FFD700','#FFF8C7','#FFA94D','#FFE4B5','#FFF'];
 
 // ═══ 특수 블록 발동 연출 (렉 방지: DOM 생성 rAF로 지연) ═══
+// ═══ 세트 B 파티클 헬퍼 (렉 최소화: DocumentFragment 일괄 append + transform/opacity 애니) ═══
+// ✦ Cross 스파크 — 가로/세로 축 따라 샤프하게 튀는 핑크 입자
+function spawnCrossSparks(cx,cy){
+  const count=Math.max(6,Math.round(16*_particleScale()));  // desktop 16 / mobile 10 / lowperf 7
+  const frag=document.createDocumentFragment();
+  const nodes=[];
+  for(let i=0;i<count;i++){
+    // 4주축(우/하/좌/상)에 집중 분산
+    const dir=i%4;
+    const baseAngle=dir*(Math.PI/2);
+    const angle=baseAngle+(Math.random()-0.5)*0.35;  // ±10도 퍼짐
+    const dist=65+Math.random()*85;
+    const tx=Math.cos(angle)*dist;
+    const ty=Math.sin(angle)*dist;
+    const size=8+Math.random()*8;  // 8~16px
+    const el=document.createElement('div');
+    el.className='cross-spark';
+    el.style.cssText='left:'+(cx-size/2)+'px;top:'+(cy-size/2)+'px;width:'+size+'px;height:'+size+'px;--tx:'+tx+'px;--ty:'+ty+'px';
+    frag.appendChild(el);
+    nodes.push(el);
+  }
+  document.body.appendChild(frag);
+  setTimeout(()=>{for(let i=0;i<nodes.length;i++)nodes[i].remove()},700);
+}
+// ◎ Cross 플래시 링 — 중심 충격파
+function spawnCrossFlashRing(cx,cy){
+  const el=document.createElement('div');
+  el.className='cross-flash-ring';
+  el.style.cssText='left:'+cx+'px;top:'+cy+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),570);
+}
+const _CONFETTI_COLORS=['#FF70B8','#FFB6DB','#FFFFFF','#FFD700','#7CC8FF','#A8E6CF','#FFA07A'];
+function _isLowPerf(){return document.documentElement.classList.contains('low-perf')||document.body.classList.contains('low-perf')}
+function _isMobileReduce(){return document.body.classList.contains('mobile-reduce')}
+// 파티클 개수 스케일: low-perf(45%) < mobile-reduce(65%) < desktop(100%)
+function _particleScale(){return _isLowPerf()?0.45:(_isMobileReduce()?0.65:1)}
+function spawnConfetti(cx,cy){
+  const count=Math.max(8,Math.round(22*_particleScale()));
+  const frag=document.createDocumentFragment();
+  const nodes=[];
+  for(let i=0;i<count;i++){
+    const p=document.createElement('div');
+    p.className='confetti';
+    // 십자 방향 분산 + 무작위
+    const base=(i%4)*(Math.PI/2);
+    const angle=base+(Math.random()-0.5)*Math.PI*0.6;
+    const dist=70+Math.random()*90;
+    const tx=Math.cos(angle)*dist;
+    const ty=Math.sin(angle)*dist+(Math.random()*30);
+    const rot=(Math.random()*720-360)|0;
+    const color=_CONFETTI_COLORS[i%_CONFETTI_COLORS.length];
+    p.style.cssText='left:'+(cx-4)+'px;top:'+(cy-5)+'px;background:'+color+';--tx:'+tx+'px;--ty:'+ty+'px;--rot:'+rot+'deg';
+    frag.appendChild(p);
+    nodes.push(p);
+  }
+  document.body.appendChild(frag);
+  setTimeout(()=>{for(let i=0;i<nodes.length;i++)nodes[i].remove()},720);
+}
+function spawnPuffCloud(cx,cy){
+  const el=document.createElement('div');
+  el.className='puff-cloud';
+  el.style.cssText='left:'+cx+'px;top:'+cy+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),640);
+}
+// 🔥 불꽃 파편 — radial-gradient 구체가 사방으로 튀며 꺼지는 효과
+function spawnFlameBurst(cx,cy){
+  const count=Math.max(6,Math.round(16*_particleScale()));
+  const frag=document.createDocumentFragment();
+  const nodes=[];
+  for(let i=0;i<count;i++){
+    const angle=(i/count)*Math.PI*2+(Math.random()-0.5)*0.5;
+    const dist=45+Math.random()*65;
+    const tx=Math.cos(angle)*dist;
+    const ty=Math.sin(angle)*dist-Math.random()*22;  // 살짝 위로 치솟음 (불꽃은 위로)
+    const size=10+Math.random()*14;  // 10~24px 무작위
+    const delay=(Math.random()*80)|0;
+    const el=document.createElement('div');
+    el.className='flame-particle';
+    el.style.cssText='left:'+(cx-size/2)+'px;top:'+(cy-size/2)+'px;width:'+size+'px;height:'+size+'px;--tx:'+tx+'px;--ty:'+ty+'px;animation-delay:'+delay+'ms';
+    frag.appendChild(el);
+    nodes.push(el);
+  }
+  document.body.appendChild(frag);
+  setTimeout(()=>{for(let i=0;i<nodes.length;i++)nodes[i].remove()},800);
+}
+const _STAR_EMOJIS=['⭐','✨','💥','🌟'];
+function spawnStarBurst(cx,cy){
+  const count=Math.max(4,Math.round(12*_particleScale()));
+  const frag=document.createDocumentFragment();
+  const nodes=[];
+  for(let i=0;i<count;i++){
+    const angle=(i/count)*Math.PI*2+(Math.random()-0.5)*0.4;
+    const dist=55+Math.random()*70;
+    const tx=Math.cos(angle)*dist;
+    const ty=Math.sin(angle)*dist;
+    const el=document.createElement('div');
+    el.className='star-burst';
+    el.textContent=_STAR_EMOJIS[i%_STAR_EMOJIS.length];
+    el.style.cssText='left:'+(cx-8)+'px;top:'+(cy-8)+'px;--tx:'+tx+'px;--ty:'+ty+'px';
+    frag.appendChild(el);
+    nodes.push(el);
+  }
+  document.body.appendChild(frag);
+  setTimeout(()=>{for(let i=0;i<nodes.length;i++)nodes[i].remove()},740);
+}
+function shakeBoardPang(){
+  if(_isLowPerf())return;
+  const bf=document.getElementById('board-frame-el')||document.querySelector('.board-frame');
+  if(!bf)return;
+  bf.classList.remove('board-pang-shake');
+  void bf.offsetWidth;  // reflow 강제로 애니 재시작
+  bf.classList.add('board-pang-shake');
+  setTimeout(()=>bf.classList.remove('board-pang-shake'),360);
+}
+
 function triggerSpecialEffect(type,ar,ac,cx,cy){
   // 2프레임 지연: 블록 배치/렌더 프레임과 분리해서 jank 방지
   requestAnimationFrame(()=>{
@@ -2502,31 +2999,55 @@ function triggerSpecialEffect(type,ar,ac,cx,cy){
         const boardEl=document.getElementById('board');
         if(boardEl){
           const br=boardEl.getBoundingClientRect();
-          // 빛줄기를 짧게 - 중심 기준 셀 5칸 범위만 (보드 전체 X)
-          const armLen=_strideW?_strideW*3:120;
+          // ★ 레이저 길이 — 보드 전체(양쪽 끝 각각 + 여유 32px)까지 쭉 뻗음
+          const armLenLeft  = (cx - br.left)  + 32;
+          const armLenRight = (br.right - cx) + 32;
+          const armLenTop   = (cy - br.top)   + 32;
+          const armLenBot   = (br.bottom - cy)+ 32;
+          const beamThick = 20;
+          const haloThick = 44;  // halo는 2배 이상 두꺼움
+          const totalW = armLenLeft + armLenRight;
+          const totalH = armLenTop + armLenBot;
+          // Halo (외곽 glow) — 코어 뒤쪽 레이어 (z:899), 저전력에서는 CSS로 자동 숨김
+          const hHalo=document.createElement('div');
+          hHalo.className='special-burst-row-halo';
+          hHalo.style.cssText=`left:${cx-armLenLeft}px;top:${cy-haloThick/2}px;width:${totalW}px;--halo-h:${haloThick}px`;
+          document.body.appendChild(hHalo);
+          const vHalo=document.createElement('div');
+          vHalo.className='special-burst-col-halo';
+          vHalo.style.cssText=`left:${cx-haloThick/2}px;top:${cy-armLenTop}px;height:${totalH}px;--halo-w:${haloThick}px`;
+          document.body.appendChild(vHalo);
+          // 코어 빔 (샤프한 중심) — 위 레이어 (z:900)
           const hRow=document.createElement('div');
           hRow.className='special-burst-row';
-          hRow.style.cssText=`left:${cx-armLen}px;top:${cy-14}px;width:${armLen*2}px;--burst-h:28px`;
+          hRow.style.cssText=`left:${cx-armLenLeft}px;top:${cy-beamThick/2}px;width:${totalW}px;--burst-h:${beamThick}px`;
           document.body.appendChild(hRow);
           const vCol=document.createElement('div');
           vCol.className='special-burst-col';
-          vCol.style.cssText=`left:${cx-14}px;top:${cy-armLen}px;height:${armLen*2}px;--burst-w:28px`;
+          vCol.style.cssText=`left:${cx-beamThick/2}px;top:${cy-armLenTop}px;height:${totalH}px;--burst-w:${beamThick}px`;
           document.body.appendChild(vCol);
-          setTimeout(()=>{hRow.remove();vCol.remove()},420);
+          setTimeout(()=>{hRow.remove();vCol.remove();hHalo.remove();vHalo.remove()},800);
         }
-        spawnLabel('✚ CROSS!',cx,cy-70,'#FF8AC5',26,true);
+        spawnLabel('✚ SLASH!',cx,cy-70,'#FF8AC5',26,true);
+        // ★ Cross 새 효과: 플래시 링 + 4축 핑크 스파크 (폭죽 대신 샤프한 레이저)
+        spawnCrossFlashRing(cx,cy);
+        spawnCrossSparks(cx,cy);
       }else if(type==='bomb'){
         const radial=document.createElement('div');
         radial.className='special-burst-radial';
-        // 2x2 범위에 맞게 크기 축소 (3.6 → 2.6)
-        const size=_strideW?Math.round(_strideW*2.6):110;
+        // 2×2 영향 범위 + 주변 그라디언트 여유까지 (2.6 → 3.8)
+        const size=_strideW?Math.round(_strideW*3.8):160;
         // 2x2 중심은 폭탄 위치의 우하 대각선 방향 (0.5, 0.5 오프셋)
         const offsetCx=cx+(_strideW?_strideW*0.5:20);
         const offsetCy=cy+(_strideH?_strideH*0.5:20);
         radial.style.cssText=`left:${offsetCx}px;top:${offsetCy}px;width:${size}px;height:${size}px`;
         document.body.appendChild(radial);
-        setTimeout(()=>radial.remove(),570);
-        spawnLabel('💣 BOOM!',cx,cy-60,'#FF9850',28,true);
+        setTimeout(()=>radial.remove(),820);  // 780ms 애니 + 여유
+        spawnLabel('💥 BOOM!',cx,cy-60,'#FF9850',28,true);
+        // ★ 세트 B: 카툰 구름 + 🔥 불꽃 파편 + 보드 쉐이크
+        spawnPuffCloud(offsetCx,offsetCy);
+        spawnFlameBurst(offsetCx,offsetCy);
+        shakeBoardPang();
       }
     });
   });
@@ -2648,6 +3169,12 @@ function triggerClearFX(cx, cy, numLines, removed){
   const hwLowPerf=(typeof mem==='number'&&mem<4)||(typeof cpu==='number'&&cpu<=4);
   window._lowPerf=!!hwLowPerf;
   document.body.classList.toggle('low-perf',window._lowPerf);
+  // ★ 모바일 감쇠 티어 — iOS Safari의 mix-blend/filter blur 부담 차단 (low-perf보다 가벼움)
+  //    iOS/Android 기기는 항상 mobile-reduce ON (고성능 기기도 blend cost 동일)
+  const ua=navigator.userAgent||'';
+  const isMobile=/iPhone|iPad|iPod|Android/i.test(ua);
+  window._mobileReduce=isMobile;
+  document.body.classList.toggle('mobile-reduce',isMobile);
   const SAMPLES=6,INTERVAL=4000;
   let samples=[],rafId=0,timer=0;
   function measure(){
@@ -2823,7 +3350,7 @@ function spawnLabel(txt, x, y, color='#F5C842', fontSize=20, big=false){
   document.body.appendChild(el);
   setTimeout(()=>el.remove(), big?650:550);
 }
-function clearPreview(){if(!prevHover.length)return;prevHover.forEach(([r,c])=>{if(cellEls[r]&&cellEls[r][c])cellEls[r][c].classList.remove('preview-valid','preview-invalid','preview-clear','preview-place')});prevHover=[]}
+function clearPreview(){if(!prevHover.length)return;prevHover.forEach(([r,c])=>{if(cellEls[r]&&cellEls[r][c])cellEls[r][c].classList.remove('preview-valid','preview-invalid','preview-clear','preview-place','special-preview-cross','special-preview-bomb','cross-h','cross-v')});prevHover=[]}
 // Board bitmap 캐시 - board hash 바뀔 때만 재구성 (얼음 포함)
 let _boardBitmap=null, _boardBitmapHash=-1;
 function _getBoardBitmap(){
@@ -2844,7 +3371,14 @@ function showPreview(shape,sr,sc){
   const cls=valid?'preview-valid':'preview-invalid';
   const newCells=[];
   shape.forEach(([dr,dc])=>{const r=sr+dr,c=sc+dc;if(r>=0&&r<GRID&&c>=0&&c<GRID)newCells.push([r,c])});
-  const key=newCells.map(([r,c])=>r*9+c).join(',')+cls+_boardFilled+'.'+_iceCount;
+  // 현재 드래그/선택 중인 조각 (특수블록 효과 프리뷰용)
+  // ★ 방어: used/undefined 조각은 참조 안 함 + special 타입 화이트리스트
+  let activePiece = null;
+  if(dragIdx>=0 && pieces[dragIdx] && !pieces[dragIdx].used) activePiece = pieces[dragIdx];
+  else if(selIdx!==null && pieces[selIdx] && !pieces[selIdx].used) activePiece = pieces[selIdx];
+  const activeSpecial = (activePiece && (activePiece.special==='cross'||activePiece.special==='bomb')) ? activePiece.special : '';
+  const specialKey = activeSpecial;
+  const key=newCells.map(([r,c])=>r*9+c).join(',')+cls+_boardFilled+'.'+_iceCount+'.'+specialKey;
   if(key===_lastPreviewKey)return;
   _lastPreviewKey=key;
   clearPreview();
@@ -2873,25 +3407,74 @@ function showPreview(shape,sr,sc){
       if(ok)for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)willClearSet.add(r*9+c);
     }
   }
+  // ★ 특수블록 효과 범위 (별도 Set) — preview-clear와 구분된 고급 시각화
+  // specialDirMap: k → 'h' (가로선) | 'v' (세로선) | 'hv' (교차)
+  const specialSet=new Set();
+  const specialDirMap={};
+  if(valid && activeSpecial){
+    const ar=sr+shape[0][0], ac=sc+shape[0][1];
+    if(activeSpecial==='cross'){
+      // 가로줄(행) 방향 — 수평선
+      for(let c=0;c<9;c++){
+        const k=ar*9+c;
+        specialSet.add(k);
+        specialDirMap[k]=(c===ac)?'hv':'h';
+      }
+      // 세로줄(열) 방향 — 수직선 (중앙은 이미 'hv'로 표시됨)
+      for(let r=0;r<9;r++){
+        const k=r*9+ac;
+        specialSet.add(k);
+        if(r!==ar) specialDirMap[k]='v';
+      }
+    }else if(activeSpecial==='bomb'){
+      for(let dr=0;dr<=1;dr++)for(let dc=0;dc<=1;dc++){
+        const nr=ar+dr, nc=ac+dc;
+        if(nr>=0&&nr<9&&nc>=0&&nc<9) specialSet.add(nr*9+nc);
+      }
+    }
+  }
+  const specialCls = activeSpecial==='cross' ? 'special-preview-cross' : (activeSpecial==='bomb' ? 'special-preview-bomb' : '');
 
   // classList 일괄 추가 (MutationObserver 폭발 방지)
   newCells.forEach(([r,c])=>{
-    if(willClearSet.has(r*9+c)){
+    const k=r*9+c;
+    if(willClearSet.has(k) || specialSet.has(k)){
       cellEls[r][c].classList.add('preview-clear','preview-place');
+      if(specialSet.has(k) && specialCls){
+        cellEls[r][c].classList.add(specialCls);
+        // cross의 방향 클래스 적용
+        if(activeSpecial==='cross'){
+          const dir=specialDirMap[k];
+          if(dir&&dir.indexOf('h')>=0) cellEls[r][c].classList.add('cross-h');
+          if(dir&&dir.indexOf('v')>=0) cellEls[r][c].classList.add('cross-v');
+        }
+      }
       prevHover.push([r,c]);
     }
   });
-  if(willClearSet.size){
-    for(const k of willClearSet){
-      const r=(k/9)|0, c=k%9;  // Math.floor → bitwise
-      // newCells에 있으면 스킵 (위에서 처리)
+  if(willClearSet.size || specialSet.size){
+    const unionSet = new Set([...willClearSet, ...specialSet]);
+    for(const k of unionSet){
+      const r=(k/9)|0, c=k%9;
       let inNew=false;
       for(let i=0;i<newCells.length;i++){
         if(newCells[i][0]===r&&newCells[i][1]===c){inNew=true;break}
       }
       if(inNew)continue;
-      if(cellEls[r]&&cellEls[r][c]&&board[r][c]!==null){
-        cellEls[r][c].classList.add('preview-clear');
+      const isSpecialRange = specialSet.has(k);
+      if(cellEls[r]&&cellEls[r][c]&&(board[r][c]!==null || isSpecialRange)){
+        // 일반 라인 완성 셀은 preview-clear, 특수 효과 셀은 special-preview-* 적용
+        if(isSpecialRange && specialCls){
+          cellEls[r][c].classList.add(specialCls);
+          // cross의 방향 클래스 적용
+          if(activeSpecial==='cross'){
+            const dir=specialDirMap[k];
+            if(dir&&dir.indexOf('h')>=0) cellEls[r][c].classList.add('cross-h');
+            if(dir&&dir.indexOf('v')>=0) cellEls[r][c].classList.add('cross-v');
+          }
+        }else{
+          cellEls[r][c].classList.add('preview-clear');
+        }
         prevHover.push([r,c]);
       }
     }
@@ -3550,7 +4133,7 @@ function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;r
   if(_comboBannerEl){_comboBannerEl.style.display='none'}
   // 광고 카운트다운이 진행 중이었다면 취소 (뒤로가기/재시작 경로 안전)
   cancelExtendAd();
-  document.getElementById('score-el').textContent='0';document.getElementById('best-el').textContent=best.toLocaleString();document.getElementById('streak-bar').classList.remove('show');const badge=document.getElementById('phase-badge');if(badge)badge.textContent='';document.getElementById('quit-overlay').classList.remove('on');initBoard();renderBoard();clearPreview();newSet();updateCoinUI();resetUndo();updateGoalHint()}
+  document.getElementById('score-el').textContent='0';document.getElementById('best-el').textContent=best.toLocaleString();document.getElementById('streak-bar').classList.remove('show');document.getElementById('quit-overlay').classList.remove('on');initBoard();renderBoard();clearPreview();newSet();updateCoinUI();resetUndo();updateGoalHint()}
 
 let eventsAttached=false;
 function start(){buildBoard();initBoard();renderBoard();if(!eventsAttached){attachEvents();eventsAttached=true}Storage.get('pw2_muted',val=>{if(val==='1')Sound.setMute(true)});loadCoins(()=>{loadDiamonds(()=>{loadWeekly(()=>{loadAdBoost(()=>{updateLobby();showScreen('s-lobby')})})})})}
