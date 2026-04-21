@@ -1,25 +1,83 @@
 <!DOCTYPE html>
 <!--
-  감자팡팡 (Potato Woodoku) v6 — 2026-04-17
-  [v6 토스 스타일 전환 — 최신]
-  - 원칙: "모션이 보여야 실패. 모션이 느껴져야 성공."
-  - Overshoot 전면 제거 (ease-pop 사용 0건)
-  - 블록 착지: 80ms 단순 페이드인 (scale 0.92→1, 회전 없음)
-  - 라인 클리어: 220ms 조용한 페이드 (회전 0°, stagger 0, brightness 제거)
-  - Ghost 예고: scale 1.015 (거의 느껴지지 않는 수준)
-  - Score bump: peak 1.04/1.06/1.08 (이전 1.10/1.20/1.32에서 축소)
-  - Combo banner: scale 0.96→1 미세 변화, rotate/halo/glow 제거
-  - Board shake: 진폭 절반, 3단계 (epic 제거)
-  - Particles: 포물선·회전 제거, 짧은 상승+페이드만
-  - 모든 easing: cubic-bezier(0.4, 0, 0.2, 1) 차분한 곡선으로 통일
-  상세: v6-toss-style.md 참조
+  감자팡팡 (Potato Woodoku) v6 — 2026-04-21
 
-  [v6 성능 대수술 (이전 라운드, 유지)]
-  - filter:brightness 제거, setTimeout stagger CSS화 등 9건
+  [v6 최종 상태 — Dopamine Patch 적용 완료]
 
-  [v6 초기 모션 재설계 (이전, 대부분 토스 스타일로 재교체됨)]
-  - 새 easing 4종 + duration 5종 변수 시스템
-  - 라인 클리어/착지/Ghost/배너/파티클 전면 재작성
+  · 블록 착지
+    - 80ms 단순 페이드인 (scale 0.92 → 1, 회전/overshoot 없음)
+
+  · 라인 클리어 (v9 FORCE OVERRIDE)
+    - 300ms blockPopClear + radial stagger(20ms 간격, max 80ms)
+    - pre-bloom   : scale 1 → 1.05, brightness 1 → 1.18
+    - main clear  : scale 1.05 → 0.82, opacity 1 → 0.35
+    - finish      : scale 0.45 → 0, opacity 0
+    - sparkle     : 셀당 1개 (.block-inner::after), 90ms, delay(--clear-delay + 220ms)
+    - potato-wrap : potatoPopClear 300ms 동기
+    - !important + transition:none 로 어떤 기존 fade 규칙보다 우선 강제 적용
+    - low-perf Lite 분기(Blue/Potato PopClearLite) 완전 제거 — 단일 애니메이션 통일
+    - 디버그: doPlace 내 console.log('CLEAR CHECK:', animationName, delay, cells)
+
+  · 점수 시스템 (v9.5 pendingScore → flushScore 단일 경로)
+    - calculateClearScore(baseScore, combo) = floor(baseScore × max(1,combo)^1.4)
+    - addScore(amount): pendingScore 누적만 (즉시 반영 X)
+    - flushScore(numLines): 클리어 종료 후 단 한 번 호출 → 누적분 한꺼번에 반영
+    - 클리어 발생 시 flushScore 호출을 380ms 지연(= 300ms anim + 80ms stagger)
+      → 점수가 잘게 오르지 않고 "한 번에 크게" 상승
+    - animateScoreTo(from, to): 고정 100ms easeOutQuad t*(2-t)
+    - renderScore(value): score-el textContent 갱신 단일 지점
+    - 턴 로컬 집계 변수: turnGain (구 pts) — addScore + '+XX' 라벨 공용
+    - 제거된 구버전 로직:
+        · streakBonus 덧셈
+        · 특수블록 cross +80 / bomb +60 덧셈
+        · 첫 클리어 +50 보너스 덧셈
+        · addScore(pts, numLines) 다중 인자 시그니처
+        · animateScoreTo 가변 duration (80~120ms) 및 easeOutQuart
+
+  · Score bump (.cur-score)
+    - bump      : scale 1.06 (일반 클리어)
+    - bump-big  : scale 1.10 (3+ 콤보)
+    - bump-mega : scale 1.14 (4+ 콤보)
+    - 120ms cubic-bezier(0.4, 0, 0.2, 1), 종료 후 자동 정리
+
+  · Ghost 예고
+    - scale 1.015 (거의 느껴지지 않는 수준)
+
+  · Combo banner
+    - scale 0.96 → 1 미세 변화, rotate/halo/glow 제거
+
+  · Board shake
+    - 진폭 절반, 3단계 (epic 제거)
+
+  · Particles
+    - 포물선/회전 제거, 짧은 상승 + 페이드만
+
+  · Easing
+    - 전역 cubic-bezier(0.4, 0, 0.2, 1) 통일
+
+  · 도파민 유지 구조 (v6.5 FINAL POLISH)
+    - [1] 좋은 수 강조 (preview-clear 티어 분화)
+        · preview-strong : 2줄 동시 클리어 예고 → filter:brightness(1.18)
+        · preview-mega   : 3줄+ 동시 클리어 예고 → filter:brightness(1.32)
+        · scale/glow/네온 금지 — 오직 GPU 합성 filter만 사용
+    - [2] 위험 상태 (board-frame.danger)
+        · 빈칸 ≤ 16 진입, ≥ 20 해제 (히스테리시스로 경계 깜빡임 방지)
+        · box-shadow: inset 0 0 28px rgba(255,80,80,0.10) — 강한 빨강/깜빡임 금지
+        · low-perf: 12px / 0.12 fallback
+        · 트리거: doPlace 훅 내 updateBoardDanger()
+    - [3a] 3줄+ 클리어 HUD 미세 강조 (hud-highlight 단발 220ms)
+        · filter: brightness(1.06) saturate(1.08) !important
+        · fail-soon opacity 억제를 뚫어 "구조 성공" 도파민 피크 표출 (specificity 승리 목적)
+    - [3b] 실패 직전 긴장 (body.fail-soon)
+        · countPossibleMoves() ≤ 1 진입 (조기 종료 count≥2 최적화 — 최악 243 ops)
+        · .hud opacity: 0.78, .board-frame filter: contrast(1.08) — 흔들림/강한 효과 금지
+        · 트리거: doPlace 훅 + newSet 훅 내 updateFailSoon()
+    - 목표 힌트 (updateGoalHint)
+        · 다중 후보: 마일스톤 2K/5K/10K/25K/50K + Top10 컷 + "내 최고"
+        · 가장 가까운 목표 자동 선택 — Zeigarnik 효과로 이탈 방지
+    - 공용 헬퍼: getClearCountIfPlaced(piece, sr, sc)
+        · Uint8Array 비트맵 기반 — _getBoardBitmap() 캐시 재활용
+        · 반환: 배치 시 동시에 클리어되는 줄 수 (행+열+3x3 박스 합산)
 
   [v5에서 계승]
   - BGM 제거, 금기 규칙 fallback, _adBoostLeft 영속화, P1-A/C, _suppressClickUntil
@@ -227,28 +285,41 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 @keyframes undoPop{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
 .undo-btn.flash{animation:undoFlash .35s var(--ease-snap) both}
 @keyframes undoFlash{0%{box-shadow:0 1px 3px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05),0 0 0 0 rgba(74,222,128,.5)}50%{box-shadow:0 1px 3px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05),0 0 12px 4px rgba(74,222,128,.35)}100%{box-shadow:0 1px 3px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05),0 0 0 0 rgba(74,222,128,0)}}
-.undo-toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;font-weight:900;color:#4ade80;white-space:nowrap;pointer-events:none;animation:undoToastAnim .7s var(--ease-snap) forwards;z-index:500}
-@keyframes undoToastAnim{0%{opacity:0;transform:translate(-50%,-50%) scale(.8)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}40%{opacity:1;transform:translate(-50%,-60%)}100%{opacity:0;transform:translate(-50%,-80%)}}
+.undo-toast{position:absolute;top:50%;left:50%;display:flex;align-items:center;gap:9px;padding:9px 16px 9px 11px;border-radius:999px;background:linear-gradient(135deg,rgba(42,28,10,.88) 0%,rgba(22,16,6,.94) 100%);box-shadow:0 6px 20px rgba(0,0,0,.55),0 0 22px rgba(255,200,90,.28),inset 0 1px 0 rgba(255,216,128,.28),inset 0 0 0 1px rgba(255,200,90,.38);white-space:nowrap;pointer-events:none;transform:translate(-50%,-50%);animation:undoToastAnim .95s cubic-bezier(.34,1.56,.64,1) forwards;z-index:500;backdrop-filter:blur(8px) saturate(140%);-webkit-backdrop-filter:blur(8px) saturate(140%)}
+.undo-toast-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,#FFE694 0%,#FFB53D 65%,#B56C0E 100%);border-radius:50%;font-size:12px;color:#3a1f00;box-shadow:0 0 10px rgba(255,200,90,.75),inset 0 1px 0 rgba(255,255,255,.45),inset 0 -1px 2px rgba(0,0,0,.25);text-shadow:none;font-weight:900;line-height:1}
+.undo-toast-text{font-size:14px;font-weight:900;letter-spacing:1.8px;background:linear-gradient(180deg,#FFF4C2 0%,#FFCA55 68%,#E09418 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 1px 0 rgba(0,0,0,.35))}
+@keyframes undoToastAnim{0%{opacity:0;transform:translate(-50%,-46%) scale(.72) rotate(-4deg)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.08) rotate(1.2deg)}34%{transform:translate(-50%,-54%) scale(1) rotate(0)}68%{opacity:1;transform:translate(-50%,-62%) scale(1)}100%{opacity:0;transform:translate(-50%,-82%) scale(.94)}}
+.low-perf .undo-toast{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(30,20,8,.95)}
+/* ═══ UNDO TRAIL: 되돌리기 시 파티클이 트레이로 날아가는 효과 ═══ */
+.undo-trail{position:fixed;pointer-events:none;z-index:905;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle,#FFF8D6 0%,#FFD76B 50%,rgba(255,140,0,0) 100%);box-shadow:0 0 6px rgba(255,200,80,.9),0 0 14px rgba(255,180,60,.45);mix-blend-mode:screen;will-change:transform,opacity;transform:translate(-50%,-50%) scale(.2);opacity:0}
+.undo-target-glow{position:fixed;pointer-events:none;z-index:903;width:78px;height:78px;border-radius:50%;background:radial-gradient(circle,rgba(255,220,130,.6) 0%,rgba(255,180,60,.2) 45%,rgba(0,0,0,0) 70%);mix-blend-mode:screen;animation:undoTargetGlow 720ms cubic-bezier(.2,.8,.2,1) forwards;will-change:transform,opacity}
+@keyframes undoTargetGlow{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}40%{opacity:.95}72%{transform:translate(-50%,-50%) scale(1.15);opacity:.7}100%{transform:translate(-50%,-50%) scale(1.5);opacity:0}}
+.low-perf .undo-trail,.low-perf .undo-target-glow{mix-blend-mode:normal}
+/* 파티클이 도착할 때까지 슬롯 내용물 숨김 → 도착 순간 탄력 있게 팝업 */
+.piece-slot.undo-hidden{pointer-events:none}
+.piece-slot.undo-hidden > *{opacity:0;transform:scale(.2) rotate(-6deg);transition:none}
+.piece-slot.undo-reappear > *{animation:undoReappear 460ms cubic-bezier(.34,1.56,.64,1) both;transform-origin:center center}
+@keyframes undoReappear{0%{opacity:0;transform:scale(.2) rotate(-6deg)}55%{opacity:1;transform:scale(1.18) rotate(3deg)}78%{transform:scale(.96) rotate(-1.5deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
 .cur-score-wrap{flex-shrink:0;text-align:center;padding:clamp(0px,.2vh,1px) 0 clamp(2px,.6vh,5px);position:relative;display:flex;flex-direction:column;align-items:center}
 .cur-score{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:clamp(30px,5.2vh,44px);font-weight:800;letter-spacing:-1.2px;line-height:1;color:#FFFBF0;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1;-webkit-text-stroke:0;text-shadow:0 1px 2px rgba(0,0,0,.5),0 0 14px rgba(251,191,36,.22);position:relative;display:block;text-align:center;transform-origin:center center}
 .cur-score.bump,.cur-score.bump-big,.cur-score.bump-mega{will-change:transform}
-/* v6 토스 스타일: scale peak 축소 (1.04/1.06/1.08), bounce 제거 */
-.cur-score.bump     {animation: scoreBump     180ms cubic-bezier(0.4, 0, 0.2, 1) both}
-.cur-score.bump-big {animation: scoreBumpBig  220ms cubic-bezier(0.4, 0, 0.2, 1) both}
-.cur-score.bump-mega{animation: scoreBumpMega 260ms cubic-bezier(0.4, 0, 0.2, 1) both}
+/* v7 통일 bump: 120ms scale 1→1.08→1 (콤보 4+는 peak만 살짝 키움) */
+.cur-score.bump     {animation: scoreBump     120ms cubic-bezier(0.4, 0, 0.2, 1) both}
+.cur-score.bump-big {animation: scoreBumpBig  120ms cubic-bezier(0.4, 0, 0.2, 1) both}
+.cur-score.bump-mega{animation: scoreBumpMega 120ms cubic-bezier(0.4, 0, 0.2, 1) both}
 @keyframes scoreBump{
-  0%   { transform: scale(1);    }
-  50%  { transform: scale(1.04); }
-  100% { transform: scale(1);    }
-}
-@keyframes scoreBumpBig{
   0%   { transform: scale(1);    }
   50%  { transform: scale(1.06); }
   100% { transform: scale(1);    }
 }
+@keyframes scoreBumpBig{
+  0%   { transform: scale(1);    }
+  50%  { transform: scale(1.10); }
+  100% { transform: scale(1);    }
+}
 @keyframes scoreBumpMega{
   0%   { transform: scale(1);    }
-  50%  { transform: scale(1.08); }
+  50%  { transform: scale(1.14); }
   100% { transform: scale(1);    }
 }
 /* glow halo 제거 (토스 스타일: 과장 금지) */
@@ -259,8 +330,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .streak-badge.s5{font-size:16px;padding:5px 18px;background:rgba(249,168,212,.15);border-color:rgba(249,168,212,.35);color:#F9A8D4}
 .streak-badge.streak-pop{animation:streakPop 250ms var(--ease-out) both}
 @keyframes streakPop{0%{transform:scale(.7)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
-.goal-hint{font-size:11px;font-weight:600;color:rgba(74,222,128,.85);letter-spacing:0;margin-top:6px;height:0;opacity:0;overflow:hidden;transition:opacity .4s var(--ease-snap),height .4s var(--ease-snap)}
-.goal-hint.achieved{height:16px;opacity:1}
+/* goal-hint: 근접 마일스톤 상시 노출 (빈 문자열이면 :empty로 접힘) */
+.goal-hint{font-size:11px;font-weight:600;color:rgba(200,210,230,.72);letter-spacing:0;margin-top:6px;height:16px;opacity:1;overflow:hidden;transition:color .3s var(--ease-snap),transform .3s var(--ease-snap),opacity .4s var(--ease-snap),height .4s var(--ease-snap);transform-origin:left center}
+.goal-hint:empty{height:0;opacity:0}
+.goal-hint.near{color:rgba(255,212,122,.95);transform:scale(1.02)}           /* diff ≤ 500 */
+.goal-hint.close{color:rgba(255,190,80,1);transform:scale(1.04)}             /* diff ≤ 100 */
+.goal-hint.achieved{color:#FFD700;transform:scale(1.05)}                      /* 달성 */
 .board-area{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:clamp(4px,1vh,12px) clamp(2px,.5vw,4px) 0;min-height:0;contain:layout;overflow:hidden}
 .board-outer{width:var(--board-size,100%);max-width:var(--board-size,100%)}
 /* ── 보드 프레임: 1단 레이어 — 가장 깊고 무거운 바깥틀 ── */
@@ -591,6 +666,24 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 }
 /* preview-clear 상태에서 글래스 하이라이트 숨김 - 렌더링 레이어 감소 */
 .cell.filled.preview-clear::after{opacity:0 !important}
+/* ═══ 도파민 유지 HARD PATCH (FINAL SPEC) ═══ */
+/* [1] 좋은 수 강조 — brightness 1.18 / 1.32 단계, scale/glow/네온 금지 */
+.cell.filled.preview-clear.preview-strong .block-inner{ filter:brightness(1.18); }
+.cell.preview-clear.preview-strong:not(.filled)::after{ filter:brightness(1.18); }
+.cell.filled.preview-clear.preview-mega .block-inner{ filter:brightness(1.32); }
+.cell.preview-clear.preview-mega:not(.filled)::after{ filter:brightness(1.32); }
+/* [2] 위험 상태 — 빈칸 비율 ≤ 20% 시 은은한 inset (강한 빨강/깜빡임 금지) */
+.board-frame{ transition: box-shadow .5s ease; }
+.board-frame.danger{ box-shadow: inset 0 0 28px rgba(255,80,80,0.10); }
+.low-perf .board-frame.danger{ box-shadow: inset 0 0 12px rgba(255,80,80,0.12); }
+/* [3a] 3줄+ HUD 미세 강조 (단발 220ms) — fail-soon 억제를 뚫고 "구조 성공" 순간 표시 */
+.hud{ transition: filter .2s ease; }
+.hud.hud-highlight{ filter: brightness(1.06) saturate(1.08) !important; }
+.low-perf .hud.hud-highlight{ filter: none !important; }
+/* [3b] 실패 직전 긴장 — 배치 가능 위치 ≤ 1 — HUD 흐려지고 보드 대비 ↑ (흔들림/강한 효과 금지) */
+.fail-soon .hud{ opacity: 0.78; transition: opacity .4s ease; }
+.fail-soon .board-frame{ filter: contrast(1.08); transition: filter .4s ease, box-shadow .5s ease; }
+.low-perf .fail-soon .board-frame{ filter: none; }
 /* 착수 위치 표시 — 화이트 배경 */
 .cell.preview-place{
   background:rgba(255,255,255,.25) !important;
@@ -715,11 +808,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .piece-slot.invalid-nudge{animation:slotNudge 80ms var(--ease-press) both}
 @keyframes slotNudge{0%{transform:translateX(0)}35%{transform:translateX(-2.5px)}70%{transform:translateX(2.5px)}100%{transform:translateX(0)}}
 .piece-grid{display:inline-grid;gap:2px;pointer-events:none}
-.pc{width:22px;height:22px;border-radius:5px;background:transparent}
-.pc.on{background:linear-gradient(155deg,var(--block-light),var(--block) 55%,var(--block-dark));border-top:2px solid rgba(255,255,255,0.50);border-left:1.5px solid rgba(255,255,255,0.22);border-bottom:2px solid rgba(0,0,0,0.48);border-right:1.5px solid rgba(0,0,0,0.35);box-shadow:0 2px 5px rgba(0,0,0,0.50),inset 0 1px 1px rgba(255,255,255,.25);position:relative;border-radius:7px}
+.pc{width:22px;height:22px;border-radius:5px;background:transparent;box-sizing:border-box}
+.pc.on{background:linear-gradient(155deg,var(--block-light),var(--block) 55%,var(--block-dark));border-top:2px solid rgba(255,255,255,0.50);border-left:2px solid rgba(255,255,255,0.22);border-bottom:2px solid rgba(0,0,0,0.48);border-right:2px solid rgba(0,0,0,0.35);box-shadow:0 2px 5px rgba(0,0,0,0.50),inset 0 1px 1px rgba(255,255,255,.25);position:relative;border-radius:7px}
 /* .pc.on::after 글래스 제거 (paint 최적화) */
 .pc.on svg{position:absolute;inset:7.5%;width:85%;height:85%}
-#ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;visibility:hidden;opacity:0;will-change:transform,opacity;backface-visibility:hidden;contain:layout style paint;transition:opacity 220ms cubic-bezier(0.25, 0.1, 0.25, 1)}
+#ghost{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;visibility:hidden;opacity:0;will-change:transform,opacity;backface-visibility:hidden;contain:layout style;overflow:visible;transition:opacity 220ms cubic-bezier(0.25, 0.1, 0.25, 1)}
 #ghost.visible{visibility:visible;opacity:.92}
 #ghost.on-board{opacity:1}
 /* ═══ v6 iOS 홈스크린 스타일 드래그 Ghost ═══
@@ -996,7 +1089,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   text-shadow:0 1px 4px rgba(0,0,0,.35);
 }
 .combo-word.bravo    {color:#fff;font-size:clamp(24px,6vw,32px)}
-.combo-word.great    {color:#67E8F9;font-size:clamp(28px,7.5vw,38px)}
+.combo-word.great    {color:#FBBF24;font-size:clamp(28px,7.5vw,38px);text-shadow:0 1px 4px rgba(0,0,0,.35),0 0 10px rgba(251,191,36,.35)}
 .combo-word.excellent{color:#F5C842;font-size:clamp(32px,8.5vw,44px)}
 .combo-word.perfect  {color:#FFD700;font-size:clamp(36px,9.5vw,50px);text-shadow:0 1px 6px rgba(0,0,0,.4)}
 /* PERFECT halo 제거 (토스 스타일: 과장 금지) */
@@ -1137,46 +1230,66 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   z-index:5;
   overflow:visible;
 }
-/* ── 블록: 절제된 회전 + 축소 + dissolve ──
-/* ═══ v6 Gentle Vanish: 조용히 녹듯 사라지는 클리어 ═══
-   설계 원칙:
-   - rotate 완전 제거 (회전 없음 = 자연의 대칭)
-   - scale은 미세 기척(1.02)만, 그 후 단조 감소
-   - opacity가 주인공 (질감이 먼저, 색이 나중)
-   - blockFlash는 섬광 아닌 은은한 광채 (peak 0.20)
-   - Material Standard easing (보편적 자연스러움) */
+/* ══ 도파민 팝 클리어 (v7 Dopamine Pop) ══
+   설계: pop peak(1.06) → squash(0.92) → snap vanish(0)
+   - duration 300ms (기존 700ms → 절반 이하로 타격감 강화)
+   - ease-out(팝 오름) → ease-in(쪼그라들며 소멸)
+   - brightness 플래시 1→1.25→1 (0~40ms) 즉시 제거
+   - opacity 0~83% 유지 → 마지막 50ms(17%)만 급감 → 정적 구간 제거 */
 .cell.clearing .block-inner{
   transform-origin:center center;
-  animation: blockDissolve 700ms cubic-bezier(0.33, 0, 0.4, 1) forwards;
+  animation: blockPopClear 300ms cubic-bezier(0.4,0,0.2,1) forwards;
   animation-delay: var(--clear-delay, 0ms);
-  will-change: transform, opacity;
+  will-change: transform, opacity, filter;
   contain: paint;
   backface-visibility: hidden;
 }
-@keyframes blockDissolve{
-  /* 완만하게 퍼져나가는 느낌 — 중반에 훅 떨어지지 않음 */
-  0%   { opacity: 1.00; transform: scale(1);    }
-  20%  { opacity: 0.95; transform: scale(1.02); }  /* 아주 살짝 기척 */
-  40%  { opacity: 0.75; transform: scale(0.97); }  /* 부드러운 감소 시작 */
-  60%  { opacity: 0.50; transform: scale(0.90); }  /* 중반 — 선형에 가까움 */
-  80%  { opacity: 0.22; transform: scale(0.80); }  /* 후반 — 천천히 줄어듦 */
-  100% { opacity: 0.00; transform: scale(0.70); }
+/* ══ v9 FINAL DOPAMINE: 단순 pop → compress → vanish + sparkle ══
+   총 300ms, 5-stop, filter는 brightness만 (drop-shadow 제거 → paint 비용↓) */
+@keyframes blockPopClear{
+  0%   { transform: scale(1);    opacity: 1;    filter: brightness(1); }
+  25%  { transform: scale(1.05);                filter: brightness(1.18); }
+  70%  { transform: scale(0.82); opacity: 0.35; filter: brightness(1.05); }
+  100% { transform: scale(0.45); opacity: 0;    filter: brightness(0.95); }
 }
-/* ── 감자(potato): 블록과 동일 곡선 + 약간 빠르게 ── */
+/* ── 감자(얼굴): 블록과 동기화, peak만 살짝 덜 ── */
 .cell.clearing .potato-wrap{
   transform-origin:center center;
-  animation: potatoDissolve 700ms cubic-bezier(0.33, 0, 0.4, 1) forwards;
+  animation: potatoPopClear 300ms cubic-bezier(0.4,0,0.2,1) forwards;
   animation-delay: var(--clear-delay, 0ms);
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
-@keyframes potatoDissolve{
-  0%   { opacity: 1.00; transform: scale(1);    }
-  20%  { opacity: 0.90; transform: scale(1.02); }
-  40%  { opacity: 0.65; transform: scale(0.95); }
-  60%  { opacity: 0.40; transform: scale(0.88); }
-  80%  { opacity: 0.15; transform: scale(0.78); }
-  100% { opacity: 0.00; transform: scale(0.68); }
+@keyframes potatoPopClear{
+  0%   { transform: scale(1);    opacity: 1; }
+  25%  { transform: scale(1.04); }
+  70%  { transform: scale(0.78); opacity: 0.3; }
+  100% { transform: scale(0.42); opacity: 0; }
+}
+/* ── sparkle: 셀당 1개 micro sparkle (pseudo, DOM 추가 없음) ── */
+.cell.clearing .block-inner::after{
+  content:"";
+  position:absolute;
+  left:50%; top:50%;
+  width:6px; height:6px;
+  border-radius:50%;
+  background: radial-gradient(circle,
+              rgba(255,248,214,1) 0%,
+              rgba(255,215,128,0.8) 40%,
+              transparent 100%);
+  transform: translate(-50%,-50%) scale(0);
+  opacity:0;
+  animation: sparkle 90ms ease-out forwards;
+  animation-delay: calc(var(--clear-delay, 0ms) + 220ms);
+  pointer-events:none;
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+  z-index: 3;
+}
+@keyframes sparkle{
+  0%   { transform: translate(-50%,-50%) scale(0);   opacity:0; }
+  50%  { transform: translate(-50%,-50%) scale(1.1); opacity:1; }
+  100% { transform: translate(-50%,-50%) scale(0.3); opacity:0; }
 }
 /* ── ❌ flash 레이어 제거됨 ──
    과거: .cell.clearing::before 가 셀 전체에 inset:0 으로 흰색 radial-gradient
@@ -1200,31 +1313,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   .combo-banner { animation: none; opacity: 1 }
   .board-frame.shaking, .board-frame.shaking-medium, .board-frame.shaking-heavy, .board-frame.shaking-epic { animation: none }
 }
-/* JS _lowPerf 감지 시 적용되는 경량 오버라이드 */
-/* v6 Gentle Vanish 저사양: 3단계로 간결, peak 없이 단조 감소만 */
-.low-perf .cell.clearing .block-inner{
-  animation: blockDissolveLite 380ms cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
-  animation-delay: var(--clear-delay, 0ms) !important;
-}
-.low-perf .cell.clearing .potato-wrap{
-  animation: potatoDissolveLite 380ms cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
-  animation-delay: var(--clear-delay, 0ms) !important;
-}
-.low-perf .cell.clearing .block-inner::after{
-  animation: none !important;
-}
-/* 저사양 모드도 flash 레이어 완전 제거 (동일 이유) */
+/* v9 FORCE: low-perf Lite clear override 제거 — blockPopClear 강제 통일
+   (landing/preview-clear의 low-perf 분기는 아래에 유지) */
 .low-perf .cell.clearing::before{display:none !important}
-@keyframes blockDissolveLite{
-  0%   { opacity: 1.00; transform: scale(1);    }
-  40%  { opacity: 0.30; transform: scale(0.85); }
-  100% { opacity: 0.00; transform: scale(0.50); }
-}
-@keyframes potatoDissolveLite{
-  0%   { opacity: 1.00; transform: scale(1);    }
-  40%  { opacity: 0.20; transform: scale(0.80); }
-  100% { opacity: 0.00; transform: scale(0.45); }
-}
+.low-perf .cell.clearing .block-inner::after{ animation: none !important; } /* sparkle만 저사양에서 비활성 (sparkle 생략 허용) */
 /* 저사양에서 착지 애니메이션: 미세 스프링만, 100ms로 짧게 */
 .low-perf .cell.landing .block-inner{
   animation: blockLandLite 100ms cubic-bezier(0.34, 1.1, 0.64, 1) both !important;
@@ -1317,6 +1409,49 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .gameover-splash-line{width:120px;height:2px;margin-top:12px;background:linear-gradient(90deg,transparent,rgba(251,191,36,.5),transparent);transform:scaleX(0);transform-origin:center;will-change:transform}
 .gameover-splash.on .gameover-splash-line{animation:goLineIn .4s ease .55s forwards}
 @keyframes goLineIn{0%{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* ═════════════════════════════════════════════════════════════════════
+   v9 FORCE OVERRIDE — CLEAR FX 강제 적용 (우선순위 보장)
+   기존 어떤 transition/opacity/fade 규칙보다 뒤에 와서 최종 승리
+   ════════════════════════════════════════════════════════════════════ */
+.cell.clearing .block-inner{
+  animation: blockPopClear 300ms cubic-bezier(0.4,0,0.2,1) forwards !important;
+  animation-delay: var(--clear-delay, 0ms) !important;
+  transform-origin: center center;
+  will-change: transform, opacity, filter;
+  transition: none !important;
+}
+.cell.clearing .potato-wrap{
+  animation: potatoPopClear 300ms cubic-bezier(0.4,0,0.2,1) forwards !important;
+  animation-delay: var(--clear-delay, 0ms) !important;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  transition: none !important;
+}
+/* 내부 요소 (face/icon 등 block-inner 하위) 혹시 존재 시 동기화 */
+.cell.clearing .block-inner *{
+  animation: potatoPopClear 300ms cubic-bezier(0.4,0,0.2,1) forwards !important;
+  animation-delay: var(--clear-delay, 0ms) !important;
+}
+/* keyframes 재선언 — 상단 규칙이 어떤 이유로 유실돼도 최종본으로 덮어씀 */
+@keyframes blockPopClear{
+  0%   { transform: scale(1);    opacity: 1;    filter: brightness(1); }
+  25%  { transform: scale(1.05);                filter: brightness(1.18); }
+  70%  { transform: scale(0.82); opacity: 0.35; filter: brightness(1.05); }
+  100% { transform: scale(0.45); opacity: 0;    filter: brightness(0.95); }
+}
+@keyframes potatoPopClear{
+  0%   { transform: scale(1);    opacity: 1; }
+  25%  { transform: scale(1.04); }
+  70%  { transform: scale(0.78); opacity: 0.3; }
+  100% { transform: scale(0.42); opacity: 0; }
+}
+/* 저사양 예외: reduced-motion 유지 (접근성) */
+@media (prefers-reduced-motion: reduce){
+  .cell.clearing .block-inner,
+  .cell.clearing .potato-wrap,
+  .cell.clearing .block-inner *{ animation: none !important; opacity: 0 !important; }
+}
 
 </style>
 </head>
@@ -2317,8 +2452,7 @@ function weightedPick(){const phase=getPhase(),table=WEIGHT_OVERRIDE[phase];cons
 function weightedPickSmall(){const pool=SPAWN_POOL.filter(p=>p.size<=3);return pool[Math.floor(Math.random()*pool.length)]}
 
 // ═══ GAME STATE ═══
-const GRID=9,PTS_PER_BLOCK=1,PTS_PER_CLEAR=20,COMBO_BONUS=[0,0,80,200,380,600,900];
-function streakBonus(n){const t=[0,0,50,120,240,400];if(n<t.length)return t[n];return 400+(n-5)*200}
+const GRID=9,PTS_PER_BLOCK=1,PTS_PER_CLEAR=20;  // v9.5: COMBO_BONUS/streakBonus 제거 — calculateClearScore 단일 경로
 let board=[],pieces=[],selIdx=null,score=0,best=0,streak=0,maxStreak=0,totalClears=0;
 let dragIdx=-1,dragActive=false,prevHover=[],cellEls=[],_boardFilled=0;
 let extendUsed=false,isTouchDrag=false,gameActive=false;
@@ -2398,12 +2532,25 @@ function saveUndoState(){
 }
 function undoPlace(){
   if(!gameActive||_undoLeft<=0||!_undoStack)return;
+  // 파티클 연출용 메타데이터 먼저 캡처 (상태 복원 전에 DOM 좌표를 계산해둠)
+  const _placedCells = _undoStack._placedCells || [];
+  const _placedSlotIdx = (_undoStack._placedSlotIdx!=null) ? _undoStack._placedSlotIdx : 0;
+  const _trailSources = [];
+  if(_placedCells.length>0){
+    for(let i=0;i<_placedCells.length;i++){
+      const [r,c] = _placedCells[i];
+      const ce = cellEls[r] && cellEls[r][c];
+      if(!ce) continue;
+      const rr = ce.getBoundingClientRect();
+      _trailSources.push({sx:rr.left+rr.width/2, sy:rr.top+rr.height/2, w:rr.width});
+    }
+  }
   _undoLeft--;
   _activeClearTimers.forEach(id=>clearTimeout(id));
   _activeClearTimers.clear();
   for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){
     const el=cellEls[r][c];if(!el)continue;
-    el.classList.remove('clearing','landing','shake','preview-valid','preview-invalid','preview-clear','preview-place','ice-crack-shake');
+    el.classList.remove('clearing','landing','shake','preview-valid','preview-invalid','preview-clear','preview-place','ice-crack-shake','preview-strong','preview-mega');
   }
   // restore state
   board=_undoStack.board.map(r=>[...r]);
@@ -2427,9 +2574,78 @@ function undoPlace(){
   btn.classList.remove('flash');cnt.classList.remove('pop');
   requestAnimationFrame(()=>{btn.classList.add('flash');cnt.classList.add('pop')});
   setTimeout(()=>{btn.classList.remove('flash');cnt.classList.remove('pop')},400);
-  const t=document.createElement('div');t.className='undo-toast';t.textContent='↩️ 되돌리기 완료!';
+  const t=document.createElement('div');t.className='undo-toast';
+  t.innerHTML='<div class="undo-toast-icon">⏪</div><div class="undo-toast-text">REWIND</div>';
   document.getElementById('s-play').appendChild(t);
-  setTimeout(()=>t.remove(),750);
+  setTimeout(()=>t.remove(),980);
+  // ── 되돌리기 파티클: 방금 놓은 셀에서 트레이 슬롯으로 우아하게 날아감 ──
+  if(_trailSources.length>0){
+    const slotEl = document.getElementById('slot-'+_placedSlotIdx);
+    const sRect = slotEl ? slotEl.getBoundingClientRect() : null;
+    const tx = sRect ? sRect.left + sRect.width/2 : window.innerWidth/2;
+    const ty = sRect ? sRect.top  + sRect.height/2 : window.innerHeight-80;
+    // 블록 내용물 먼저 숨김 (renderTray로 이미 복원됐지만 시각만 감춤)
+    if(slotEl){
+      slotEl.classList.remove('undo-reappear');
+      slotEl.classList.add('undo-hidden');
+    }
+    _trailSources.forEach((s,i)=>{
+      spawnUndoTrail(s.sx, s.sy, tx, ty, i*28);
+    });
+    // 트레이 슬롯 도착: 발광 + 블록 팝업 (전체 파티클 도착 시각에 맞춤)
+    const arriveDelay = 230 + (_trailSources.length-1)*28 + 360;
+    setTimeout(()=>{
+      spawnUndoTargetGlow(tx, ty);
+      if(slotEl){
+        slotEl.classList.remove('undo-hidden');
+        slotEl.classList.add('undo-reappear');
+        setTimeout(()=>slotEl.classList.remove('undo-reappear'), 480);
+      }
+    }, arriveDelay);
+  }
+}
+/* ═══ 되돌리기 파티클 헬퍼 ═══ */
+function spawnUndoTargetGlow(tx, ty){
+  const g=document.createElement('div');
+  g.className='undo-target-glow';
+  g.style.cssText='left:'+tx+'px;top:'+ty+'px';
+  document.body.appendChild(g);
+  setTimeout(()=>g.remove(),760);
+}
+function spawnUndoTrail(sx, sy, tx, ty, startDelay){
+  startDelay = startDelay || 0;
+  const ps = (typeof _particleScale==='function') ? _particleScale() : 1;
+  const n = Math.max(3, Math.round(7 * ps));  // 셀당 3~7개 파티클 (저사양: 3, 모바일: 5, 데스크톱: 7)
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');
+    p.className='undo-trail';
+    // 파티클 크기 살짝 랜덤화 (7~11px)로 풍성함 추가
+    const sz = 7 + Math.random()*4;
+    p.style.cssText='left:'+sx+'px;top:'+sy+'px;width:'+sz.toFixed(1)+'px;height:'+sz.toFixed(1)+'px';
+    document.body.appendChild(p);
+    // 아크 궤적: 중간 웨이포인트(살짝 위로 솟음) 후 트레이로 하강
+    const jx=(Math.random()-0.5)*42;
+    const jy=(Math.random()-0.5)*22;
+    const midX=(sx+tx)/2+jx;
+    const midY=Math.min(sy,ty)-70-Math.random()*34;
+    const finalX=tx+(Math.random()-0.5)*26;
+    const finalY=ty+(Math.random()-0.5)*16;
+    const d1=startDelay+i*32;  // 파티클 간 시차 55→32ms (더 밀집 방출)
+    // Phase 1: 등장 + 웨이포인트로 상승
+    setTimeout(()=>{
+      p.style.transition='transform 230ms cubic-bezier(.25,.9,.3,1),opacity 140ms ease-out';
+      p.style.opacity='1';
+      p.style.transform='translate(-50%,-50%) translate('+(midX-sx)+'px,'+(midY-sy)+'px) scale(1)';
+    }, d1);
+    // Phase 2: 트레이 슬롯으로 하강하며 페이드
+    setTimeout(()=>{
+      p.style.transition='transform 520ms cubic-bezier(.55,0,.75,.95),opacity 520ms ease-in';
+      p.style.transform='translate(-50%,-50%) translate('+(finalX-sx)+'px,'+(finalY-sy)+'px) scale(.4)';
+      p.style.opacity='0';
+    }, d1+230);
+    // 정리
+    setTimeout(()=>p.remove(), d1+880);
+  }
 }
 function updateUndoUI(){
   const btn=document.getElementById('undo-btn');
@@ -2440,7 +2656,12 @@ function updateUndoUI(){
     cnt.style.background=_undoLeft<=1?'#f87171':'#fbbf24';
   }
 }
-function resetUndo(){_undoLeft=3;_undoStack=null;updateUndoUI()}
+function resetUndo(){_undoLeft=3;_undoStack=null;updateUndoUI();
+  // 파티클 도착 대기 중이던 슬롯 잔존 클래스 제거
+  document.querySelectorAll('.piece-slot.undo-hidden,.piece-slot.undo-reappear').forEach(el=>{
+    el.classList.remove('undo-hidden','undo-reappear');
+  });
+}
 Storage.get('pw2_best',val=>{best=+(val||0)});
 
 function initBoard(){board=Array.from({length:GRID},()=>Array(GRID).fill(null));boardSpecial=Array.from({length:GRID},()=>Array(GRID).fill(null));_iceGenCounter=0;_iceCount=0}
@@ -2470,6 +2691,210 @@ function _ensurePlaceable(){
     pieces[0]={shape:normalizeShape(joeDef.cells),face:Math.floor(Math.random()*POTATOES.length),used:false};
   }
 }
+// ═══ ILLUSION OF SKILL SYSTEM (v6.7) ═══
+// 유저가 "운으로 살았다"가 아니라 "내가 더 좋은 수를 골랐다"고 착각하도록 설계
+// → 정답 블록 강제 지급 금지, 후보군 비중만 조절 + 2~3개 선택지 유지
+//
+// 3-tier (상위 우선):
+//   death    : emptyCells ≤  9 OR minMovesSeen ≤ 1 — 완전 구제 금지, 생존 가능성만 ↑
+//   crisis   : emptyCells ≤ 15 OR minMovesSeen ≤ 2
+//   pressure : emptyCells ≤ 20 OR minMovesSeen ≤ 4
+//   normal   : 완전 랜덤 유지
+let _crisisMinMovesSeen=99;  // 현재 핸드(한 세트 진행 중) 관찰된 최소 possibleMoves
+const _scratchFilled=new Uint8Array(81);  // _evaluateCandidate 재사용 버퍼
+// 미래 턴 유연성 프록시: 작은 조각으로 배치 가능 위치 수를 카운트 (상수 비용)
+const _FUTURE_PROBES=[
+  [[0,0]],           // Joe
+  [[0,0],[0,1]],     // Dot2H
+  [[0,0],[1,0]]      // Dot2V
+];
+// 카운트 max까지만 집계 (기존 countPossibleMoves는 ≤2 조기탈출 → tier 구분 불가)
+function _countMovesUpTo(max){
+  let count=0;
+  for(const p of pieces){
+    if(!p||p.used) continue;
+    for(let r=0;r<GRID;r++){
+      for(let c=0;c<GRID;c++){
+        if(canPlace(p.shape,r,c)){
+          count++;
+          if(count>=max) return count;
+        }
+      }
+    }
+  }
+  return count;
+}
+function _getCrisisTier(){
+  const empty=countEmpty();
+  const m=_crisisMinMovesSeen;
+  if(empty<= 9||m<=1) return 'death';
+  if(empty<=15||m<=2) return 'crisis';
+  if(empty<=20||m<=4) return 'pressure';
+  return 'normal';
+}
+// 주어진 filled 비트맵에 대해 완성되는 행/열/박스를 clearMask로 반환
+function _computeClearMask(filled){
+  const mask=new Uint8Array(81);
+  for(let r=0;r<9;r++){
+    let ok=true; for(let c=0;c<9;c++) if(!filled[r*9+c]){ok=false;break}
+    if(ok) for(let c=0;c<9;c++) mask[r*9+c]=1;
+  }
+  for(let c=0;c<9;c++){
+    let ok=true; for(let r=0;r<9;r++) if(!filled[r*9+c]){ok=false;break}
+    if(ok) for(let r=0;r<9;r++) mask[r*9+c]=1;
+  }
+  for(let br=0;br<3;br++)for(let bc=0;bc<3;bc++){
+    let ok=true;
+    outer:for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++) if(!filled[r*9+c]){ok=false;break outer}
+    if(ok) for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++) mask[r*9+c]=1;
+  }
+  return mask;
+}
+// 1칸 고립 구멍 (4방향 모두 filled 또는 경계) — 낮을수록 좋음
+function _countDeadHoles(filled){
+  let n=0;
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+    if(filled[r*9+c]) continue;
+    const u=(r===0)||filled[(r-1)*9+c];
+    const d=(r===8)||filled[(r+1)*9+c];
+    const l=(c===0)||filled[r*9+c-1];
+    const ri=(c===8)||filled[r*9+c+1];
+    if(u&&d&&l&&ri) n++;
+  }
+  return n;
+}
+// 미래 턴 유연성 — 작은 프로브 셋으로 배치 가능 위치 총 개수 (상수 비용)
+function _cheapFutureMoves(filled){
+  let n=0;
+  for(const shape of _FUTURE_PROBES){
+    for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+      let ok=true;
+      for(let i=0;i<shape.length;i++){
+        const nr=r+shape[i][0], nc=c+shape[i][1];
+        if(nr<0||nr>=9||nc<0||nc>=9||filled[nr*9+nc]){ok=false;break}
+      }
+      if(ok) n++;
+    }
+  }
+  return n;
+}
+// 피스 평가 — 최적 배치 위치 탐색 + 분류 (2턴 앞 생존성 반영)
+// return { canPlace, type, score, immediateClears, futureMoves }
+function _evaluateCandidate(pieceDef, boardBmp, baselineFuture, baselineHoles){
+  const shape=normalizeShape(pieceDef.cells);
+  let canPlaceAny=false, maxClears=0, bestScore=-Infinity, bestFuture=0;
+  const shapeLen=shape.length;
+  // 상대 평가용 baseline — 현재 보드 상태의 지표
+  const BF = (typeof baselineFuture==='number') ? baselineFuture : _cheapFutureMoves(boardBmp);
+  const BH = (typeof baselineHoles==='number') ? baselineHoles : _countDeadHoles(boardBmp);
+  for(let r=0;r<9;r++){
+    for(let c=0;c<9;c++){
+      if(!canPlace(shape,r,c)) continue;
+      canPlaceAny=true;
+      // 배치 시뮬레이션 (스크래치 버퍼 재사용)
+      _scratchFilled.set(boardBmp);
+      for(let i=0;i<shapeLen;i++) _scratchFilled[(r+shape[i][0])*9+(c+shape[i][1])]=1;
+      // 클리어 집계
+      const mask=_computeClearMask(_scratchFilled);
+      let clears=0;
+      for(let r2=0;r2<9;r2++){let ok=true;for(let c2=0;c2<9;c2++)if(!_scratchFilled[r2*9+c2]){ok=false;break}if(ok)clears++}
+      for(let c2=0;c2<9;c2++){let ok=true;for(let r2=0;r2<9;r2++)if(!_scratchFilled[r2*9+c2]){ok=false;break}if(ok)clears++}
+      for(let br=0;br<3;br++)for(let bc=0;bc<3;bc++){
+        let ok=true;
+        outerBox:for(let r2=br*3;r2<br*3+3;r2++)for(let c2=bc*3;c2<bc*3+3;c2++)if(!_scratchFilled[r2*9+c2]){ok=false;break outerBox}
+        if(ok)clears++;
+      }
+      // 클리어 적용
+      let clearedCells=0;
+      for(let i=0;i<81;i++) if(mask[i]){_scratchFilled[i]=0; clearedCells++}
+      // 구조 점수 (2턴 앞 반영)
+      const deadHoles=_countDeadHoles(_scratchFilled);
+      // 성능 최적화: clears>=2 (jackpot 확정) 시 future 생략 — BF 대신 0 사용하지만 점수는 clears 지배
+      const future = clears>=2 ? BF : _cheapFutureMoves(_scratchFilled);
+      const emptyGain = clearedCells - shapeLen;
+      // 점수 = clears 보너스 + (미래 유연성 변화) + 빈칸 이득 - (새로 생긴) 쓰레기 구멍
+      // future/holes 는 delta 로 — 절대값이면 하드한 보드에서 모두 dead로 쏠림
+      const deltaFuture = future - BF;
+      const deltaHoles = deadHoles - BH;
+      const s = clears*10 + deltaFuture*2 + emptyGain*3 - Math.max(0,deltaHoles)*6;
+      // maxClears는 어떤 위치든 달성 가능한 최대값 (분류용) — 조건부 아님
+      if(clears>maxClears) maxClears=clears;
+      if(s>bestScore){bestScore=s; bestFuture=Math.max(bestFuture,future);}
+      // 조기 탈출: jackpot 확정 (3줄+) → 더 볼 필요 없음
+      if(clears>=3){r=9;break}
+    }
+  }
+  if(!canPlaceAny) return {canPlace:false,type:'dead',score:-999,immediateClears:0,futureMoves:0};
+  let type;
+  if(maxClears>=2) type='jackpot';                     // 2+줄 즉시 클리어
+  else if(maxClears>=1||bestScore>=20) type='recover'; // 1줄 클리어 또는 구조 점수 높음
+  else if(bestScore>=-15) type='survive';              // 배치 가능 — 최소 한 턴 생존
+  else type='dead';                                    // 배치해도 판이 급격히 악화
+  return {canPlace:true,type,score:bestScore,immediateClears:maxClears,futureMoves:bestFuture};
+}
+// Tier별 타입 비중 (합 100 또는 합 75 — 나머지는 death의 "완전 랜덤 35%"로 처리)
+const _TIER_WEIGHTS={
+  normal  :{dead:25,survive:35,recover:25,jackpot:15}, // 실제로는 normal은 완전 랜덤 경로 사용 (참고용)
+  pressure:{dead:20,survive:35,recover:30,jackpot:15},
+  crisis  :{dead:10,survive:40,recover:35,jackpot:15},
+  death   :{dead: 0,survive:35,recover:20,jackpot:10}  // dead 0 + 랜덤 35% 별도 → 총 100%
+};
+function _pickFromBuckets(buckets,tier){
+  const w=_TIER_WEIGHTS[tier];
+  const eff=[];
+  for(const t of ['dead','survive','recover','jackpot']){
+    if(w[t]>0 && buckets[t] && buckets[t].length>0) eff.push({t,w:w[t]});
+  }
+  if(eff.length===0){
+    // 폴백: placeable 한 것 중 아무거나
+    for(const t of ['survive','recover','jackpot','dead']){
+      if(buckets[t]&&buckets[t].length>0) return buckets[t][Math.floor(Math.random()*buckets[t].length)];
+    }
+    return null;
+  }
+  const total=eff.reduce((a,b)=>a+b.w,0);
+  let r=Math.random()*total;
+  for(const e of eff){
+    r-=e.w;
+    if(r<=0){const arr=buckets[e.t]; return arr[Math.floor(Math.random()*arr.length)];}
+  }
+  const last=eff[eff.length-1]; return buckets[last.t][0];
+}
+function _defToPiece(def){
+  return {shape:normalizeShape(def.cells),face:Math.floor(Math.random()*POTATOES.length),used:false};
+}
+function _illusionGenerateSet(){
+  const tier=_getCrisisTier();
+  if(tier==='normal'){
+    // 평시: 완전 랜덤 유지 (분류 비용 회피)
+    return [randPiece(),randPiece(),randPiece()];
+  }
+  // 후보 분류 (SPAWN_POOL 1회 평가 — baseline 은 루프 외부 1회 계산)
+  const boardBmp=_getBoardBitmap();
+  const baselineFuture=_cheapFutureMoves(boardBmp);
+  const baselineHoles=_countDeadHoles(boardBmp);
+  const buckets={dead:[],survive:[],recover:[],jackpot:[]};
+  for(const def of SPAWN_POOL){
+    const ev=_evaluateCandidate(def,boardBmp,baselineFuture,baselineHoles);
+    buckets[ev.type].push(def);
+  }
+  // 3개 생성 — death에서는 "완전 랜덤 35%" 혼합 (완전 구제 회피)
+  const pickOne=()=>{
+    if(tier==='death' && Math.random()<0.35) return randPiece();
+    const def=_pickFromBuckets(buckets,tier);
+    return def ? _defToPiece(def) : randPiece();
+  };
+  let out=[pickOne(),pickOne(),pickOne()];
+  // 2+ placeable 보장 — crisis/death 한정, 최대 2회 재추첨 (패턴 노출 방지 위해 짧게)
+  if(tier==='crisis'||tier==='death'){
+    for(let retry=0;retry<2;retry++){
+      const placeable=out.filter(p=>_canPlaceAnywhere(p.shape)).length;
+      if(placeable>=2) break;
+      out=[pickOne(),pickOne(),pickOne()];
+    }
+  }
+  return out;
+}
 function newSet(){
   if(totalTurns<=3){
     // 첫 2세트: 라인빌더 1개 보장 + 쉬운 조합
@@ -2480,8 +2905,9 @@ function newSet(){
     // 셔플
     for(let i=2;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pieces[i],pieces[j]]=[pieces[j],pieces[i]]}
   }else{
-    pieces=[randPiece(),randPiece(),randPiece()];
+    pieces=_illusionGenerateSet();             // ILLUSION OF SKILL — 3-tier 후보군 비중 조절
   }
+  _crisisMinMovesSeen=99;                      // 소비 후 리셋 — 다음 핸드부터 새로 집계
   // ★ 특수 블록 치환 — 영향력 반영, 10턴에 약 1번만 (귀한 보상)
   // 전체 0.10 (트레이 3개 중 1개 나옴 = 10턴에 1번)
   // 타입: 십자가 20% (영향력 큼) / 폭탄 80% (메인) + anti-streak (연속 방지)
@@ -2527,6 +2953,8 @@ function newSet(){
   generateIceIfNeeded();
   // ★ 얼음 시각 일관성 보장 (어디선가 얼음 렌더 누락되어도 복구)
   _ensureIceCellsVisible();
+  // HARD PATCH: 새 세트 등장 → 실패직전 상태 재평가
+  if(typeof updateFailSoon==='function') updateFailSoon();
 }
 // ═══ 얼음 셀 자동 생성 (점수 기반 난이도) ═══
 // Issue 2 fix: 빈 셀에 생성하지 않고, 기존 블록 위에 얼음을 씌움
@@ -2574,6 +3002,11 @@ function renderTray(){for(let i=0;i<3;i++){const slot=document.getElementById('s
 function canPlace(shape,sr,sc){return shape.every(([dr,dc])=>{const r=sr+dr,c=sc+dc;if(r<0||r>=GRID||c<0||c>=GRID)return false;if(board[r][c]!==null)return false;if(boardSpecial[r][c]&&boardSpecial[r][c].type==='ice')return false;return true})}
 function shapeAnchor(shape,hr,hc){const maxR=Math.max(...shape.map(([r])=>r)),maxC=Math.max(...shape.map(([,c])=>c));return[hr-Math.round(maxR/2),hc-Math.round(maxC/2)]}
 function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!canPlace(p.shape,sr,sc))return false;saveUndoState();
+  // 되돌리기 파티클 연출용 메타데이터 (상태 복원과는 무관 — 시각 효과 전용)
+  if(_undoStack){
+    _undoStack._placedCells = p.shape.map(([dr,dc])=>[sr+dr,sc+dc]);
+    _undoStack._placedSlotIdx = idx;
+  }
   // ── v6 블록 착지: 모든 셀 동시 트리거 (성능 최적화) ──
   const landingCells = [];
   p.shape.forEach(([dr,dc])=>{
@@ -2588,7 +3021,8 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
   }, 240);
   haptic(p.shape.length>=5?'medium':'light');
   Sound.sfx.place();
-  let pts=p.shape.length*PTS_PER_BLOCK;p.used=true;totalTurns++;
+  // 이번 턴에서 획득한 총 점수 (블록 배치 + 클리어 보정치 포함, 최종적으로 addScore→pendingScore로 전달됨)
+  let turnGain=p.shape.length*PTS_PER_BLOCK;p.used=true;totalTurns++;
   // ★ 특수 블록 발동 — 배치 즉시 광역 삭제
   let specialExtraCells=null;
   let specialBonusLines=0;  // 콤보 카운트에 포함할 가상 라인 수
@@ -2624,17 +3058,11 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
   if(effectiveLines>0){
     streak++;maxStreak=Math.max(maxStreak,streak);totalClears+=effectiveLines;
     recentClearTurns=0;
-    pts+=numCells*PTS_PER_CLEAR;
-    pts+=COMBO_BONUS[Math.min(effectiveLines,COMBO_BONUS.length-1)];
-    pts+=streakBonus(streak);
-    // 특수 효과 추가 보너스
-    if(p.special==='cross')pts+=80;
-    else if(p.special==='bomb')pts+=60;
+    // v9.5: 단일 경로 — calculateClearScore(baseScore, combo) 만 사용
+    const baseScore = numCells * PTS_PER_CLEAR;
+    const gained = calculateClearScore(baseScore, effectiveLines);
+    turnGain += gained;  // 이번 턴 획득 점수 (addScore + '+XX' 라벨 공용)
     if(effectiveLines>=2)Sound.sfx.multiClear(effectiveLines);else Sound.sfx.clear();
-    // 첫 클리어 보너스 강조
-    if(totalClears===effectiveLines&&totalTurns<=6){
-      pts+=50;
-    }
     if(streak>=2)Sound.sfx.streak(streak);
     setTimeout(()=>{
       if(streak>=3)haptic('heavy');
@@ -2652,19 +3080,39 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
       bar.classList.remove('show');
     }
   }
-  addScore(pts,effectiveLines);showStreakUI();renderTray();
+  // v9.5: 누적 → 지연 flush
+  addScore(turnGain);
+  // 클리어 발생 시 애니메이션 종료(≈380ms) 후 한 번에 반영, 클리어 없으면 즉시
+  if(effectiveLines>0){
+    setTimeout(()=>flushScore(effectiveLines), 380);
+  }else{
+    flushScore(0);
+  }
+  showStreakUI();renderTray();
   const sr2=sr+Math.floor(Math.max(...p.shape.map(([r])=>r))/2),sc2=sc+Math.floor(Math.max(...p.shape.map(([,c])=>c))/2);
   if(sr2>=0&&sr2<GRID&&sc2>=0&&sc2<GRID){
     const rect=cellEls[sr2][sc2].getBoundingClientRect();
     const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
     const labelSize=effectiveLines>=4?48:effectiveLines>=3?40:effectiveLines>=2?34:effectiveLines>=1?28:22;
     const labelColor=effectiveLines>=3?'#FFD700':effectiveLines>=1?'#F5C842':'rgba(247,250,252,0.7)';
-    spawnLabel('+'+pts,cx,cy,labelColor,labelSize,effectiveLines>=3);
+    spawnLabel('+'+turnGain,cx,cy,labelColor,labelSize,effectiveLines>=3);
     if(effectiveLines>0)triggerClearFX(cx,cy,effectiveLines,cleared.removed);
   }
   if(effectiveLines>=2)haptic('success');
+  // P1 FINAL: 3줄+ HUD 미세 강조 (단발 220ms)
+  if(effectiveLines>=3){
+    const hudEl=document.querySelector('.hud');
+    if(hudEl){
+      hudEl.classList.remove('hud-highlight');
+      requestAnimationFrame(()=>hudEl.classList.add('hud-highlight'));
+      setTimeout(()=>hudEl.classList.remove('hud-highlight'),220);
+    }
+  }
   if(pieces.every(p=>p.used)){setTimeout(()=>{newSet();setTimeout(checkGameOver,50)},180)}else{setTimeout(checkGameOver,50)}
   updateUndoUI();
+  // HARD PATCH: 턴 종료 → 위험/실패직전 상태 재평가
+  updateBoardDanger();
+  updateFailSoon();
   // ★ 얼음 시각 정합성 방어 (clearLines setTimeout 콜백 후에도 얼음 유지 보장)
   const CLEAR_DUR_WAIT = 780;
   setTimeout(()=>_ensureIceCellsVisible(), CLEAR_DUR_WAIT);
@@ -2792,23 +3240,32 @@ function clearLines(extraCells){
   }
   _boardFilled-=actuallyRemoved.filter(([r,c])=>board[r][c]!==null).length;
   for(const[r,c]of actuallyRemoved){board[r][c]=null}
-  // ═══ 방사형 Stagger: 클리어 영역 중심 → 바깥으로 퍼짐 (상위 1% 체감) ═══
-  // - 행 클리어: 중앙 셀 → 좌우 양끝 동시 확산
-  // - 열 클리어: 중앙 셀 → 위아래 양끝 동시 확산
-  // - 박스/복합: 기하 중심 → 전체 방사형
+  // ═══ Stagger v9: radial 정렬 후 index*20ms, 상한 80ms ═══
+  // 중심에서 거리순으로 정렬해 "중앙 먼저 → 바깥 순차" 느낌 유지, delay는 index 기반으로 간결하게.
   const centerR=actuallyRemoved.reduce((s,[r,_])=>s+r,0)/actuallyRemoved.length;
   const centerC=actuallyRemoved.reduce((s,[_,c])=>s+c,0)/actuallyRemoved.length;
+  const _ordered=actuallyRemoved.slice().map(([r,c])=>({
+    r,c,d:Math.sqrt((r-centerR)**2+(c-centerC)**2)
+  })).sort((a,b)=>a.d-b.d);
   let maxDelay=0;
-  const coef=window._lowPerf?18:26; // 거리 기반 stagger (cell당 ~30ms)
-  actuallyRemoved.forEach(([r,c])=>{
+  _ordered.forEach(({r,c},i)=>{
     const el=cellEls[r][c];
-    const dist=Math.sqrt((r-centerR)**2+(c-centerC)**2);
-    const delay=Math.round(dist*coef);
+    const delay=Math.min(i*20,80);
     if(delay>maxDelay)maxDelay=delay;
     el.style.setProperty('--clear-delay',delay+'ms');
     el.classList.add('clearing');
   });
-  const CLEAR_DUR=700;
+  // v9 FORCE DEBUG: 첫 셀의 실제 animationName을 콘솔로 찍어 적용 여부 확인
+  if(_ordered.length>0){
+    const _dbgEl=cellEls[_ordered[0].r][_ordered[0].c];
+    const _dbgInner=_dbgEl.querySelector('.block-inner');
+    if(_dbgInner){
+      console.log('CLEAR CHECK:', getComputedStyle(_dbgInner).animationName,
+                  '| delay=', _dbgEl.style.getPropertyValue('--clear-delay'),
+                  '| cells=', _ordered.length);
+    }
+  }
+  const CLEAR_DUR=window._lowPerf?240:300;  // v7 Dopamine Pop: 기본 300ms, 저사양 240ms
   const totalWait=CLEAR_DUR+maxDelay+30;
   const _timerId=setTimeout(()=>{
     _activeClearTimers.delete(_timerId);
@@ -2822,81 +3279,193 @@ function clearLines(extraCells){
   _activeClearTimers.add(_timerId);
   return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:actuallyRemoved};
 }
-function addScore(pts,numLines){
-  const prevScore=score;
-  score+=pts;
-  if(score>best){best=score;Storage.set('pw2_best',best)}
-  // ★ 마일스톤 감지 (점수 임계치 돌파)
-  const milestones=[100,500,1000,2500,5000,10000,25000,50000,100000];
-  for(const m of milestones){
-    if(prevScore<m && score>=m){
-      // 클리어 시 지연: 2줄+ 800ms (콤보 연출 완전히 끝난 후), 1줄 300ms, 클리어 없으면 즉시
-      const delay = numLines>=2 ? 800 : numLines===1 ? 300 : 0;
-      setTimeout(()=>showMilestonePopup(m), delay);
-      break;  // 한 턴에 하나만
-    }
+// ═══════════════════════════════════════════════════════════════════
+// v9.5 SCORE SYSTEM — 단일 경로:
+//   calculateClearScore → addScore → flushScore → animateScoreTo → renderScore
+// ═══════════════════════════════════════════════════════════════════
+let pendingScore = 0;   // 누적 대기 점수 (flushScore 시점에 score에 반영)
+let _scoreDisplay = 0;  // 화면에 표시 중인 값 (카운트업 기준점)
+let _scoreRAF = null;
+
+// 최종 획득 점수 단일 계산식: baseScore × max(1, combo)^1.4
+function calculateClearScore(baseScore, combo){
+  const comboSafe = Math.max(1, combo);
+  return Math.floor(baseScore * Math.pow(comboSafe, 1.4));
+}
+
+// 누적만. 여기서는 score/UI에 반영하지 않는다.
+function addScore(amount){
+  pendingScore += amount;
+}
+
+// 실제 반영 — 클리어 종료 후 한 번만 호출
+// numLines: 0 이면 즉시(블록 배치만), >0 이면 클리어 연출 종료 후
+function flushScore(numLines = 0){
+  if(!pendingScore) return;
+  const from = score;
+  const to   = score + pendingScore;
+  const gained = pendingScore;
+  score = to;
+  pendingScore = 0;
+
+  // best / 신기록 팝업
+  const prevBest = best;
+  if(score > best){ best = score; Storage.set('pw2_best', best); }
+  if(prevBest > 0 && !_newRecordShown && score > prevBest){
+    _newRecordShown = true;
+    const delay = numLines >= 2 ? 800 : numLines === 1 ? 300 : 0;
+    setTimeout(()=>showNewRecordPopup(score), delay);
   }
-  const sv=document.getElementById('score-el');
-  if(pts>0){
-    const cls=numLines>=4?'bump-mega':numLines>=3?'bump-big':'bump';
+
+  // bump 클래스 (.cur-score) — 콤보 강도에 따라 1.06 / 1.10 / 1.14
+  const sv = document.getElementById('score-el');
+  if(sv && gained > 0){
+    const cls = numLines >= 4 ? 'bump-mega' : numLines >= 3 ? 'bump-big' : 'bump';
     sv.classList.remove('bump','bump-big','bump-mega');
     requestAnimationFrame(()=>sv.classList.add(cls));
-    // v6 토스 스타일 duration: bump 180 / bump-big 220 / bump-mega 260
-    const dur=numLines>=4?260:numLines>=3?220:180;
-    setTimeout(()=>sv.classList.remove(cls),dur);
+    setTimeout(()=>sv.classList.remove(cls), 120);
   }
-  // ★ 카운트업 애니메이션 (상위 1% 체감) — 이전 표시값 → 새 값
-  animateScoreTo(score, numLines);
-  document.getElementById('best-el').textContent=best.toLocaleString();
+
+  animateScoreTo(from, to);
+  document.getElementById('best-el').textContent = best.toLocaleString();
   updateGoalHint();
 }
-// ═══ 점수 카운트업 (easeOutQuart, 점수 차이에 비례한 duration) ═══
-let _scoreDisplay=0;   // 현재 화면에 표시 중인 값
-let _scoreRAF=null;
-function animateScoreTo(target, numLines=0){
-  const sv=document.getElementById('score-el');
-  if(!sv)return;
-  if(_scoreRAF)cancelAnimationFrame(_scoreRAF);
-  const start=_scoreDisplay;
-  const diff=target-start;
-  if(Math.abs(diff)<2){
-    _scoreDisplay=target;
-    sv.textContent=target.toLocaleString();
+
+// 점수 텍스트 갱신 단일 지점
+function renderScore(value){
+  const sv = document.getElementById('score-el');
+  if(sv) sv.textContent = Math.floor(value).toLocaleString();
+}
+
+// 100ms 고정, easeOutQuad t*(2-t)
+function animateScoreTo(from, to){
+  if(_scoreRAF) cancelAnimationFrame(_scoreRAF);
+  const diff = to - from;
+  if(Math.abs(diff) < 1){
+    _scoreDisplay = to;
+    renderScore(to);
     return;
   }
-  // duration: 250~600ms (작은 점수 짧게, 큰 점수 길게, 최대 600ms)
-  const duration=Math.min(600, 250+Math.abs(diff)*0.3+numLines*40);
-  const t0=performance.now();
-  const step=(now)=>{
-    const elapsed=now-t0;
-    const progress=Math.min(elapsed/duration, 1);
-    // easeOutQuart — 빠르게 시작 → 부드럽게 정착
-    const eased=1-Math.pow(1-progress, 4);
-    _scoreDisplay=start+diff*eased;
-    sv.textContent=Math.round(_scoreDisplay).toLocaleString();
-    if(progress<1){
-      _scoreRAF=requestAnimationFrame(step);
+  const duration = 100;
+  const start = performance.now();
+  const tick = (now)=>{
+    const t = Math.min((now - start) / duration, 1);
+    const eased = t * (2 - t);
+    const value = Math.floor(from + diff * eased);
+    _scoreDisplay = value;
+    renderScore(value);
+    if(t < 1){
+      _scoreRAF = requestAnimationFrame(tick);
     }else{
-      _scoreDisplay=target;
-      sv.textContent=target.toLocaleString();
-      _scoreRAF=null;
+      _scoreDisplay = to;
+      renderScore(to);
+      _scoreRAF = null;
     }
   };
-  _scoreRAF=requestAnimationFrame(step);
+  _scoreRAF = requestAnimationFrame(tick);
+}
+// P0-A: 촘촘한 마일스톤 (2K/5K/10K/25K/50K) — 도파민 유지 목적
+function getNextMilestone(s){
+  const M=[2000,5000,10000,25000,50000];
+  for(const m of M) if(s<m) return m;
+  return null;  // 50K 초과 → 마일스톤 없음
 }
 function updateGoalHint(){
   const el=document.getElementById('goal-hint');if(!el)return;
+  el.classList.remove('near','close','achieved');
   const cut=getTop10Cut();
-  const diff=cut-score;
-  if(diff<=0&&score>0){
-    // 달성 순간만 표시
+  // 1순위: Top10 달성 순간
+  if(cut>0 && score>=cut){
     el.textContent='🏆 상위 10% 달성!';
     el.classList.add('achieved');
-  }else{
-    // 평소엔 숨김 (원작 스타일 — 점수만 담백하게)
-    el.textContent='';
-    el.classList.remove('achieved');
+    return;
   }
+  // 2순위: 가장 가까운 목표 — 마일스톤과 Top10컷 중 낮은 쪽
+  const next=getNextMilestone(score);
+  const candidates=[];
+  if(next!=null) candidates.push({t:next,label:next.toLocaleString()});
+  if(cut>score)  candidates.push({t:cut,label:'Top 10%'});
+  if(best>score) candidates.push({t:best,label:'내 최고'});  // P1: 최고점 근접 추격감
+  if(candidates.length===0){ el.textContent=''; return; }
+  candidates.sort((a,b)=>a.t-b.t);
+  const target=candidates[0];
+  const diff=target.t-score;
+  el.textContent=target.label+'까지 '+diff.toLocaleString();
+  if(diff<=100)      el.classList.add('close');
+  else if(diff<=500) el.classList.add('near');
+}
+// ═══ HARD PATCH: 도파민 유지 상태 API ═══
+// 정적 CSS 토글만, RAF/setInterval 없음 — 호출 시점에만 비용 발생
+
+// [1] 특정 위치 배치 시 클리어될 라인 수 반환 (행+열+3x3박스 합산)
+// 호출 시 O(81 + shape.length + 27) ≈ O(110). 캐시된 boardBitmap 사용 → 새 배열 할당 1회만
+function getClearCountIfPlaced(piece, sr, sc){
+  const shape = piece && piece.shape ? piece.shape : piece;
+  if(!shape || !canPlace(shape, sr, sc)) return 0;
+  const bmp = _getBoardBitmap();
+  const filled = new Uint8Array(bmp);
+  for(let i=0;i<shape.length;i++){
+    const r=sr+shape[i][0], c=sc+shape[i][1];
+    if(r<0||r>=GRID||c<0||c>=GRID) return 0;
+    filled[r*GRID+c]=1;
+  }
+  let count=0;
+  for(let r=0;r<GRID;r++){
+    let ok=true;for(let c=0;c<GRID;c++)if(!filled[r*GRID+c]){ok=false;break}
+    if(ok) count++;
+  }
+  for(let c=0;c<GRID;c++){
+    let ok=true;for(let r=0;r<GRID;r++)if(!filled[r*GRID+c]){ok=false;break}
+    if(ok) count++;
+  }
+  for(let br=0;br<3;br++)for(let bc=0;bc<3;bc++){
+    let ok=true;
+    outer:for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)if(!filled[r*GRID+c]){ok=false;break outer}
+    if(ok) count++;
+  }
+  return count;
+}
+
+// [2] 위험 상태 — 빈칸 비율 ≤ 20% 시 .danger 부여
+//     hysteresis(enter≤16, exit≥20)로 경계 깜빡임 방지
+function updateBoardDanger(){
+  const frame=document.querySelector('.board-frame');
+  if(!frame) return;
+  const empty=countEmpty();
+  if(empty<=16) frame.classList.add('danger');
+  else if(empty>=20) frame.classList.remove('danger');
+}
+
+// [3] 전체 (piece, r, c) 배치 가능한 위치 총 개수 — 조기 탈출(≥2)로 최대 비용 제한
+function countPossibleMoves(){
+  let count=0;
+  for(const p of pieces){
+    if(!p || p.used) continue;
+    for(let r=0;r<GRID;r++){
+      for(let c=0;c<GRID;c++){
+        if(canPlace(p.shape, r, c)){
+          count++;
+          if(count>=2) return count;  // ≤1 판정만 필요 → 2 발견 시 즉시 반환
+        }
+      }
+    }
+  }
+  return count;
+}
+
+// [3] 실패 직전 긴장 — 배치 가능 위치 ≤ 1 시 .fail-soon 부여
+function updateFailSoon(){
+  const hasUnused=pieces.some(p=>p&&!p.used);
+  if(!hasUnused){                              // 핸드 종료 직후(=세트 전환) — tier 지표 왜곡 방지
+    document.body.classList.remove('fail-soon');
+    return;
+  }
+  const moves=countPossibleMoves();            // ≤2 조기탈출 — fail-soon UI 판정용
+  // ILLUSION: 3-tier 해상도를 위해 최대 5까지 집계 (moves 정보 재활용 가능하면 생략 가능)
+  const movesFull=moves>=2 ? _countMovesUpTo(5) : moves;
+  if(movesFull<_crisisMinMovesSeen) _crisisMinMovesSeen=movesFull;
+  if(moves<=1) document.body.classList.add('fail-soon');
+  else document.body.classList.remove('fail-soon');
 }
 function showStreakUI(){
   const bar=document.getElementById('streak-bar'),el=document.getElementById('streak-el');
@@ -3401,25 +3970,22 @@ function showComboMultiplier(numLines){
     _comboMultTimer = null;
   }, window._lowPerf?600:900);
 }
-// ── 마일스톤 팝업 (100/500/1000 등 점수 임계치 돌파) ──
+// ── 신기록 달성 팝업 (게임당 최초 1회만 노출) ──
 let _lastMilestoneEl=null;
-function showMilestonePopup(milestoneValue){
+let _newRecordShown=false;  // 현재 게임 세션 내 신기록 팝업 노출 여부
+function showNewRecordPopup(scoreValue){
   // 이전 팝업 아직 있으면 즉시 제거
   if(_lastMilestoneEl){_lastMilestoneEl.remove();_lastMilestoneEl=null}
   const el=document.createElement('div');
-  el.className='milestone-pop';
-  if(milestoneValue>=10000) el.classList.add('m-epic');
-  else if(milestoneValue>=2500) el.classList.add('m-high');
-  const subText = milestoneValue>=10000?'LEGENDARY!':milestoneValue>=5000?'AMAZING!':milestoneValue>=1000?'GREAT MILESTONE':'NICE!';
+  el.className='milestone-pop m-epic';  // 흰색+금빛 발광 (최상급 등급 재활용)
   el.innerHTML=`
-    <div class="m-label">MILESTONE</div>
-    <div class="m-num">${milestoneValue.toLocaleString()}</div>
-    <div class="m-sub">${subText}</div>
+    <div class="m-label">NEW RECORD</div>
+    <div class="m-num">${scoreValue.toLocaleString()}</div>
+    <div class="m-sub">신기록 달성!</div>
   `;
   document.body.appendChild(el);
   _lastMilestoneEl=el;
-  haptic(milestoneValue>=5000?'heavy':milestoneValue>=1000?'medium':'light');
-  // 마일스톤 사운드 (이미 있는 SFX 재활용)
+  haptic('heavy');
   if(Sound?.sfx?.extend) Sound.sfx.extend();
   const dur = window._lowPerf?900:1600;
   setTimeout(()=>{if(el.parentNode)el.remove();if(_lastMilestoneEl===el)_lastMilestoneEl=null}, dur);
@@ -3448,7 +4014,7 @@ function spawnLabel(txt, x, y, color='#F5C842', fontSize=20, big=false){
   document.body.appendChild(el);
   setTimeout(()=>el.remove(), big?650:550);
 }
-function clearPreview(){if(!prevHover.length)return;prevHover.forEach(([r,c])=>{if(cellEls[r]&&cellEls[r][c])cellEls[r][c].classList.remove('preview-valid','preview-invalid','preview-clear','preview-place','special-preview-cross','special-preview-bomb','cross-h','cross-v')});prevHover=[]}
+function clearPreview(){if(!prevHover.length)return;prevHover.forEach(([r,c])=>{if(cellEls[r]&&cellEls[r][c])cellEls[r][c].classList.remove('preview-valid','preview-invalid','preview-clear','preview-place','special-preview-cross','special-preview-bomb','cross-h','cross-v','preview-strong','preview-mega')});prevHover=[]}
 // Board bitmap 캐시 - board hash 바뀔 때만 재구성 (얼음 포함)
 let _boardBitmap=null, _boardBitmapHash=-1;
 function _getBoardBitmap(){
@@ -3483,6 +4049,7 @@ function showPreview(shape,sr,sc){
 
   // 배치 시 터질 셀 계산 (valid일 때 항상)
   const willClearSet=new Set();
+  let willClearLines=0;  // P0-B: tier 판정용 — 완성되는 행/열/박스의 총 개수
   if(valid){
     // 캐시된 board bitmap 사용 - 매번 재생성 안 함
     const boardBmp=_getBoardBitmap();
@@ -3491,20 +4058,37 @@ function showPreview(shape,sr,sc){
     // 행 완성
     for(let r=0;r<9;r++){
       let ok=true;for(let c=0;c<9;c++)if(!filled[r*9+c]){ok=false;break}
-      if(ok)for(let c=0;c<9;c++)willClearSet.add(r*9+c);
+      if(ok){willClearLines++;for(let c=0;c<9;c++)willClearSet.add(r*9+c);}
     }
     // 열 완성
     for(let c=0;c<9;c++){
       let ok=true;for(let r=0;r<9;r++)if(!filled[r*9+c]){ok=false;break}
-      if(ok)for(let r=0;r<9;r++)willClearSet.add(r*9+c);
+      if(ok){willClearLines++;for(let r=0;r<9;r++)willClearSet.add(r*9+c);}
     }
     // 3×3 박스 완성
     for(let br=0;br<3;br++)for(let bc=0;bc<3;bc++){
       let ok=true;
       outer:for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)if(!filled[r*9+c]){ok=false;break outer}
-      if(ok)for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)willClearSet.add(r*9+c);
+      if(ok){willClearLines++;for(let r=br*3;r<br*3+3;r++)for(let c=bc*3;c<bc*3+3;c++)willClearSet.add(r*9+c);}
     }
   }
+  // HARD PATCH [1]: 예고 강도 — 2줄+: preview-strong / 3줄+: preview-mega
+  // ILLUSION [7]: recover 점수 높은 위치도 preview-mega 승격 (clears≥1 위치 한정 — preview-clear 셀 존재 필요)
+  let recoverHigh=false;
+  if(valid && willClearLines>=1 && willClearLines<3){
+    // 배치+클리어 적용 후 bitmap으로 구조 점수 평가 (dead hole 0 + future 유연성 높음)
+    const finalBmp=new Uint8Array(_getBoardBitmap());
+    newCells.forEach(([r,c])=>finalBmp[r*9+c]=1);
+    willClearSet.forEach(k=>finalBmp[k]=0);
+    const deadHoles=_countDeadHoles(finalBmp);
+    const future=_cheapFutureMoves(finalBmp);
+    // 기준: 쓰레기 구멍 0 + 미래 유연성 상위 (≥100, 빈 보드 ~240 기준)
+    recoverHigh = (deadHoles===0 && future>=100);
+  }
+  const previewTier = willClearLines>=3 ? 'preview-mega'
+                    : (recoverHigh && willClearLines>=1) ? 'preview-mega'
+                    : willClearLines>=2 ? 'preview-strong'
+                    : '';
   // ★ 특수블록 효과 범위 (별도 Set) — preview-clear와 구분된 고급 시각화
   // specialDirMap: k → 'h' (가로선) | 'v' (세로선) | 'hv' (교차)
   const specialSet=new Set();
@@ -3538,6 +4122,7 @@ function showPreview(shape,sr,sc){
     const k=r*9+c;
     if(willClearSet.has(k) || specialSet.has(k)){
       cellEls[r][c].classList.add('preview-clear','preview-place');
+      if(previewTier) cellEls[r][c].classList.add(previewTier);
       if(specialSet.has(k) && specialCls){
         cellEls[r][c].classList.add(specialCls);
         // cross의 방향 클래스 적용
@@ -3572,6 +4157,7 @@ function showPreview(shape,sr,sc){
           }
         }else{
           cellEls[r][c].classList.add('preview-clear');
+          if(previewTier) cellEls[r][c].classList.add(previewTier);
         }
         prevHover.push([r,c]);
       }
@@ -4214,12 +4800,13 @@ function extendAd(){if(extendUsed)return;extendUsed=true;Sound.sfx.uiClick();doc
 }else adTimer.textContent=count},1e3)}
 function showToast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('phone').appendChild(el);setTimeout(()=>el.remove(),2100)}
 
-function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;recentClearTurns=0;totalTurns=0;extendUsed=false;gameActive=true;
-  // ★ 카운트업 상태 초기화
-  _scoreDisplay=0;if(_scoreRAF){cancelAnimationFrame(_scoreRAF);_scoreRAF=null}
+function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;recentClearTurns=0;totalTurns=0;extendUsed=false;gameActive=true;_newRecordShown=false;
+  // ★ v9.5 점수 시스템 초기화: 카운트업 + pendingScore 함께 리셋
+  _scoreDisplay=0;pendingScore=0;if(_scoreRAF){cancelAnimationFrame(_scoreRAF);_scoreRAF=null}
   // ★ 특수 블록 시스템 리셋
   boardSpecial=Array.from({length:GRID},()=>Array(GRID).fill(null));
   _iceCount=0;_iceGenCounter=0;_lastSpecialType=null;_boardBitmapHash=-1;
+  _crisisMinMovesSeen=99;                      // ILLUSION 핸드별 최소 이동 수 리셋
   // ★ 드래그 잔여 클래스 청소 (새 게임 진입 시 트레이 블록 안 보이는 버그 방지)
   document.querySelectorAll('.piece-slot.dragging').forEach(s=>s.classList.remove('dragging'));
   // P0-1 fix: 신규 게임 진입 시 점수 2배 버프 상태 초기화 (startNewGame 누락 방지)
@@ -4231,7 +4818,12 @@ function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;r
   if(_comboBannerEl){_comboBannerEl.style.display='none'}
   // 광고 카운트다운이 진행 중이었다면 취소 (뒤로가기/재시작 경로 안전)
   cancelExtendAd();
-  document.getElementById('score-el').textContent='0';document.getElementById('best-el').textContent=best.toLocaleString();document.getElementById('streak-bar').classList.remove('show');document.getElementById('quit-overlay').classList.remove('on');initBoard();renderBoard();clearPreview();newSet();updateCoinUI();resetUndo();updateGoalHint()}
+  document.getElementById('score-el').textContent='0';document.getElementById('best-el').textContent=best.toLocaleString();document.getElementById('streak-bar').classList.remove('show');document.getElementById('quit-overlay').classList.remove('on');initBoard();renderBoard();clearPreview();newSet();updateCoinUI();resetUndo();updateGoalHint();
+  // HARD PATCH: 게임 리셋 시 도파민 유지 상태 클래스 모두 정리
+  document.querySelector('.board-frame')?.classList.remove('danger');
+  document.body.classList.remove('fail-soon');
+  document.querySelector('.hud')?.classList.remove('hud-highlight');
+}
 
 let eventsAttached=false;
 function start(){buildBoard();initBoard();renderBoard();if(!eventsAttached){attachEvents();eventsAttached=true}Storage.get('pw2_muted',val=>{if(val==='1')Sound.setMute(true)});loadCoins(()=>{loadDiamonds(()=>{loadWeekly(()=>{loadAdBoost(()=>{updateLobby();showScreen('s-lobby')})})})})}
