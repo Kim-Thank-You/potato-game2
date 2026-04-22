@@ -383,22 +383,18 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 /* ═══ 고급 레이저 빔 — 중앙에서 양쪽으로 쭉 퍼지는 느낌 ═══ */
 /* 코어 빔: 중앙 0 → 양쪽으로 부드럽게 확장 (살짝 두께 부풀어오르다 안정) */
 @keyframes specialBurstRow{
-  0%  {opacity:0;transform:scaleX(0)    scaleY(0.35);filter:blur(6px)}
-  8%  {opacity:.55;transform:scaleX(0.12) scaleY(1.15);filter:blur(1px)}
-  28% {opacity:1;transform:scaleX(.75) scaleY(1.12);filter:blur(0)}
-  46% {opacity:1;transform:scaleX(1)    scaleY(1)    ;filter:blur(0.25px)}
-  62% {opacity:.96;transform:scaleX(1.02) scaleY(.98);filter:blur(0.4px)}
-  80% {opacity:.65;transform:scaleX(1.05) scaleY(.8);filter:blur(1px)}
-  100%{opacity:0;transform:scaleX(1.12) scaleY(.18);filter:blur(4px)}
+  0%  {opacity:0;transform:scaleX(0) scaleY(1)}
+  5%  {opacity:1;transform:scaleX(0.06) scaleY(1)}
+  38% {opacity:1;transform:scaleX(1) scaleY(1)}
+  65% {opacity:1;transform:scaleX(1) scaleY(1)}
+  100%{opacity:0;transform:scaleX(1) scaleY(1)}
 }
 @keyframes specialBurstCol{
-  0%  {opacity:0;transform:scaleY(0)    scaleX(0.35);filter:blur(6px)}
-  8%  {opacity:.55;transform:scaleY(0.12) scaleX(1.15);filter:blur(1px)}
-  28% {opacity:1;transform:scaleY(.75) scaleX(1.12);filter:blur(0)}
-  46% {opacity:1;transform:scaleY(1)    scaleX(1)    ;filter:blur(0.25px)}
-  62% {opacity:.96;transform:scaleY(1.02) scaleX(.98);filter:blur(0.4px)}
-  80% {opacity:.65;transform:scaleY(1.05) scaleX(.8);filter:blur(1px)}
-  100%{opacity:0;transform:scaleY(1.12) scaleX(.18);filter:blur(4px)}
+  0%  {opacity:0;transform:scaleY(0) scaleX(1)}
+  5%  {opacity:1;transform:scaleY(0.06) scaleX(1)}
+  38% {opacity:1;transform:scaleY(1) scaleX(1)}
+  65% {opacity:1;transform:scaleY(1) scaleX(1)}
+  100%{opacity:0;transform:scaleY(1) scaleX(1)}
 }
 /* Halo 레이저: 코어보다 천천히 + 더 크게 + 진한 blur (외곽 기운) */
 @keyframes specialBurstRowHalo{
@@ -428,41 +424,41 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   position:fixed;pointer-events:none;z-index:900;
   background:linear-gradient(90deg,
     transparent 0%,
-    rgba(255,150,210,.15) 4%,
-    rgba(255,200,230,.5) 15%,
-    rgba(255,240,250,.85) 40%,
-    rgba(255,255,255,.98) 50%,
-    rgba(255,240,250,.85) 60%,
-    rgba(255,200,230,.5) 85%,
-    rgba(255,150,210,.15) 96%,
+    rgba(0,255,224,.15) 4%,
+    rgba(0,255,224,.85) 20%,
+    rgba(200,255,248,1) 45%,
+    rgba(255,255,255,1) 50%,
+    rgba(200,255,248,1) 55%,
+    rgba(0,255,224,.85) 80%,
+    rgba(0,255,224,.15) 96%,
     transparent 100%);
-  height:var(--burst-h,20px);
-  border-radius:100px;
+  height:var(--burst-h,4px);
+  border-radius:0;
   transform-origin:center;
-  box-shadow:0 0 24px rgba(255,140,200,.7),0 0 10px rgba(255,220,240,.9),0 0 48px rgba(255,100,180,.35);
+  box-shadow:0 0 8px rgba(0,255,224,.95),0 0 20px rgba(0,255,224,.55),0 0 40px rgba(0,200,180,.3);
   mix-blend-mode:screen;
-  animation:specialBurstRow 1250ms cubic-bezier(0.19,1,0.22,1) forwards;
-  will-change:transform,opacity,filter;
+  animation:specialBurstRow 480ms cubic-bezier(0.19,1,0.22,1) forwards;
+  will-change:transform,opacity;
 }
 .special-burst-col{
   position:fixed;pointer-events:none;z-index:900;
   background:linear-gradient(180deg,
     transparent 0%,
-    rgba(255,150,210,.15) 4%,
-    rgba(255,200,230,.5) 15%,
-    rgba(255,240,250,.85) 40%,
-    rgba(255,255,255,.98) 50%,
-    rgba(255,240,250,.85) 60%,
-    rgba(255,200,230,.5) 85%,
-    rgba(255,150,210,.15) 96%,
+    rgba(0,255,224,.15) 4%,
+    rgba(0,255,224,.85) 20%,
+    rgba(200,255,248,1) 45%,
+    rgba(255,255,255,1) 50%,
+    rgba(200,255,248,1) 55%,
+    rgba(0,255,224,.85) 80%,
+    rgba(0,255,224,.15) 96%,
     transparent 100%);
-  width:var(--burst-w,20px);
-  border-radius:100px;
+  width:var(--burst-w,4px);
+  border-radius:0;
   transform-origin:center;
-  box-shadow:0 0 24px rgba(255,140,200,.7),0 0 10px rgba(255,220,240,.9),0 0 48px rgba(255,100,180,.35);
+  box-shadow:0 0 8px rgba(0,255,224,.95),0 0 20px rgba(0,255,224,.55),0 0 40px rgba(0,200,180,.3);
   mix-blend-mode:screen;
-  animation:specialBurstCol 1250ms cubic-bezier(0.19,1,0.22,1) forwards;
-  will-change:transform,opacity,filter;
+  animation:specialBurstCol 480ms cubic-bezier(0.19,1,0.22,1) forwards;
+  will-change:transform,opacity;
 }
 /* Halo 빔 — 코어 외곽의 큰 glow */
 .special-burst-row-halo{
@@ -523,12 +519,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   will-change:transform,opacity,filter;
 }
 /* 저전력/reduced-motion */
-.low-perf .special-burst-row,.low-perf .special-burst-col{animation-duration:820ms !important;mix-blend-mode:normal;box-shadow:0 0 12px rgba(255,200,230,.55) !important;filter:none !important}
+.low-perf .special-burst-row,.low-perf .special-burst-col{animation-duration:320ms !important;mix-blend-mode:normal;box-shadow:0 0 8px rgba(0,255,224,.5) !important}
 .low-perf .special-burst-radial{animation-duration:520ms !important;mix-blend-mode:normal;box-shadow:none !important;filter:none !important}
 /* 모바일 감쇠: mix-blend/filter blur 차단 (iOS Safari 렉 방지), 박스 섀도는 단순화 */
 .mobile-reduce .special-burst-row,.mobile-reduce .special-burst-col{
   mix-blend-mode:normal !important;
-  box-shadow:0 0 14px rgba(255,140,200,.6),0 0 6px rgba(255,220,240,.7) !important;
+  box-shadow:0 0 10px rgba(0,255,224,.6),0 0 4px rgba(180,255,248,.7) !important;
 }
 .mobile-reduce .special-burst-radial{
   mix-blend-mode:normal !important;
@@ -547,19 +543,19 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .confetti{position:fixed;width:8px;height:10px;pointer-events:none;z-index:901;border-radius:1px;animation:confettiFly 680ms cubic-bezier(0.25,0.46,0.45,0.94) forwards;will-change:transform,opacity}
 /* ✦ Cross 스파크 — 가로/세로 축을 따라 샤프하게 발사되는 핑크 입자 */
 @keyframes crossSparkFly{
-  0%{transform:translate(0,0) scale(0.4);opacity:1;filter:blur(0)}
-  20%{transform:translate(calc(var(--tx)*.3),calc(var(--ty)*.3)) scale(1.3);opacity:1;filter:blur(0)}
-  100%{transform:translate(var(--tx),var(--ty)) scale(0.25);opacity:0;filter:blur(1.2px)}
+  0%{transform:translate(0,0) scale(1);opacity:1}
+  100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0}
 }
-.cross-spark{position:fixed;pointer-events:none;z-index:902;border-radius:50%;background:radial-gradient(circle,#FFFFFF 0%,#FFC2E1 32%,#FF4A9A 62%,rgba(176,56,128,0) 90%);animation:crossSparkFly 620ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity,filter;mix-blend-mode:screen}
+.cross-spark{position:fixed;pointer-events:none;z-index:902;border-radius:1px;background:linear-gradient(135deg,#FFFFFF 30%,#00FFE0 100%);animation:crossSparkFly 350ms ease-out forwards;will-change:transform,opacity}
 /* ◎ Cross 플래시 링 — 중심 충격파 */
 @keyframes crossFlashRing{
-  0%{transform:translate(-50%,-50%) scale(0.15);opacity:1;border-width:3px}
-  100%{transform:translate(-50%,-50%) scale(2.3);opacity:0;border-width:1px}
+  0%{transform:translate(-50%,-50%) rotate(45deg) scale(0.1);opacity:1}
+  35%{transform:translate(-50%,-50%) rotate(45deg) scale(1.1);opacity:1}
+  100%{transform:translate(-50%,-50%) rotate(45deg) scale(2.2);opacity:0}
 }
-.cross-flash-ring{position:fixed;pointer-events:none;z-index:901;width:64px;height:64px;border-radius:50%;border:3px solid rgba(255,200,230,.85);background:radial-gradient(circle,rgba(255,220,240,.28) 0%,transparent 70%);animation:crossFlashRing 540ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity}
-.low-perf .cross-spark{animation-duration:380ms !important;mix-blend-mode:normal}
-.low-perf .cross-flash-ring{animation-duration:340ms !important}
+.cross-flash-ring{position:fixed;pointer-events:none;z-index:901;width:14px;height:14px;border-radius:0;border:2px solid rgba(0,255,224,.95);background:rgba(180,255,248,.35);animation:crossFlashRing 360ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity}
+.low-perf .cross-spark{animation-duration:200ms !important}
+.low-perf .cross-flash-ring{animation-duration:200ms !important}
 /* 모바일: screen blend / blur 차단 */
 .mobile-reduce .cross-spark{mix-blend-mode:normal !important}
 .mobile-reduce .flame-particle{mix-blend-mode:normal !important}
@@ -3512,27 +3508,33 @@ const STAR_COLORS=['#FFD700','#FFF8C7','#FFA94D','#FFE4B5','#FFF'];
 // ═══ 특수 블록 발동 연출 (렉 방지: DOM 생성 rAF로 지연) ═══
 // ═══ 세트 B 파티클 헬퍼 (렉 최소화: DocumentFragment 일괄 append + transform/opacity 애니) ═══
 // ✦ Cross 스파크 — 가로/세로 축 따라 샤프하게 튀는 핑크 입자
-function spawnCrossSparks(cx,cy){
-  const count=Math.max(6,Math.round(16*_particleScale()));  // desktop 16 / mobile 10 / lowperf 7
+function spawnCrossSparks(cx,cy,bL,bR,bT,bB){
+  const tips=[
+    {x:bL,y:cy,ax:-1,ay:0},
+    {x:bR,y:cy,ax:1,ay:0},
+    {x:cx,y:bT,ax:0,ay:-1},
+    {x:cx,y:bB,ax:0,ay:1}
+  ];
+  const perTip=Math.max(2,Math.round(3*_particleScale()));
   const frag=document.createDocumentFragment();
   const nodes=[];
-  for(let i=0;i<count;i++){
-    // 4주축(우/하/좌/상)에 집중 분산
-    const dir=i%4;
-    const baseAngle=dir*(Math.PI/2);
-    const angle=baseAngle+(Math.random()-0.5)*0.35;  // ±10도 퍼짐
-    const dist=65+Math.random()*85;
-    const tx=Math.cos(angle)*dist;
-    const ty=Math.sin(angle)*dist;
-    const size=8+Math.random()*8;  // 8~16px
-    const el=document.createElement('div');
-    el.className='cross-spark';
-    el.style.cssText='left:'+(cx-size/2)+'px;top:'+(cy-size/2)+'px;width:'+size+'px;height:'+size+'px;--tx:'+tx+'px;--ty:'+ty+'px';
-    frag.appendChild(el);
-    nodes.push(el);
-  }
+  tips.forEach(tip=>{
+    for(let i=0;i<perTip;i++){
+      const baseAngle=Math.atan2(tip.ay,tip.ax);
+      const angle=baseAngle+(Math.random()-0.5)*0.6;
+      const dist=12+Math.random()*25;
+      const tx=Math.round(Math.cos(angle)*dist);
+      const ty=Math.round(Math.sin(angle)*dist);
+      const size=3+Math.random()*4;
+      const el=document.createElement('div');
+      el.className='cross-spark';
+      el.style.cssText='left:'+(tip.x-size/2)+'px;top:'+(tip.y-size/2)+'px;width:'+size+'px;height:'+size+'px;--tx:'+tx+'px;--ty:'+ty+'px';
+      frag.appendChild(el);
+      nodes.push(el);
+    }
+  });
   document.body.appendChild(frag);
-  setTimeout(()=>{for(let i=0;i<nodes.length;i++)nodes[i].remove()},700);
+  setTimeout(()=>{for(let i=0;i<nodes.length;i++)nodes[i].remove()},420);
 }
 // ◎ Cross 플래시 링 — 중심 충격파
 function spawnCrossFlashRing(cx,cy){
@@ -3540,7 +3542,7 @@ function spawnCrossFlashRing(cx,cy){
   el.className='cross-flash-ring';
   el.style.cssText='left:'+cx+'px;top:'+cy+'px';
   document.body.appendChild(el);
-  setTimeout(()=>el.remove(),570);
+  setTimeout(()=>el.remove(),400);
 }
 const _CONFETTI_COLORS=['#FF70B8','#FFB6DB','#FFFFFF','#FFD700','#7CC8FF','#A8E6CF','#FFA07A'];
 function _isLowPerf(){return document.documentElement.classList.contains('low-perf')||document.body.classList.contains('low-perf')}
@@ -3762,25 +3764,13 @@ function triggerSpecialEffect(type,ar,ac,cx,cy){
         const boardEl=document.getElementById('board');
         if(boardEl){
           const br=boardEl.getBoundingClientRect();
-          // ★ 레이저 길이 — 보드 전체(양쪽 끝 각각 + 여유 32px)까지 쭉 뻗음
           const armLenLeft  = (cx - br.left)  + 32;
           const armLenRight = (br.right - cx) + 32;
           const armLenTop   = (cy - br.top)   + 32;
           const armLenBot   = (br.bottom - cy)+ 32;
-          const beamThick = 20;
-          const haloThick = 44;  // halo는 2배 이상 두꺼움
+          const beamThick = 4;
           const totalW = armLenLeft + armLenRight;
           const totalH = armLenTop + armLenBot;
-          // Halo (외곽 glow) — 코어 뒤쪽 레이어 (z:899), 저전력에서는 CSS로 자동 숨김
-          const hHalo=document.createElement('div');
-          hHalo.className='special-burst-row-halo';
-          hHalo.style.cssText=`left:${cx-armLenLeft}px;top:${cy-haloThick/2}px;width:${totalW}px;--halo-h:${haloThick}px`;
-          document.body.appendChild(hHalo);
-          const vHalo=document.createElement('div');
-          vHalo.className='special-burst-col-halo';
-          vHalo.style.cssText=`left:${cx-haloThick/2}px;top:${cy-armLenTop}px;height:${totalH}px;--halo-w:${haloThick}px`;
-          document.body.appendChild(vHalo);
-          // 코어 빔 (샤프한 중심) — 위 레이어 (z:900)
           const hRow=document.createElement('div');
           hRow.className='special-burst-row';
           hRow.style.cssText=`left:${cx-armLenLeft}px;top:${cy-beamThick/2}px;width:${totalW}px;--burst-h:${beamThick}px`;
@@ -3789,12 +3779,10 @@ function triggerSpecialEffect(type,ar,ac,cx,cy){
           vCol.className='special-burst-col';
           vCol.style.cssText=`left:${cx-beamThick/2}px;top:${cy-armLenTop}px;height:${totalH}px;--burst-w:${beamThick}px`;
           document.body.appendChild(vCol);
-          setTimeout(()=>{hRow.remove();vCol.remove();hHalo.remove();vHalo.remove()},1500);
+          setTimeout(()=>{hRow.remove();vCol.remove()},530);
+          setTimeout(()=>spawnCrossSparks(cx,cy,br.left,br.right,br.top,br.bottom),160);
         }
-        spawnLabel('✚ SLASH!',cx,cy-70,'#FF8AC5',26,true);
-        // ★ Cross 새 효과: 플래시 링 + 4축 핑크 스파크 (폭죽 대신 샤프한 레이저)
         spawnCrossFlashRing(cx,cy);
-        spawnCrossSparks(cx,cy);
       }else if(type==='bomb'){
         const radial=document.createElement('div');
         radial.className='special-burst-radial';
