@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  감자팡팡 (Potato Woodoku) v6 — 2026-04-21
+  Potato POP v6 — 2026-04-22
 
   [v6 최종 상태 — Dopamine Patch 적용 완료]
 
@@ -90,10 +90,10 @@
 <meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="감자팡팡">
+<meta name="apple-mobile-web-app-title" content="Potato POP">
 <meta name="format-detection" content="telephone=no">
 <meta name="mobile-web-app-capable" content="yes">
-<title>🥔 감자 우도쿠</title>
+<title>🥔 Potato POP</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap" media="print" onload="this.media='all'">
@@ -383,31 +383,39 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 /* ═══ 고급 레이저 빔 — 중앙에서 양쪽으로 쭉 퍼지는 느낌 ═══ */
 /* 코어 빔: 중앙 0 → 양쪽으로 부드럽게 확장 (살짝 두께 부풀어오르다 안정) */
 @keyframes specialBurstRow{
-  0%  {opacity:0;transform:scaleX(0)    scaleY(0.3);filter:blur(5px)}
-  10% {opacity:1;transform:scaleX(0.15) scaleY(1.3);filter:blur(0)}
-  38% {opacity:1;transform:scaleX(1)    scaleY(1)  ;filter:blur(0.3px)}
-  70% {opacity:.95;transform:scaleX(1.02) scaleY(.95);filter:blur(0.6px)}
-  100%{opacity:0;transform:scaleX(1.1)  scaleY(.25);filter:blur(3px)}
+  0%  {opacity:0;transform:scaleX(0)    scaleY(0.35);filter:blur(6px)}
+  8%  {opacity:.55;transform:scaleX(0.12) scaleY(1.15);filter:blur(1px)}
+  28% {opacity:1;transform:scaleX(.75) scaleY(1.12);filter:blur(0)}
+  46% {opacity:1;transform:scaleX(1)    scaleY(1)    ;filter:blur(0.25px)}
+  62% {opacity:.96;transform:scaleX(1.02) scaleY(.98);filter:blur(0.4px)}
+  80% {opacity:.65;transform:scaleX(1.05) scaleY(.8);filter:blur(1px)}
+  100%{opacity:0;transform:scaleX(1.12) scaleY(.18);filter:blur(4px)}
 }
 @keyframes specialBurstCol{
-  0%  {opacity:0;transform:scaleY(0)    scaleX(0.3);filter:blur(5px)}
-  10% {opacity:1;transform:scaleY(0.15) scaleX(1.3);filter:blur(0)}
-  38% {opacity:1;transform:scaleY(1)    scaleX(1)  ;filter:blur(0.3px)}
-  70% {opacity:.95;transform:scaleY(1.02) scaleX(.95);filter:blur(0.6px)}
-  100%{opacity:0;transform:scaleY(1.1)  scaleX(.25);filter:blur(3px)}
+  0%  {opacity:0;transform:scaleY(0)    scaleX(0.35);filter:blur(6px)}
+  8%  {opacity:.55;transform:scaleY(0.12) scaleX(1.15);filter:blur(1px)}
+  28% {opacity:1;transform:scaleY(.75) scaleX(1.12);filter:blur(0)}
+  46% {opacity:1;transform:scaleY(1)    scaleX(1)    ;filter:blur(0.25px)}
+  62% {opacity:.96;transform:scaleY(1.02) scaleX(.98);filter:blur(0.4px)}
+  80% {opacity:.65;transform:scaleY(1.05) scaleX(.8);filter:blur(1px)}
+  100%{opacity:0;transform:scaleY(1.12) scaleX(.18);filter:blur(4px)}
 }
 /* Halo 레이저: 코어보다 천천히 + 더 크게 + 진한 blur (외곽 기운) */
 @keyframes specialBurstRowHalo{
-  0%  {opacity:0;transform:scaleX(0)    scaleY(0.2);filter:blur(10px)}
-  22% {opacity:.7;transform:scaleX(.5)  scaleY(1.1);filter:blur(8px)}
-  55% {opacity:.5;transform:scaleX(1.05) scaleY(.9);filter:blur(9px)}
-  100%{opacity:0;transform:scaleX(1.2)  scaleY(.2);filter:blur(14px)}
+  0%  {opacity:0;transform:scaleX(0)    scaleY(0.2);filter:blur(12px)}
+  18% {opacity:.55;transform:scaleX(.4) scaleY(1.15);filter:blur(9px)}
+  38% {opacity:.75;transform:scaleX(.92) scaleY(1.08);filter:blur(7px)}
+  58% {opacity:.55;transform:scaleX(1.06) scaleY(.92);filter:blur(8px)}
+  78% {opacity:.3;transform:scaleX(1.12) scaleY(.7);filter:blur(10px)}
+  100%{opacity:0;transform:scaleX(1.2)  scaleY(.2);filter:blur(16px)}
 }
 @keyframes specialBurstColHalo{
-  0%  {opacity:0;transform:scaleY(0)    scaleX(0.2);filter:blur(10px)}
-  22% {opacity:.7;transform:scaleY(.5)  scaleX(1.1);filter:blur(8px)}
-  55% {opacity:.5;transform:scaleY(1.05) scaleX(.9);filter:blur(9px)}
-  100%{opacity:0;transform:scaleY(1.2)  scaleX(.2);filter:blur(14px)}
+  0%  {opacity:0;transform:scaleY(0)    scaleX(0.2);filter:blur(12px)}
+  18% {opacity:.55;transform:scaleY(.4) scaleX(1.15);filter:blur(9px)}
+  38% {opacity:.75;transform:scaleY(.92) scaleX(1.08);filter:blur(7px)}
+  58% {opacity:.55;transform:scaleY(1.06) scaleX(.92);filter:blur(8px)}
+  78% {opacity:.3;transform:scaleY(1.12) scaleX(.7);filter:blur(10px)}
+  100%{opacity:0;transform:scaleY(1.2)  scaleX(.2);filter:blur(16px)}
 }
 @keyframes specialBurstRadial{
   0%{opacity:0;transform:translate(-50%,-50%) scale(0);filter:blur(0)}
@@ -433,7 +441,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   transform-origin:center;
   box-shadow:0 0 24px rgba(255,140,200,.7),0 0 10px rgba(255,220,240,.9),0 0 48px rgba(255,100,180,.35);
   mix-blend-mode:screen;
-  animation:specialBurstRow 720ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  animation:specialBurstRow 1250ms cubic-bezier(0.19,1,0.22,1) forwards;
   will-change:transform,opacity,filter;
 }
 .special-burst-col{
@@ -453,7 +461,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   transform-origin:center;
   box-shadow:0 0 24px rgba(255,140,200,.7),0 0 10px rgba(255,220,240,.9),0 0 48px rgba(255,100,180,.35);
   mix-blend-mode:screen;
-  animation:specialBurstCol 720ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  animation:specialBurstCol 1250ms cubic-bezier(0.19,1,0.22,1) forwards;
   will-change:transform,opacity,filter;
 }
 /* Halo 빔 — 코어 외곽의 큰 glow */
@@ -471,7 +479,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   border-radius:100px;
   transform-origin:center;
   mix-blend-mode:screen;
-  animation:specialBurstRowHalo 760ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  animation:specialBurstRowHalo 1450ms cubic-bezier(0.19,1,0.22,1) forwards;
   will-change:transform,opacity,filter;
 }
 .special-burst-col-halo{
@@ -488,7 +496,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   border-radius:100px;
   transform-origin:center;
   mix-blend-mode:screen;
-  animation:specialBurstColHalo 760ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  animation:specialBurstColHalo 1450ms cubic-bezier(0.19,1,0.22,1) forwards;
   will-change:transform,opacity,filter;
 }
 /* 저전력에서는 halo 비활성화 (렌더 비용 절감) */
@@ -515,7 +523,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   will-change:transform,opacity,filter;
 }
 /* 저전력/reduced-motion */
-.low-perf .special-burst-row,.low-perf .special-burst-col,.low-perf .special-burst-radial{animation-duration:420ms !important;mix-blend-mode:normal;box-shadow:none !important;filter:none !important}
+.low-perf .special-burst-row,.low-perf .special-burst-col{animation-duration:820ms !important;mix-blend-mode:normal;box-shadow:0 0 12px rgba(255,200,230,.55) !important;filter:none !important}
+.low-perf .special-burst-radial{animation-duration:520ms !important;mix-blend-mode:normal;box-shadow:none !important;filter:none !important}
 /* 모바일 감쇠: mix-blend/filter blur 차단 (iOS Safari 렉 방지), 박스 섀도는 단순화 */
 .mobile-reduce .special-burst-row,.mobile-reduce .special-burst-col{
   mix-blend-mode:normal !important;
@@ -604,6 +613,21 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 }
 .firework-twinkle{position:fixed;pointer-events:none;z-index:905;font-size:11px;line-height:1;color:#FFFBE0;text-shadow:0 0 4px rgba(255,220,120,.95),0 0 10px rgba(255,180,80,.7);animation:fireworkTwinkle 620ms ease-in-out forwards;will-change:transform,opacity;mix-blend-mode:screen}
 @media (prefers-reduced-motion:reduce){.firework-core,.firework-spark,.firework-twinkle{animation:none !important;opacity:0 !important}}
+/* 라인 클리어 — 은은한 하얀 빛가루 */
+@keyframes lineSparkleFloat{
+  0%{transform:translate(-50%,-50%) scale(.4);opacity:0}
+  22%{transform:translate(calc(-50% + var(--sx,0px)*.3),calc(-50% + var(--sy,-8px)*.3)) scale(1);opacity:.9}
+  70%{transform:translate(calc(-50% + var(--sx,0px)*.75),calc(-50% + var(--sy,-14px)*.85)) scale(.75);opacity:.55}
+  100%{transform:translate(calc(-50% + var(--sx,0px)),calc(-50% + var(--sy,-18px))) scale(.2);opacity:0}
+}
+.line-sparkle{position:fixed;pointer-events:none;z-index:903;width:5px;height:5px;border-radius:50%;background:rgba(255,253,240,.98);box-shadow:0 0 3px 1px rgba(255,250,225,.85),0 0 7px 2px rgba(255,245,210,.45);animation:lineSparkleFloat 720ms ease-out forwards;will-change:transform,opacity;mix-blend-mode:screen}
+/* 2줄 동시 — 크기 ↑, 살짝 금빛 */
+.line-sparkle.t2{width:6px;height:6px;background:rgba(255,248,220,.98);box-shadow:0 0 4px 1px rgba(255,235,170,.9),0 0 10px 3px rgba(255,210,130,.5);animation-duration:860ms}
+/* 3줄+ 동시 — 더 풍성하고 따뜻한 금빛, 긴 부유 */
+.line-sparkle.t3{width:7px;height:7px;background:rgba(255,245,200,1);box-shadow:0 0 5px 1px rgba(255,220,140,.95),0 0 12px 3px rgba(255,190,90,.5);animation-duration:1000ms;mix-blend-mode:normal}
+.low-perf .line-sparkle{animation-duration:420ms !important;box-shadow:0 0 2px 0 rgba(255,250,225,.8) !important;mix-blend-mode:normal}
+.low-perf .line-sparkle.t2,.low-perf .line-sparkle.t3{animation-duration:520ms !important;box-shadow:0 0 3px 0 rgba(255,225,160,.9) !important}
+@media (prefers-reduced-motion:reduce){.line-sparkle{animation:none !important;opacity:0 !important}}
 /* 보드 쉐이크 (bomb) */
 @keyframes boardPangShake{
   0%,100%{transform:translate(0,0)}
@@ -644,34 +668,24 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 /* 채워진 블록: 배경 자체를 밝은 크림으로 오버라이드 (filter 없이) */
 .cell.filled.preview-clear .block-inner{
   background:linear-gradient(155deg,#FFF0C8 0%,#FFD886 55%,#C08843 100%) !important;
-  box-shadow:inset 0 3px 0 rgba(255,255,255,.95),inset 0 -2px 0 rgba(0,0,0,.05),inset 0 0 0 2px rgba(255,230,100,.7) !important;
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.95),inset 0 -2px 0 rgba(0,0,0,.05) !important;
 }
-/* 빈 셀: 더 밝은 노란 fill */
+/* 빈 셀: 더 밝은 노란 fill (노란 테두리 제거됨) */
 .cell.preview-clear:not(.filled){
   background:rgba(255,225,110,.52) !important;
-  box-shadow:inset 0 0 0 2px rgba(255,235,110,.85) !important;
+  box-shadow:none !important;
 }
 .cell.section-alt.preview-clear:not(.filled){
   background:rgba(255,225,110,.58) !important;
 }
-/* ::after 빈 셀 중앙 점 - 더 크고 밝게 */
-.cell.preview-clear:not(.filled)::after{
-  content:'';
-  position:absolute;
-  inset:25%;
-  border-radius:50%;
-  background:rgba(255,250,180,1);
-  pointer-events:none;
-  z-index:4;
-}
+/* ::after 빈 셀 중앙 점 — 제거됨 (사용자 요청) */
+.cell.preview-clear:not(.filled)::after{ display:none !important; }
 /* preview-clear 상태에서 글래스 하이라이트 숨김 - 렌더링 레이어 감소 */
 .cell.filled.preview-clear::after{opacity:0 !important}
 /* ═══ 도파민 유지 HARD PATCH (FINAL SPEC) ═══ */
 /* [1] 좋은 수 강조 — brightness 1.18 / 1.32 단계, scale/glow/네온 금지 */
 .cell.filled.preview-clear.preview-strong .block-inner{ filter:brightness(1.18); }
-.cell.preview-clear.preview-strong:not(.filled)::after{ filter:brightness(1.18); }
 .cell.filled.preview-clear.preview-mega .block-inner{ filter:brightness(1.32); }
-.cell.preview-clear.preview-mega:not(.filled)::after{ filter:brightness(1.32); }
 /* [2] 위험 상태 — 빈칸 비율 ≤ 20% 시 은은한 inset (강한 빨강/깜빡임 금지) */
 .board-frame{ transition: box-shadow .5s ease; }
 .board-frame.danger{ box-shadow: inset 0 0 28px rgba(255,80,80,0.10); }
@@ -743,10 +757,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   z-index:6;
 }
 .cell.special-preview-bomb::after{
-  content:'';position:absolute;inset:12%;pointer-events:none;z-index:5;
-  border-radius:50%;
-  background:radial-gradient(circle,rgba(255,240,160,.75) 0%,rgba(255,170,60,.45) 38%,rgba(210,80,20,.2) 72%,transparent 100%);
-  filter:blur(0.5px);
+  content:'💣';
+  position:absolute;inset:0;pointer-events:none;z-index:5;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.7em;line-height:1;
+  text-shadow:0 0 4px rgba(255,140,40,.85),0 0 8px rgba(255,80,20,.5);
+  filter:drop-shadow(0 1px 1px rgba(80,20,0,.55));
 }
 /* 특수 프리뷰 중 preview-clear 노란 오버라이드 차단 (고급 팔레트 복원) */
 .cell.special-preview-cross.preview-clear:not(.filled){
@@ -1464,7 +1480,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   <div class="lobby-inner">
     <div class="lobby-scroll">
       <div class="lobby-header">
-        <div class="lobby-title">POTATO WOODOKU</div>
+        <div class="lobby-title">POTATO POP</div>
       </div>
       <!-- 1. 티어 카드 -->
       <div class="tier-card" id="tier-card">
@@ -2439,13 +2455,13 @@ const POTATOES=[
 
 // ═══ PIECE DATABASE ═══
 function normalizeShape(s){const minR=Math.min(...s.map(([r])=>r)),minC=Math.min(...s.map(([,c])=>c));return s.map(([r,c])=>[r-minR,c-minC])}
-const PIECE_DB=[{id:'Joe',cells:[[0,0]],size:1},{id:'Dot2H',cells:[[0,0],[0,1]],size:2},{id:'Dot2V',cells:[[0,0],[1,0]],size:2},{id:'Dot3H',cells:[[0,0],[0,1],[0,2]],size:3},{id:'Dot3V',cells:[[0,0],[1,0],[2,0]],size:3},{id:'Dot4H',cells:[[0,0],[0,1],[0,2],[0,3]],size:4},{id:'Dot4V',cells:[[0,0],[1,0],[2,0],[3,0]],size:4},{id:'Dot5H',cells:[[0,0],[0,1],[0,2],[0,3],[0,4]],size:5},{id:'Dot5V',cells:[[0,0],[1,0],[2,0],[3,0],[4,0]],size:5},{id:'Sq2',cells:[[0,0],[0,1],[1,0],[1,1]],size:4},{id:'Rect2x3',cells:[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]],size:6},{id:'Rect3x2',cells:[[0,0],[0,1],[1,0],[1,1],[2,0],[2,1]],size:6},{id:'Cross',cells:[[0,1],[1,0],[1,1],[1,2],[2,1]],size:5},{id:'Diag2a',cells:[[0,0],[1,1]],size:2},{id:'Diag2b',cells:[[0,1],[1,0]],size:2},{id:'Diag3a',cells:[[0,0],[1,1],[2,2]],size:3},{id:'Diag3b',cells:[[0,2],[1,1],[2,0]],size:3},{id:'Diag4a',cells:[[0,0],[1,1],[2,2],[3,3]],size:4,earlyBlock:true},{id:'Diag4b',cells:[[0,3],[1,2],[2,1],[3,0]],size:4,earlyBlock:true},{id:'L_NE',cells:[[0,0],[1,0],[2,0],[2,1]],size:4},{id:'L_NW',cells:[[0,1],[1,1],[2,0],[2,1]],size:4},{id:'L_SE',cells:[[0,0],[0,1],[1,0],[2,0]],size:4},{id:'Luigi',cells:[[0,0],[0,1],[1,1],[2,1]],size:4,banned:true},{id:'J_NE',cells:[[0,0],[0,1],[0,2],[1,0]],size:4},{id:'J_NW',cells:[[0,0],[1,0],[1,1],[1,2]],size:4},{id:'J_SE',cells:[[0,2],[1,0],[1,1],[1,2]],size:4},{id:'Waluigi',cells:[[0,0],[0,1],[0,2],[1,2]],size:4,banned:true},{id:'S_H',cells:[[0,1],[0,2],[1,0],[1,1]],size:4},{id:'Z_H',cells:[[0,0],[0,1],[1,1],[1,2]],size:4},{id:'S_V',cells:[[0,0],[1,0],[1,1],[2,1]],size:4},{id:'Z_V',cells:[[0,1],[1,0],[1,1],[2,0]],size:4},{id:'T_N',cells:[[0,0],[0,1],[0,2],[1,1]],size:4},{id:'T_S',cells:[[0,1],[1,0],[1,1],[1,2]],size:4},{id:'T_E',cells:[[0,0],[0,1],[1,1],[2,1]],size:4},{id:'T_W',cells:[[0,0],[1,0],[1,1],[2,0]],size:4},{id:'L5_NE',cells:[[0,0],[1,0],[2,0],[3,0],[3,1]],size:5,earlyBlock:true},{id:'L5_NW',cells:[[0,1],[1,1],[2,1],[3,0],[3,1]],size:5,earlyBlock:true},{id:'L5_SE',cells:[[0,0],[0,1],[1,0],[2,0],[3,0]],size:5,earlyBlock:true},{id:'L5_SW',cells:[[0,0],[0,1],[1,1],[2,1],[3,1]],size:5,earlyBlock:true},{id:'PacN',cells:[[0,0],[0,2],[1,0],[1,1],[1,2]],size:5},{id:'PacS',cells:[[0,0],[0,1],[0,2],[1,0],[1,2]],size:5},{id:'PacE',cells:[[0,0],[0,1],[1,0],[2,0],[2,1]],size:5},{id:'PacW',cells:[[0,0],[0,1],[1,1],[2,0],[2,1]],size:5},{id:'C_E',cells:[[0,0],[0,1],[1,0],[2,0],[2,1]],size:5},{id:'Helmet',cells:[[0,0],[0,1],[1,1],[2,0],[2,1]],size:5,banned:true},{id:'Xmark',cells:[[0,0],[0,2],[1,1],[2,0],[2,2]],size:5},{id:'V3U',cells:[[0,1],[1,0],[1,2]],size:3},{id:'V3D',cells:[[0,0],[0,2],[1,1]],size:3},{id:'Hook_NE',cells:[[0,0],[0,1],[0,2],[1,2],[2,2]],size:5},{id:'Hook_SW',cells:[[0,0],[1,0],[2,0],[2,1],[2,2]],size:5},{id:'L3_NW',cells:[[0,0],[0,1],[1,0]],size:3},{id:'T5_N',cells:[[0,0],[0,1],[0,2],[1,1],[2,1]],size:5},{id:'T5_S',cells:[[0,1],[1,1],[2,0],[2,1],[2,2]],size:5}];
+const PIECE_DB=[{id:'Joe',cells:[[0,0]],size:1},{id:'Dot2H',cells:[[0,0],[0,1]],size:2},{id:'Dot2V',cells:[[0,0],[1,0]],size:2},{id:'Dot3H',cells:[[0,0],[0,1],[0,2]],size:3},{id:'Dot3V',cells:[[0,0],[1,0],[2,0]],size:3},{id:'Dot4H',cells:[[0,0],[0,1],[0,2],[0,3]],size:4},{id:'Dot4V',cells:[[0,0],[1,0],[2,0],[3,0]],size:4},{id:'Dot5H',cells:[[0,0],[0,1],[0,2],[0,3],[0,4]],size:5},{id:'Dot5V',cells:[[0,0],[1,0],[2,0],[3,0],[4,0]],size:5},{id:'Sq2',cells:[[0,0],[0,1],[1,0],[1,1]],size:4},{id:'Rect2x3',cells:[[0,0],[0,1],[0,2],[1,0],[1,1],[1,2]],size:6},{id:'Rect3x2',cells:[[0,0],[0,1],[1,0],[1,1],[2,0],[2,1]],size:6},{id:'Cross',cells:[[0,1],[1,0],[1,1],[1,2],[2,1]],size:5},{id:'Diag2a',cells:[[0,0],[1,1]],size:2},{id:'Diag2b',cells:[[0,1],[1,0]],size:2},{id:'Diag3a',cells:[[0,0],[1,1],[2,2]],size:3},{id:'Diag3b',cells:[[0,2],[1,1],[2,0]],size:3},{id:'Diag4a',cells:[[0,0],[1,1],[2,2],[3,3]],size:4,earlyBlock:true},{id:'Diag4b',cells:[[0,3],[1,2],[2,1],[3,0]],size:4,earlyBlock:true},{id:'L_NE',cells:[[0,0],[1,0],[2,0],[2,1]],size:4},{id:'L_NW',cells:[[0,1],[1,1],[2,0],[2,1]],size:4},{id:'L_SE',cells:[[0,0],[0,1],[1,0],[2,0]],size:4},{id:'Luigi',cells:[[0,0],[0,1],[1,1],[2,1]],size:4,banned:true},{id:'J_NE',cells:[[0,0],[0,1],[0,2],[1,0]],size:4},{id:'J_NW',cells:[[0,0],[1,0],[1,1],[1,2]],size:4},{id:'J_SE',cells:[[0,2],[1,0],[1,1],[1,2]],size:4},{id:'Waluigi',cells:[[0,0],[0,1],[0,2],[1,2]],size:4,banned:true},{id:'S_H',cells:[[0,1],[0,2],[1,0],[1,1]],size:4},{id:'Z_H',cells:[[0,0],[0,1],[1,1],[1,2]],size:4},{id:'S_V',cells:[[0,0],[1,0],[1,1],[2,1]],size:4},{id:'Z_V',cells:[[0,1],[1,0],[1,1],[2,0]],size:4},{id:'T_N',cells:[[0,0],[0,1],[0,2],[1,1]],size:4},{id:'T_S',cells:[[0,1],[1,0],[1,1],[1,2]],size:4},{id:'T_E',cells:[[0,0],[0,1],[1,1],[2,1]],size:4},{id:'T_W',cells:[[0,0],[1,0],[1,1],[2,0]],size:4},{id:'L5_NE',cells:[[0,0],[1,0],[2,0],[3,0],[3,1]],size:5,earlyBlock:true},{id:'L5_NW',cells:[[0,1],[1,1],[2,1],[3,0],[3,1]],size:5,earlyBlock:true},{id:'L5_SE',cells:[[0,0],[0,1],[1,0],[2,0],[3,0]],size:5,earlyBlock:true},{id:'L5_SW',cells:[[0,0],[0,1],[1,1],[2,1],[3,1]],size:5,earlyBlock:true},{id:'PacN',cells:[[0,0],[0,2],[1,0],[1,1],[1,2]],size:5},{id:'PacS',cells:[[0,0],[0,1],[0,2],[1,0],[1,2]],size:5},{id:'PacE',cells:[[0,0],[0,1],[1,0],[2,0],[2,1]],size:5},{id:'PacW',cells:[[0,0],[0,1],[1,1],[2,0],[2,1]],size:5},{id:'C_E',cells:[[0,0],[0,1],[1,0],[2,0],[2,1]],size:5},{id:'Helmet',cells:[[0,0],[0,1],[1,1],[2,0],[2,1]],size:5,banned:true},{id:'Xmark',cells:[[0,0],[0,2],[1,1],[2,0],[2,2]],size:5},{id:'V3U',cells:[[0,1],[1,0],[1,2]],size:3},{id:'V3D',cells:[[0,0],[0,2],[1,1]],size:3},{id:'V3E',cells:[[0,0],[1,1],[2,0]],size:3},{id:'V3W',cells:[[0,1],[1,0],[2,1]],size:3},{id:'Hook_NE',cells:[[0,0],[0,1],[0,2],[1,2],[2,2]],size:5},{id:'Hook_SW',cells:[[0,0],[1,0],[2,0],[2,1],[2,2]],size:5},{id:'L3_NW',cells:[[0,0],[0,1],[1,0]],size:3},{id:'T5_N',cells:[[0,0],[0,1],[0,2],[1,1],[2,1]],size:5},{id:'T5_S',cells:[[0,1],[1,1],[2,0],[2,1],[2,2]],size:5}];
 
 // ═══ SPAWN SYSTEM ═══
 let recentClearTurns=0,totalTurns=0;
 function countEmpty(){let n=0;for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)if(board[r][c]===null)n++;return n}
 function getPhase(){if(score<600)return 0;if(score<2e3)return 1;if(score<5e3)return 2;if(score<12e3)return 3;return 4}
-const WEIGHT_OVERRIDE={0:{Joe:5,Dot2H:8,Dot2V:8,Dot3H:7.5,Dot3V:7.5,Sq2:6.5,Diag2a:4,Diag2b:4,Diag3a:2.5,Diag3b:2.5,Dot4H:1.5,Dot4V:1.5,L_NE:1,L_NW:1,L_SE:1,J_NE:1,J_NW:1,J_SE:1,S_H:1,Z_H:1,S_V:1,Z_V:1,T_N:1,T_S:1,T_E:1,T_W:1,Cross:.5,PacN:.5,PacS:.5,PacE:.5,PacW:.5,C_E:.3,Rect2x3:0,Rect3x2:0,Diag4a:0,Diag4b:0,L5_NE:0,L5_NW:0,L5_SE:0,L5_SW:0,Dot5H:0,Dot5V:0,Xmark:0,V3U:2,V3D:2,Hook_NE:0,Hook_SW:0,L3_NW:3,T5_N:0,T5_S:0},1:{Joe:5,Dot2H:6.5,Dot2V:6.5,Dot3H:6,Dot3V:6,Sq2:5,Diag2a:3.5,Diag2b:3.5,Diag3a:3,Diag3b:3,Dot4H:3,Dot4V:3,L_NE:2,L_NW:2,L_SE:2,J_NE:2,J_NW:2,J_SE:2,S_H:2,Z_H:2,S_V:2,Z_V:2,T_N:2,T_S:2,T_E:2,T_W:2,Cross:1.5,PacN:1.5,PacS:1.5,PacE:1.5,PacW:1.5,C_E:1,Rect2x3:.5,Rect3x2:.5,Diag4a:.5,Diag4b:.5,L5_NE:0,L5_NW:0,L5_SE:0,L5_SW:0,Dot5H:0,Dot5V:0,Xmark:.3,V3U:2.5,V3D:2.5,Hook_NE:.5,Hook_SW:.5,L3_NW:3,T5_N:.8,T5_S:.8},2:{Joe:5,Dot2H:5,Dot2V:5,Dot3H:5,Dot3V:5,Sq2:4,Diag2a:3,Diag2b:3,Diag3a:2.5,Diag3b:2.5,Dot4H:4,Dot4V:4,L_NE:3,L_NW:3,L_SE:3,J_NE:3,J_NW:3,J_SE:3,S_H:2.5,Z_H:2.5,S_V:2.5,Z_V:2.5,T_N:2.5,T_S:2.5,T_E:2.5,T_W:2.5,Cross:2,PacN:2,PacS:2,PacE:2,PacW:2,C_E:1.5,Rect2x3:1.5,Rect3x2:1.5,Diag4a:1.5,Diag4b:1.5,L5_NE:.8,L5_NW:.8,L5_SE:.8,L5_SW:.8,Dot5H:2.5,Dot5V:2.5,Xmark:1.5,V3U:2.5,V3D:2.5,Hook_NE:1.5,Hook_SW:1.5,L3_NW:2.5,T5_N:2,T5_S:2},3:{Joe:4.5,Dot2H:3.5,Dot2V:3.5,Dot3H:4,Dot3V:4,Sq2:3,Diag2a:2.5,Diag2b:2.5,Diag3a:2.5,Diag3b:2.5,Dot4H:4,Dot4V:4,L_NE:3.5,L_NW:3.5,L_SE:3.5,J_NE:3.5,J_NW:3.5,J_SE:3.5,S_H:3,Z_H:3,S_V:3,Z_V:3,T_N:3,T_S:3,T_E:3,T_W:3,Cross:2.5,PacN:2.5,PacS:2.5,PacE:2.5,PacW:2.5,C_E:2,Rect2x3:2.5,Rect3x2:2.5,Diag4a:2.5,Diag4b:2.5,L5_NE:2,L5_NW:2,L5_SE:2,L5_SW:2,Dot5H:4.5,Dot5V:4.5,Xmark:2.5,V3U:2,V3D:2,Hook_NE:2,Hook_SW:2,T5_N:2.5,T5_S:2.5},4:{Joe:4,Dot2H:2.5,Dot2V:2.5,Dot3H:3,Dot3V:3,Sq2:2,Diag2a:2,Diag2b:2,Diag3a:2.5,Diag3b:2.5,Dot4H:3.5,Dot4V:3.5,L_NE:3.5,L_NW:3.5,L_SE:3.5,J_NE:3.5,J_NW:3.5,J_SE:3.5,S_H:3,Z_H:3,S_V:3,Z_V:3,T_N:3,T_S:3,T_E:3,T_W:3,Cross:3,PacN:3,PacS:3,PacE:3,PacW:3,C_E:2.5,Rect2x3:3,Rect3x2:3,Diag4a:3,Diag4b:3,L5_NE:2.5,L5_NW:2.5,L5_SE:2.5,L5_SW:2.5,Dot5H:6,Dot5V:6,Xmark:3,V3U:1.5,V3D:1.5,Hook_NE:2.5,Hook_SW:2.5,T5_N:3,T5_S:3}};
+const WEIGHT_OVERRIDE={0:{Joe:5,Dot2H:8,Dot2V:8,Dot3H:7.5,Dot3V:7.5,Sq2:6.5,Diag2a:4,Diag2b:4,Diag3a:2.5,Diag3b:2.5,Dot4H:1.5,Dot4V:1.5,L_NE:1,L_NW:1,L_SE:1,J_NE:1,J_NW:1,J_SE:1,S_H:1,Z_H:1,S_V:1,Z_V:1,T_N:1,T_S:1,T_E:1,T_W:1,Cross:.5,PacN:.5,PacS:.5,PacE:.5,PacW:.5,C_E:.3,Rect2x3:0,Rect3x2:0,Diag4a:0,Diag4b:0,L5_NE:0,L5_NW:0,L5_SE:0,L5_SW:0,Dot5H:0,Dot5V:0,Xmark:0,V3U:2,V3D:2,V3E:2,V3W:2,Hook_NE:0,Hook_SW:0,L3_NW:3,T5_N:0,T5_S:0},1:{Joe:5,Dot2H:6.5,Dot2V:6.5,Dot3H:6,Dot3V:6,Sq2:5,Diag2a:3.5,Diag2b:3.5,Diag3a:3,Diag3b:3,Dot4H:3,Dot4V:3,L_NE:2,L_NW:2,L_SE:2,J_NE:2,J_NW:2,J_SE:2,S_H:2,Z_H:2,S_V:2,Z_V:2,T_N:2,T_S:2,T_E:2,T_W:2,Cross:1.5,PacN:1.5,PacS:1.5,PacE:1.5,PacW:1.5,C_E:1,Rect2x3:.5,Rect3x2:.5,Diag4a:.5,Diag4b:.5,L5_NE:0,L5_NW:0,L5_SE:0,L5_SW:0,Dot5H:0,Dot5V:0,Xmark:.3,V3U:2.5,V3D:2.5,V3E:2.5,V3W:2.5,Hook_NE:.5,Hook_SW:.5,L3_NW:3,T5_N:.8,T5_S:.8},2:{Joe:5,Dot2H:5,Dot2V:5,Dot3H:5,Dot3V:5,Sq2:4,Diag2a:3,Diag2b:3,Diag3a:2.5,Diag3b:2.5,Dot4H:4,Dot4V:4,L_NE:3,L_NW:3,L_SE:3,J_NE:3,J_NW:3,J_SE:3,S_H:2.5,Z_H:2.5,S_V:2.5,Z_V:2.5,T_N:2.5,T_S:2.5,T_E:2.5,T_W:2.5,Cross:2,PacN:2,PacS:2,PacE:2,PacW:2,C_E:1.5,Rect2x3:1.5,Rect3x2:1.5,Diag4a:1.5,Diag4b:1.5,L5_NE:.8,L5_NW:.8,L5_SE:.8,L5_SW:.8,Dot5H:2.5,Dot5V:2.5,Xmark:1.5,V3U:2.5,V3D:2.5,V3E:2.5,V3W:2.5,Hook_NE:1.5,Hook_SW:1.5,L3_NW:2.5,T5_N:2,T5_S:2},3:{Joe:4.5,Dot2H:3.5,Dot2V:3.5,Dot3H:4,Dot3V:4,Sq2:3,Diag2a:2.5,Diag2b:2.5,Diag3a:2.5,Diag3b:2.5,Dot4H:4,Dot4V:4,L_NE:3.5,L_NW:3.5,L_SE:3.5,J_NE:3.5,J_NW:3.5,J_SE:3.5,S_H:3,Z_H:3,S_V:3,Z_V:3,T_N:3,T_S:3,T_E:3,T_W:3,Cross:2.5,PacN:2.5,PacS:2.5,PacE:2.5,PacW:2.5,C_E:2,Rect2x3:2.5,Rect3x2:2.5,Diag4a:2.5,Diag4b:2.5,L5_NE:2,L5_NW:2,L5_SE:2,L5_SW:2,Dot5H:4.5,Dot5V:4.5,Xmark:2.5,V3U:2,V3D:2,V3E:2,V3W:2,Hook_NE:2,Hook_SW:2,T5_N:2.5,T5_S:2.5},4:{Joe:4,Dot2H:2.5,Dot2V:2.5,Dot3H:3,Dot3V:3,Sq2:2,Diag2a:2,Diag2b:2,Diag3a:2.5,Diag3b:2.5,Dot4H:3.5,Dot4V:3.5,L_NE:3.5,L_NW:3.5,L_SE:3.5,J_NE:3.5,J_NW:3.5,J_SE:3.5,S_H:3,Z_H:3,S_V:3,Z_V:3,T_N:3,T_S:3,T_E:3,T_W:3,Cross:3,PacN:3,PacS:3,PacE:3,PacW:3,C_E:2.5,Rect2x3:3,Rect3x2:3,Diag4a:3,Diag4b:3,L5_NE:2.5,L5_NW:2.5,L5_SE:2.5,L5_SW:2.5,Dot5H:6,Dot5V:6,Xmark:3,V3U:1.5,V3D:1.5,V3E:1.5,V3W:1.5,Hook_NE:2.5,Hook_SW:2.5,T5_N:3,T5_S:3}};
 const SPAWN_POOL=PIECE_DB.filter(p=>!p.banned);
 function getBoardPressure(){const empty=countEmpty(),pressureRatio=Math.max(0,Math.min(1,(40-empty)/40));return{empty,pressureRatio,clearMult:recentClearTurns===0?1.2:.9}}
 function weightedPick(){const phase=getPhase(),table=WEIGHT_OVERRIDE[phase];const{empty,pressureRatio,clearMult}=getBoardPressure();const weights=SPAWN_POOL.map(p=>{let w=table[p.id];if(w===undefined)w=Math.max(.5,5-(p.size-1)*.8);w=Math.max(0,w);if(w===0)return 0;if(empty<15){if(p.size>=5)return w*.08;if(p.size>=4)return w*.35}else if(empty<30){if(p.size>=5)return w*(1-pressureRatio*.55);if(p.size>=4)return w*(1-pressureRatio*.28)}if(empty>=30&&p.size>=4)w*=clearMult;return w});const total=weights.reduce((a,b)=>a+b,0);if(total<=0)return SPAWN_POOL[0];let rand=Math.random()*total;for(let i=0;i<SPAWN_POOL.length;i++){rand-=weights[i];if(rand<=0)return SPAWN_POOL[i]}return SPAWN_POOL[SPAWN_POOL.length-1]}
@@ -2455,7 +2471,7 @@ function weightedPickSmall(){const pool=SPAWN_POOL.filter(p=>p.size<=3);return p
 const GRID=9,PTS_PER_BLOCK=1,PTS_PER_CLEAR=20;  // v9.5: COMBO_BONUS/streakBonus 제거 — calculateClearScore 단일 경로
 let board=[],pieces=[],selIdx=null,score=0,best=0,streak=0,maxStreak=0,totalClears=0;
 let dragIdx=-1,dragActive=false,prevHover=[],cellEls=[],_boardFilled=0;
-let extendUsed=false,isTouchDrag=false,gameActive=false;
+let extendDiamondUsed=false,extendAdUsed=false,isTouchDrag=false,gameActive=false;
 
 // ═══ SPECIAL BLOCKS — 십자가 / 폭탄 / 얼음 ═══
 // boardSpecial[r][c]: null 또는 {type:'ice', stage:0|1}
@@ -3248,12 +3264,18 @@ function clearLines(extraCells){
     r,c,d:Math.sqrt((r-centerR)**2+(c-centerC)**2)
   })).sort((a,b)=>a.d-b.d);
   let maxDelay=0;
+  // 콤보 강도: 2줄+이면 파티클 풍성 + 금빛 — 단줄은 그대로 은은
+  const _sparkleTier = (rowCount+colCount+boxCount)>=3 ? 3 : ((rowCount+colCount+boxCount)>=2 ? 2 : 1);
   _ordered.forEach(({r,c},i)=>{
     const el=cellEls[r][c];
     const delay=Math.min(i*20,80);
     if(delay>maxDelay)maxDelay=delay;
     el.style.setProperty('--clear-delay',delay+'ms');
     el.classList.add('clearing');
+    // 라인 클리어 빛가루 — 셀 중심에서 분출 (stagger delay와 함께, 콤보 티어 반영)
+    const rect=el.getBoundingClientRect();
+    const sx=rect.left+rect.width/2, sy=rect.top+rect.height/2;
+    setTimeout(()=>spawnLineSparkle(sx,sy,_sparkleTier),delay+40);
   });
   // v9 FORCE DEBUG: 첫 셀의 실제 animationName을 콘솔로 찍어 적용 여부 확인
   if(_ordered.length>0){
@@ -3525,6 +3547,42 @@ function _isLowPerf(){return document.documentElement.classList.contains('low-pe
 function _isMobileReduce(){return document.body.classList.contains('mobile-reduce')}
 // 파티클 개수 스케일: low-perf(45%) < mobile-reduce(65%) < desktop(100%)
 function _particleScale(){return _isLowPerf()?0.45:(_isMobileReduce()?0.65:1)}
+// 🔥 자동 성능 감지: 2초 윈도우 동안 평균 프레임시간이 28ms 초과 or 33ms 초과 프레임이 15개 이상이면 low-perf 자동 부여
+(function autoPerfWatchdog(){
+  if(_isLowPerf()) return; // 이미 수동으로 켜져있으면 종료
+  const WINDOW_MS=2000;
+  const SLOW_FRAME_MS=33;
+  const AVG_BAD_MS=28;
+  const SLOW_COUNT_TRIGGER=15;
+  const buf=[]; // {t:time, d:delta}
+  let last=performance.now();
+  let triggered=false;
+  function loop(t){
+    if(triggered) return;
+    if(document.visibilityState!=='visible'||!document.hasFocus()){
+      // 백그라운드·비포커스 상태는 측정 스킵(throttle 왜곡 방지)
+      last=t; buf.length=0;
+      return requestAnimationFrame(loop);
+    }
+    const d=t-last; last=t;
+    buf.push({t,d});
+    // 윈도우 정리
+    while(buf.length&&t-buf[0].t>WINDOW_MS) buf.shift();
+    if(buf.length>=60){ // 최소 샘플 확보 후 판정
+      let sum=0,slow=0;
+      for(let i=0;i<buf.length;i++){sum+=buf[i].d;if(buf[i].d>SLOW_FRAME_MS)slow++;}
+      const avg=sum/buf.length;
+      if(avg>AVG_BAD_MS||slow>=SLOW_COUNT_TRIGGER){
+        triggered=true;
+        document.documentElement.classList.add('low-perf');
+        try{console.info('[perf] low-perf 자동 활성 — avg:'+avg.toFixed(1)+'ms, slow:'+slow);}catch(e){}
+        return;
+      }
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
 function spawnConfetti(cx,cy){
   const count=Math.max(8,Math.round(22*_particleScale()));
   const frag=document.createDocumentFragment();
@@ -3647,6 +3705,45 @@ function spawnFirework(cx,cy){
     setTimeout(()=>{for(let i=0;i<twNodes.length;i++)twNodes[i].remove()},1050);
   }
 }
+// ─── 라인 클리어 — 은은한 하얀 빛가루 (셀 중심에서 분출, tier별로 풍성도 ↑) ───
+// tier: 1=단줄(기본), 2=2줄 콤보, 3=3줄+ 콤보
+let _lineSparkleBudget=180; // 동시 파티클 상한 (프레임당)
+function spawnLineSparkle(cx,cy,tier){
+  if(typeof _particleScale!=='function') return;
+  if(_lineSparkleBudget<=0) return; // 상한 초과 시 스킵
+  const scale=_particleScale();
+  const t=tier||1;
+  // tier별 파라미터 — 갯수/퍼짐/상승높이/수명 모두 단계적으로 증가
+  const baseCount = t>=3 ? 9 : (t>=2 ? 8 : 6);
+  let count=Math.max(2,Math.round(baseCount*scale));
+  if(count>_lineSparkleBudget)count=_lineSparkleBudget;
+  _lineSparkleBudget-=count;
+  const distMin = t>=3 ? 22 : (t>=2 ? 18 : 14);
+  const distRange = t>=3 ? 24 : (t>=2 ? 20 : 16);
+  const riseBoost = t>=3 ? 10 : (t>=2 ? 6 : 4);
+  const delaySpread = t>=3 ? 220 : (t>=2 ? 170 : 120);
+  const lifeMs = t>=3 ? 1100 : (t>=2 ? 980 : 900);
+  const cls = t>=3 ? 'line-sparkle t3' : (t>=2 ? 'line-sparkle t2' : 'line-sparkle');
+  const frag=document.createDocumentFragment();
+  const nodes=[];
+  for(let i=0;i<count;i++){
+    const angle=(Math.random()-0.5)*Math.PI*1.4 - Math.PI/2; // 위쪽 120도 원뿔
+    const dist=distMin+Math.random()*distRange;
+    const sx=Math.cos(angle)*dist;
+    const sy=Math.sin(angle)*dist - riseBoost;
+    const jx=(Math.random()-0.5)*6;
+    const jy=(Math.random()-0.5)*4;
+    const delay=(Math.random()*delaySpread)|0;
+    const sp=document.createElement('div');
+    sp.className=cls;
+    sp.style.cssText='left:'+(cx+jx)+'px;top:'+(cy+jy)+'px;--sx:'+sx.toFixed(1)+'px;--sy:'+sy.toFixed(1)+'px;animation-delay:'+delay+'ms';
+    frag.appendChild(sp);
+    nodes.push(sp);
+  }
+  document.body.appendChild(frag);
+  const _refund=count;
+  setTimeout(()=>{for(let i=0;i<nodes.length;i++)nodes[i].remove();_lineSparkleBudget+=_refund;},lifeMs+delaySpread);
+}
 function shakeBoardPang(){
   if(_isLowPerf())return;
   const bf=document.getElementById('board-frame-el')||document.querySelector('.board-frame');
@@ -3692,7 +3789,7 @@ function triggerSpecialEffect(type,ar,ac,cx,cy){
           vCol.className='special-burst-col';
           vCol.style.cssText=`left:${cx-beamThick/2}px;top:${cy-armLenTop}px;height:${totalH}px;--burst-w:${beamThick}px`;
           document.body.appendChild(vCol);
-          setTimeout(()=>{hRow.remove();vCol.remove();hHalo.remove();vHalo.remove()},800);
+          setTimeout(()=>{hRow.remove();vCol.remove();hHalo.remove();vHalo.remove()},1500);
         }
         spawnLabel('✚ SLASH!',cx,cy-70,'#FF8AC5',26,true);
         // ★ Cross 새 효과: 플래시 링 + 4축 핑크 스파크 (폭죽 대신 샤프한 레이저)
@@ -4593,8 +4690,10 @@ function showGameOver(){
   const splash=document.getElementById('gameover-splash');
   const afterSplash=()=>{
     if(splash)splash.classList.remove('on');
-    if(!extendUsed){
-      document.getElementById('ext-diamond').disabled=diamondBalance<2;
+    // 다이아/광고 둘 중 하나라도 남아있으면 모달 표시 — 이미 쓴 옵션만 비활성화
+    if(!extendDiamondUsed || !extendAdUsed){
+      document.getElementById('ext-diamond').disabled=extendDiamondUsed||diamondBalance<2;
+      document.getElementById('ext-ad').disabled=extendAdUsed;
       document.getElementById('gameover-overlay').classList.add('on');
     }else{
       showResultScreen();
@@ -4664,9 +4763,9 @@ function skipExtend(){Sound.sfx.uiClick();document.getElementById('gameover-over
 
 // ═══ EXTEND ═══
 function extendDiamond(){
-  if(extendUsed)return;
+  if(extendDiamondUsed)return;
   if(!spendDiamonds(2)){showToast('다이아가 부족합니다!');return}
-  extendUsed=true;Sound.sfx.extend();haptic('success');
+  extendDiamondUsed=true;Sound.sfx.extend();haptic('success');
   document.getElementById('gameover-overlay').classList.remove('on');
   // ★ 가장 채워진 상위 2줄 찾기 (블록+얼음 합산, 빈 줄 제외)
   const rowCounts=[];
@@ -4731,10 +4830,10 @@ function cancelExtendAd(){
   if(_extendAdTimer){clearInterval(_extendAdTimer);_extendAdTimer=null}
   const adOv=document.getElementById('ad-overlay');
   if(adOv)adOv.classList.remove('on');
-  // 광고 카운트다운 중이었다면 extendUsed를 복구 (아직 보상 미지급)
-  if(extendUsed&&!gameActive)extendUsed=false;
+  // 광고 카운트다운 중이었다면 extendAdUsed를 복구 (아직 보상 미지급)
+  if(extendAdUsed&&!gameActive)extendAdUsed=false;
 }
-function extendAd(){if(extendUsed)return;extendUsed=true;Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');const adOv=document.getElementById('ad-overlay'),adTimer=document.getElementById('ad-timer');adOv.classList.add('on');let count=3;adTimer.textContent=count;_extendAdTimer=setInterval(()=>{count--;if(count<=0){clearInterval(_extendAdTimer);_extendAdTimer=null;adOv.classList.remove('on');Sound.sfx.extend();haptic('success');
+function extendAd(){if(extendAdUsed)return;extendAdUsed=true;Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');const adOv=document.getElementById('ad-overlay'),adTimer=document.getElementById('ad-timer');adOv.classList.add('on');let count=3;adTimer.textContent=count;_extendAdTimer=setInterval(()=>{count--;if(count<=0){clearInterval(_extendAdTimer);_extendAdTimer=null;adOv.classList.remove('on');Sound.sfx.extend();haptic('success');
   // ═══ 광고 보상: 6×6 구역 클리어 + 새 블록 3개 ═══
   // 1) 새 블록 3개 지급
   pieces=[randSmallPiece(),randSmallPiece(),randSmallPiece()];selIdx=null;
@@ -4800,7 +4899,7 @@ function extendAd(){if(extendUsed)return;extendUsed=true;Sound.sfx.uiClick();doc
 }else adTimer.textContent=count},1e3)}
 function showToast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('phone').appendChild(el);setTimeout(()=>el.remove(),2100)}
 
-function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;recentClearTurns=0;totalTurns=0;extendUsed=false;gameActive=true;_newRecordShown=false;
+function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;recentClearTurns=0;totalTurns=0;extendDiamondUsed=false;extendAdUsed=false;gameActive=true;_newRecordShown=false;
   // ★ v9.5 점수 시스템 초기화: 카운트업 + pendingScore 함께 리셋
   _scoreDisplay=0;pendingScore=0;if(_scoreRAF){cancelAnimationFrame(_scoreRAF);_scoreRAF=null}
   // ★ 특수 블록 시스템 리셋
