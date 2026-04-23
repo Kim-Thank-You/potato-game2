@@ -273,6 +273,21 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .hud-left{display:flex;align-items:center;gap:10px}
 .crown-icon{font-size:24px;line-height:1;opacity:.9}
 .best-score{font-size:17px;font-weight:700;color:var(--gold);letter-spacing:.3px;opacity:.9;font-variant-numeric:tabular-nums}
+
+/* ═══ Trash Slot — 판당 1회 블록 삭제 (위기 극복) ═══ */
+.hold-row{position:absolute;top:clamp(58px,8.5vh,86px);left:max(18px,env(safe-area-inset-left,0px));z-index:5;pointer-events:none}
+.hold-row .hold-slot{pointer-events:auto}
+.hold-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px;border-radius:14px;background:linear-gradient(150deg,rgba(255,120,120,.14),rgba(255,120,120,.05));border:1.5px solid rgba(255,120,120,.32);color:rgba(255,220,220,.95);font-size:11px;font-weight:700;cursor:pointer;width:76px;height:76px;box-sizing:border-box;overflow:hidden;transition:transform .1s var(--ease-snap,ease-out),opacity .15s ease,background .15s ease,border-color .15s ease;user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.04)}
+.hold-slot.locked{opacity:.35;pointer-events:none;filter:grayscale(.7)}
+.hold-slot.drop-target{border-color:rgba(255,120,120,.95);background:linear-gradient(150deg,rgba(255,120,120,.35),rgba(255,120,120,.15));box-shadow:0 0 0 2px rgba(255,120,120,.5),0 0 12px rgba(255,120,120,.4)}
+.hold-slot.drop-hover{transform:scale(1.08);border-color:rgba(255,80,80,1);background:linear-gradient(150deg,rgba(255,90,90,.55),rgba(200,40,40,.3));box-shadow:0 0 0 4px rgba(255,80,80,.45),0 0 18px rgba(255,80,80,.7)}
+.hold-slot.sucking{animation:trashSuckPulse .35s ease-out;background:radial-gradient(circle at center,rgba(255,140,140,.85),rgba(200,40,40,.3));border-color:rgba(255,180,180,1)}
+@keyframes trashSuckPulse{0%{transform:scale(1.18);box-shadow:0 0 0 8px rgba(255,120,120,.7),0 0 24px rgba(255,80,80,.8)}60%{transform:scale(.88)}100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,120,120,0),0 0 0 rgba(255,80,80,0)}}
+#ghost.sucking{transition:transform .32s cubic-bezier(.5,-0.05,.7,.3),opacity .32s ease;opacity:0}
+.hold-icon{font-size:24px;line-height:1;flex-shrink:0}
+.hold-label{letter-spacing:.5px;font-size:10px;opacity:.85;line-height:1.1}
+.hold-badge{font-family:'JetBrains Mono',monospace;font-size:8px;padding:1px 5px;border-radius:5px;background:rgba(0,0,0,.3);color:rgba(255,255,255,.7);letter-spacing:.5px;line-height:1.2}
+.hold-slot.locked .hold-badge{background:rgba(0,0,0,.35);color:rgba(255,255,255,.45)}
 .hud-coins{display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:var(--gold);opacity:.7}
 .hud-right{display:flex;gap:8px}
 .hud-btn{width:42px;height:42px;border-radius:14px;border:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(0,0,0,.4);background:linear-gradient(170deg,rgba(255,255,255,.04) 0%,rgba(0,0,0,.25) 100%);color:var(--text-2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity var(--dur-tap) var(--ease-press),transform var(--dur-tap) var(--ease-press);box-shadow:0 1px 3px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.05)}
@@ -1036,6 +1051,35 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .ext-btn:disabled{opacity:.45;pointer-events:none}
 .ext-sub{display:block;font-size:10px;opacity:.6;margin-top:2px}
 
+/* ═══ 2줄 클리어 선택 모드 (Line Select) ═══ */
+.line-select-sheet{position:fixed;left:0;right:0;bottom:0;z-index:90;background:linear-gradient(180deg,rgba(16,18,32,.98),rgba(8,10,20,.99));border-top:1px solid rgba(99,179,237,.35);border-radius:18px 18px 0 0;padding:14px 16px 18px;box-shadow:0 -10px 30px rgba(0,0,0,.55);transform:translateY(100%);transition:transform .26s cubic-bezier(.16,1,.3,1);pointer-events:none}
+.line-select-sheet.on{transform:translateY(0);pointer-events:auto}
+.ls-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ls-title{font-size:14px;font-weight:800;color:#fff;display:flex;align-items:center;gap:6px}
+.ls-count{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--cyan,#63B3ED);background:rgba(99,179,237,.12);padding:3px 9px;border-radius:10px;border:1px solid rgba(99,179,237,.25)}
+.ls-hint{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:10px;line-height:1.5}
+.ls-group{margin-bottom:10px}
+.ls-group-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.55);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.ls-row{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+.ls-btn{aspect-ratio:1;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);color:rgba(255,255,255,.72);font-weight:700;font-size:12px;border-radius:7px;cursor:pointer;transition:all .12s ease;padding:0;display:flex;align-items:center;justify-content:center}
+.ls-btn:active{transform:scale(.92)}
+.ls-btn.on{background:linear-gradient(160deg,#ffd36b,#c89b2a);color:#1a1206;border-color:#ffd36b;box-shadow:0 0 0 1px rgba(255,211,107,.35),0 0 12px rgba(200,155,42,.35)}
+.ls-btn.disabled{opacity:.3;pointer-events:none}
+.ls-actions{display:flex;gap:8px;margin-top:12px}
+.ls-action{flex:1;padding:12px 8px;border-radius:12px;border:none;font-size:13px;font-weight:800;cursor:pointer;transition:transform .08s var(--ease-snap,ease-out)}
+.ls-action:active{transform:scale(.95)}
+.ls-action.cancel{background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1)}
+.ls-action.confirm{background:linear-gradient(165deg,#c89b2a,#ddb540);color:#1a1206}
+.ls-action.confirm:disabled{background:rgba(200,155,42,.2);color:rgba(255,255,255,.35);cursor:not-allowed;opacity:.55}
+
+/* 보드 선택 프리뷰 하이라이트 — 셀 오버레이 */
+.cell.ls-preview::after{background:rgba(255,211,107,.28) !important;box-shadow:inset 0 0 0 1px rgba(255,211,107,.6);border-radius:inherit;opacity:1}
+.low-perf .cell.ls-preview::after{background:rgba(255,211,107,.22) !important;box-shadow:inset 0 0 0 1px rgba(255,211,107,.5)}
+
+/* 선택 모드 중 보드 상단 안내 바 */
+.ls-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:89;opacity:0;pointer-events:none;transition:opacity .2s ease}
+.ls-backdrop.on{opacity:1;pointer-events:auto}
+
 /* (old ad-double CSS removed — now using .ad-card/.tgl from gamja-pang) */
 
 /* Result Meta Card */
@@ -1586,6 +1630,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
     <div class="streak-badge" id="streak-bar"><span>🔥</span><span id="streak-el">×2</span></div>
     <div class="goal-hint" id="goal-hint"></div>
   </div>
+  <div class="hold-row">
+    <div class="hold-slot" id="hold-slot">
+      <span class="hold-icon" id="hold-icon">🗑️</span>
+      <span class="hold-label" id="hold-label">휴지통</span>
+      <span class="hold-badge" id="hold-badge">1회</span>
+    </div>
+  </div>
   <div class="board-area"><div class="board-outer"><div class="board-frame" id="board-frame-el"><div class="board" id="board"></div><div id="preview-overlay"></div></div></div></div>
   <div class="tray" id="tray">
     <div class="piece-slot" id="slot-0"></div>
@@ -1621,6 +1672,27 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
         <button class="ext-btn ad" id="ext-ad" onclick="extendAd()">📺 6×6 구역 클리어<span class="ext-sub">광고 시청</span></button>
       </div>
       <button class="modal-btn secondary" onclick="skipExtend()" style="width:100%;padding:12px">결과 보기</button>
+    </div>
+  </div>
+  <!-- 2줄 클리어 선택 모드 -->
+  <div class="ls-backdrop" id="ls-backdrop" onclick="cancelLineSelect()"></div>
+  <div class="line-select-sheet" id="line-select-sheet">
+    <div class="ls-head">
+      <div class="ls-title">💎 삭제할 2줄 선택</div>
+      <div class="ls-count" id="ls-count">0 / 2</div>
+    </div>
+    <div class="ls-hint">가로·세로 자유롭게 조합해서 2개를 고르세요</div>
+    <div class="ls-group">
+      <div class="ls-group-label">가로줄 (위 → 아래)</div>
+      <div class="ls-row" id="ls-rows"></div>
+    </div>
+    <div class="ls-group">
+      <div class="ls-group-label">세로줄 (왼쪽 → 오른쪽)</div>
+      <div class="ls-row" id="ls-cols"></div>
+    </div>
+    <div class="ls-actions">
+      <button class="ls-action cancel" onclick="cancelLineSelect()">취소</button>
+      <button class="ls-action confirm" id="ls-confirm-btn" disabled onclick="confirmLineSelect()">실행 (2 다이아)</button>
     </div>
   </div>
   <!-- GAME OVER Splash (쓰리매치에서 이식) -->
@@ -2262,6 +2334,8 @@ window._g = {
   confirmQuit: () => doQuit(),
   extendDiamond: () => extendDiamond(),
   extendAd: () => extendAd(),
+  cancelLineSelect: () => cancelLineSelect(),
+  confirmLineSelect: () => confirmLineSelect(),
   // 우도쿠 고유 (감자팡팡에 없음)
   forceEnd: () => endGameToResult?.(),
   undo: () => undoPlace?.(),
@@ -2468,6 +2542,8 @@ const GRID=9,PTS_PER_BLOCK=1,PTS_PER_CLEAR=20;  // v9.5: COMBO_BONUS/streakBonus
 let board=[],pieces=[],selIdx=null,score=0,best=0,streak=0,maxStreak=0,totalClears=0;
 let dragIdx=-1,dragActive=false,prevHover=[],cellEls=[],_boardFilled=0;
 let extendDiamondUsed=false,extendAdUsed=false,isTouchDrag=false,gameActive=false;
+// ═══ Keep (Hold) 상태: 판당 1회 블록 보관 ═══
+let trashUsed=false;  // 판당 1회 휴지통 사용 여부 (true면 잠금)
 
 // ═══ SPECIAL BLOCKS — 십자가 / 폭탄 / 얼음 ═══
 // boardSpecial[r][c]: null 또는 {type:'ice', stage:0|1}
@@ -3010,7 +3086,70 @@ function renderCell(r,c){const el=cellEls[r][c],v=board[r][c];const sp=boardSpec
 function renderBoard(){for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)renderCell(r,c)}
 function makePieceGrid(shape,cellPx,face,special){const maxR=Math.max(...shape.map(([r])=>r)),maxC=Math.max(...shape.map(([,c])=>c));const rows=maxR+1,cols=maxC+1,maxDim=Math.max(rows,cols),slotPx=96;const pc=Math.max(10,Math.min(cellPx,Math.floor((slotPx-(maxDim-1)*2)/maxDim)));const mat=Array.from({length:rows},()=>Array(cols).fill(false));shape.forEach(([r,c])=>mat[r][c]=true);const grid=document.createElement('div');grid.className='piece-grid';grid.style.gridTemplateColumns=`repeat(${cols},${pc}px)`;grid.style.gridTemplateRows=`repeat(${rows},${pc}px)`;for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const el=document.createElement('div');let cls='pc'+(mat[r][c]?' on':'');if(mat[r][c]&&special)cls+=' special-'+special;el.className=cls;el.style.width=pc+'px';el.style.height=pc+'px';if(mat[r][c]){if(special==='cross')el.innerHTML=CROSS_FACE;else if(special==='bomb')el.innerHTML=BOMB_FACE;else if(face!==undefined)el.innerHTML=POTATOES[face]}grid.appendChild(el)}return grid}
 let _trayPieceIds=[null,null,null];
-function renderTray(){for(let i=0;i<3;i++){const slot=document.getElementById('slot-'+i),p=pieces[i],isUsed=!p||p.used,isSel=selIdx===i;slot.classList.toggle('used',isUsed);slot.classList.toggle('selected',!isUsed&&isSel);if(isUsed){slot.innerHTML='';_trayPieceIds[i]=null;continue}if(_trayPieceIds[i]!==p){slot.innerHTML='';slot.appendChild(makePieceGrid(p.shape,22,p.face,p.special));_trayPieceIds[i]=p}}}
+function renderTray(){for(let i=0;i<3;i++){const slot=document.getElementById('slot-'+i),p=pieces[i],isUsed=!p||p.used,isSel=selIdx===i;slot.classList.toggle('used',isUsed);slot.classList.toggle('selected',!isUsed&&isSel);if(isUsed){slot.innerHTML='';_trayPieceIds[i]=null;continue}if(_trayPieceIds[i]!==p){slot.innerHTML='';slot.appendChild(makePieceGrid(p.shape,22,p.face,p.special));_trayPieceIds[i]=p}}renderHoldSlot()}
+function renderHoldSlot(){
+  const el=document.getElementById('hold-slot');if(!el)return;
+  const iconEl=document.getElementById('hold-icon'),labelEl=document.getElementById('hold-label'),badgeEl=document.getElementById('hold-badge');
+  el.classList.remove('locked','drop-target','drop-hover');
+  if(trashUsed){
+    el.classList.add('locked');
+    if(iconEl)iconEl.textContent='🗑️';
+    if(labelEl)labelEl.textContent='휴지통';
+    if(badgeEl)badgeEl.textContent='사용함';
+  }else{
+    if(iconEl)iconEl.textContent='🗑️';
+    if(labelEl)labelEl.textContent='휴지통';
+    if(badgeEl)badgeEl.textContent='1회';
+  }
+}
+// ─── 드래그: 휴지통 드롭 타겟 판정 ───
+function isOverHold(cx,cy){
+  const el=document.getElementById('hold-slot');if(!el)return false;
+  const r=el.getBoundingClientRect();
+  const pad=8;
+  return cx>=r.left-pad&&cx<=r.right+pad&&cy>=r.top-pad&&cy<=r.bottom+pad;
+}
+function isHoldAvailable(){return !trashUsed}
+function updateHoldTarget(cx,cy){
+  const el=document.getElementById('hold-slot');if(!el)return false;
+  if(!isHoldAvailable()){el.classList.remove('drop-hover');return false}
+  const over=isOverHold(cx,cy);
+  el.classList.toggle('drop-hover',over);
+  return over;
+}
+function suckIntoHold(idx){
+  const src=pieces[idx];if(!src)return;
+  const holdEl=document.getElementById('hold-slot');
+  const g=document.getElementById('ghost');
+  // 1) ghost를 휴지통 중앙으로 빨려들어가게 애니메이션
+  if(g&&holdEl){
+    const hr=holdEl.getBoundingClientRect();
+    const hx=hr.left+hr.width/2,hy=hr.top+hr.height/2;
+    const gr=g.getBoundingClientRect();
+    const gx=gr.left+gr.width/2,gy=gr.top+gr.height/2;
+    const dx=hx-gx,dy=hy-gy;
+    const cur=g.style.transform||'';
+    g.style.transition='transform .32s cubic-bezier(.5,-0.05,.7,.3), opacity .32s ease';
+    g.style.transform=cur+` translate3d(${dx}px,${dy}px,0) scale(.15) rotate(180deg)`;
+    g.style.opacity='0';
+    setTimeout(()=>{g.style.transition='';g.style.opacity='';g.style.transform='';hideGhost()},340);
+  }
+  // 2) 휴지통 펄스
+  if(holdEl){
+    holdEl.classList.add('sucking');
+    setTimeout(()=>holdEl.classList.remove('sucking'),380);
+  }
+  // 3) 상태 반영 — 블록 삭제 + 사용 플래그 세움 (저장 안 함, 복구 불가)
+  setTimeout(()=>{
+    pieces[idx].used=true;
+    trashUsed=true;
+    renderTray();
+    renderHoldSlot();
+    if(pieces.every(p=>p.used))setTimeout(()=>{newSet();setTimeout(checkGameOver,50)},180);
+    else setTimeout(checkGameOver,50);
+  },200);
+  Sound.sfx?.uiClick?.();haptic?.('medium');
+}
 function canPlace(shape,sr,sc){return shape.every(([dr,dc])=>{const r=sr+dr,c=sc+dc;if(r<0||r>=GRID||c<0||c>=GRID)return false;if(board[r][c]!==null)return false;if(boardSpecial[r][c]&&boardSpecial[r][c].type==='ice')return false;return true})}
 function shapeAnchor(shape,hr,hc){const maxR=Math.max(...shape.map(([r])=>r)),maxC=Math.max(...shape.map(([,c])=>c));return[hr-Math.round(maxR/2),hc-Math.round(maxC/2)]}
 function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!canPlace(p.shape,sr,sc))return false;saveUndoState();
@@ -4523,6 +4662,9 @@ function onMove(e){
   const cw=Math.round(_strideW)||42,ch=Math.round(_strideH)||42;
   const ghostCenterX=cx+_dragAnchorOffX+_dragCols*cw/2;
   const ghostCenterY=cy+_dragAnchorOffY+_dragRows*ch/2;
+  // 킵 슬롯 위에 있을 땐 보드 프리뷰 숨기고 타겟 하이라이트
+  const overHold=updateHoldTarget(cx,cy);
+  if(overHold){clearPreview();moveGhost(cx,cy,p.shape,null);return}
   const hit=cellAt(ghostCenterX,ghostCenterY);
   moveGhost(cx,cy,p.shape,hit);
 }
@@ -4535,6 +4677,18 @@ function onUp(e){
   const cw=Math.round(_strideW)||42,ch=Math.round(_strideH)||42;
   const ghostCenterX=cx+_dragAnchorOffX+_dragCols*cw/2;
   const ghostCenterY=cy+_dragAnchorOffY+_dragRows*ch/2;
+  // ★ 킵 슬롯 드롭 처리 (보드 드롭 판정보다 우선)
+  const holdEl=document.getElementById('hold-slot');
+  if(holdEl)holdEl.classList.remove('drop-hover','drop-target');
+  if(isHoldAvailable()&&isOverHold(cx,cy)){
+    const storedIdx=dragIdx;
+    _suppressClickUntil=performance.now()+350;
+    document.querySelectorAll('.piece-slot.dragging').forEach(s=>s.classList.remove('dragging'));
+    dragActive=false;dragIdx=-1;selIdx=null;isTouchDrag=false;_lastPreviewKey='';
+    hidePreviewOverlay();
+    suckIntoHold(storedIdx);
+    return;
+  }
   const hit=cellAt(ghostCenterX,ghostCenterY);
   let attemptedPlace=false;
   let placeSuccess=false;
@@ -4566,6 +4720,7 @@ function onUp(e){
   if(attemptedPlace)_suppressClickUntil=performance.now()+350;
   // ★ 모든 슬롯에서 dragging 클래스 제거 (트레이 블록 재표시)
   document.querySelectorAll('.piece-slot.dragging').forEach(s=>s.classList.remove('dragging'));
+  const hEl=document.getElementById('hold-slot');if(hEl)hEl.classList.remove('drop-target','drop-hover');
   dragActive=false;dragIdx=-1;selIdx=null;isTouchDrag=false;_lastPreviewKey='';renderTray();
   hidePreviewOverlay();
 }
@@ -4575,6 +4730,7 @@ function onCancel(){
   hideGhost();clearPreview();hidePreviewOverlay();
   // ★ 모든 슬롯에서 dragging 클래스 제거
   document.querySelectorAll('.piece-slot.dragging').forEach(s=>s.classList.remove('dragging'));
+  const h=document.getElementById('hold-slot');if(h)h.classList.remove('drop-target','drop-hover');
   dragActive=false;dragIdx=-1;selIdx=null;isTouchDrag=false;_lastPreviewKey='';renderTray();
 }
 
@@ -4588,6 +4744,8 @@ function slotDown(e,idx){
   if(!gameActive||pieces[idx]?.used)return;
   e.preventDefault();
   dragIdx=idx;dragActive=true;selIdx=idx;renderTray();
+  // 킵이 가능하면 타겟 표시
+  if(isHoldAvailable()){const h=document.getElementById('hold-slot');if(h)h.classList.add('drop-target')}
   // ★ 드래그 중 표시 (CSS에서 opacity:0으로 원본 숨김, Ghost가 대신)
   const slotEl=document.getElementById('slot-'+idx);
   if(slotEl)slotEl.classList.add('dragging');
@@ -4750,51 +4908,138 @@ function runCountdown(done){
 function skipExtend(){Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');showResultScreen()}
 
 // ═══ EXTEND ═══
+// ═══ 2줄 클리어: 유저가 가로/세로 자유 선택 ═══
+let _lsSelection=[]; // [{type:'row'|'col', idx:number}, ...] max 2
 function extendDiamond(){
   if(extendDiamondUsed)return;
-  if(!spendDiamonds(2)){showToast('다이아가 부족합니다!');return}
-  extendDiamondUsed=true;Sound.sfx.extend();haptic('success');
+  if(diamondBalance<2){showToast('다이아가 부족합니다!');return}
+  Sound.sfx.uiClick();
   document.getElementById('gameover-overlay').classList.remove('on');
-  // ★ 가장 채워진 상위 2줄 찾기 (블록+얼음 합산, 빈 줄 제외)
-  const rowCounts=[];
-  for(let r=0;r<GRID;r++){
-    let cnt=0;
-    for(let c=0;c<GRID;c++){
-      if(board[r][c]!==null)cnt++;
-      else if(boardSpecial[r][c]&&boardSpecial[r][c].type==='ice')cnt++;
+  enterLineSelectMode();
+}
+function enterLineSelectMode(){
+  _lsSelection=[];
+  // 버튼 동적 생성 (한 번만 생성되면 재사용)
+  const rowsEl=document.getElementById('ls-rows');
+  const colsEl=document.getElementById('ls-cols');
+  if(!rowsEl.children.length){
+    for(let i=0;i<GRID;i++){
+      const rb=document.createElement('button');
+      rb.className='ls-btn';rb.textContent=(i+1);
+      rb.onclick=()=>toggleLineSelect('row',i);
+      rowsEl.appendChild(rb);
+      const cb=document.createElement('button');
+      cb.className='ls-btn';cb.textContent=(i+1);
+      cb.onclick=()=>toggleLineSelect('col',i);
+      colsEl.appendChild(cb);
     }
-    if(cnt>0)rowCounts.push({r,cnt});
   }
-  rowCounts.sort((a,b)=>b.cnt-a.cnt);
-  const topRows=rowCounts.slice(0,2).map(x=>x.r);
+  updateLineSelectUI();
+  document.getElementById('ls-backdrop').classList.add('on');
+  document.getElementById('line-select-sheet').classList.add('on');
+}
+function toggleLineSelect(type,idx){
+  const existingIdx=_lsSelection.findIndex(s=>s.type===type&&s.idx===idx);
+  if(existingIdx>=0){
+    _lsSelection.splice(existingIdx,1);
+  }else{
+    if(_lsSelection.length>=2){
+      // 가장 오래된 항목 제거하고 새 항목 추가 (롤링)
+      _lsSelection.shift();
+    }
+    _lsSelection.push({type,idx});
+  }
+  Sound.sfx.uiClick();haptic('light');
+  updateLineSelectUI();
+}
+function updateLineSelectUI(){
+  const rowBtns=document.getElementById('ls-rows').children;
+  const colBtns=document.getElementById('ls-cols').children;
+  for(let i=0;i<GRID;i++){
+    rowBtns[i].classList.toggle('on',_lsSelection.some(s=>s.type==='row'&&s.idx===i));
+    colBtns[i].classList.toggle('on',_lsSelection.some(s=>s.type==='col'&&s.idx===i));
+  }
+  document.getElementById('ls-count').textContent=_lsSelection.length+' / 2';
+  document.getElementById('ls-confirm-btn').disabled=(_lsSelection.length!==2);
+  // 보드 프리뷰 하이라이트 갱신
+  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)cellEls[r][c].classList.remove('ls-preview');
+  _lsSelection.forEach(sel=>{
+    if(sel.type==='row'){
+      for(let c=0;c<GRID;c++)cellEls[sel.idx][c].classList.add('ls-preview');
+    }else{
+      for(let r=0;r<GRID;r++)cellEls[r][sel.idx].classList.add('ls-preview');
+    }
+  });
+}
+function closeLineSelectUI(){
+  document.getElementById('ls-backdrop').classList.remove('on');
+  document.getElementById('line-select-sheet').classList.remove('on');
+  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)cellEls[r][c].classList.remove('ls-preview');
+}
+function cancelLineSelect(){
+  Sound.sfx.uiClick();
+  closeLineSelectUI();
+  // 게임오버 오버레이 재표시 (취소 → 선택 전 상태)
+  document.getElementById('gameover-overlay').classList.add('on');
+}
+function confirmLineSelect(){
+  if(_lsSelection.length!==2)return;
+  if(!spendDiamonds(2)){showToast('다이아가 부족합니다!');cancelLineSelect();return}
+  extendDiamondUsed=true;Sound.sfx.extend();haptic('success');
+  const selection=_lsSelection.slice();
+  closeLineSelectUI();
   // ★★ 카운트다운 먼저 표시, GO! 시점에 실제 클리어 실행
   runCountdown(()=>{
-    if(topRows.length===0){
-      // 보드가 비어있는 예외
-      gameActive=true;setTimeout(checkGameOver,400);
-      return;
-    }
     const coef=window._lowPerf?6:12;
     let maxDelay=0;
     const cellsToClear=[];
-    topRows.forEach((r,rowIdx)=>{
-      for(let c=0;c<GRID;c++){
-        const hasBlock=board[r][c]!==null;
-        const hasIce=boardSpecial[r][c]&&boardSpecial[r][c].type==='ice';
-        if(hasBlock||hasIce){
-          const delay=c*coef+rowIdx*60; // 행마다 60ms 파도
-          if(delay>maxDelay)maxDelay=delay;
-          cellEls[r][c].style.setProperty('--clear-delay',delay+'ms');
-          cellEls[r][c].classList.add('clearing');
-          cellsToClear.push([r,c]);
-          if(hasBlock)board[r][c]=null;
-          if(hasIce){boardSpecial[r][c]=null;_iceCount--}
+    const seen=new Set();
+    selection.forEach((sel,selIdx)=>{
+      const lineOffset=selIdx*60; // 선택 순서마다 60ms 파도
+      if(sel.type==='row'){
+        const r=sel.idx;
+        for(let c=0;c<GRID;c++){
+          const key=r*GRID+c;if(seen.has(key))continue;
+          const hasBlock=board[r][c]!==null;
+          const hasIce=boardSpecial[r][c]&&boardSpecial[r][c].type==='ice';
+          if(hasBlock||hasIce){
+            seen.add(key);
+            const delay=c*coef+lineOffset;
+            if(delay>maxDelay)maxDelay=delay;
+            cellEls[r][c].style.setProperty('--clear-delay',delay+'ms');
+            cellEls[r][c].classList.add('clearing');
+            cellsToClear.push([r,c]);
+            if(hasBlock)board[r][c]=null;
+            if(hasIce){boardSpecial[r][c]=null;_iceCount--}
+          }
+        }
+      }else{
+        const c=sel.idx;
+        for(let r=0;r<GRID;r++){
+          const key=r*GRID+c;if(seen.has(key))continue;
+          const hasBlock=board[r][c]!==null;
+          const hasIce=boardSpecial[r][c]&&boardSpecial[r][c].type==='ice';
+          if(hasBlock||hasIce){
+            seen.add(key);
+            const delay=r*coef+lineOffset;
+            if(delay>maxDelay)maxDelay=delay;
+            cellEls[r][c].style.setProperty('--clear-delay',delay+'ms');
+            cellEls[r][c].classList.add('clearing');
+            cellsToClear.push([r,c]);
+            if(hasBlock)board[r][c]=null;
+            if(hasIce){boardSpecial[r][c]=null;_iceCount--}
+          }
         }
       }
     });
     _boardBitmapHash=-1;
     const CLEAR_DUR=700;
     const totalWait=CLEAR_DUR+maxDelay+30;
+    if(cellsToClear.length===0){
+      // 빈 줄만 선택된 예외
+      gameActive=true;setTimeout(checkGameOver,400);
+      return;
+    }
     const _t=setTimeout(()=>{
       _activeClearTimers.delete(_t);
       cellsToClear.forEach(([r,c])=>{
@@ -4887,7 +5132,7 @@ function extendAd(){if(extendAdUsed)return;extendAdUsed=true;Sound.sfx.uiClick()
 }else adTimer.textContent=count},1e3)}
 function showToast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;document.getElementById('phone').appendChild(el);setTimeout(()=>el.remove(),2100)}
 
-function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;recentClearTurns=0;totalTurns=0;extendDiamondUsed=false;extendAdUsed=false;gameActive=true;_newRecordShown=false;
+function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;recentClearTurns=0;totalTurns=0;extendDiamondUsed=false;extendAdUsed=false;gameActive=true;_newRecordShown=false;trashUsed=false;
   // ★ v9.5 점수 시스템 초기화: 카운트업 + pendingScore 함께 리셋
   _scoreDisplay=0;pendingScore=0;if(_scoreRAF){cancelAnimationFrame(_scoreRAF);_scoreRAF=null}
   // ★ 특수 블록 시스템 리셋
