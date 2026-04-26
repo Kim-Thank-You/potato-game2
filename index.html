@@ -106,11 +106,17 @@
   --g:#D4A510;--d:#67E8F9;--s:#94A3B8;
   --green:#4ADE80;--red:#F87171;--purple:#A78BFA;--white:#F1F5F9;
   --board-frame:#06080E;--board-bg:#060810;
-  --cell-empty:#1A2038;--cell-alt:#4A5578;--cell-line:rgba(255,255,255,0.05);
-  --section-line:rgba(255,255,255,0.3);
+  /* 2026-04-26 ULTRA PREMIUM POLISH: 출시 직전 마감 톤
+   * - cell-empty:   #151B2F → #12182A (더 조용+깊게)
+   * - cell-alt:     #202944 → #1C2540 (구분 유지하되 절대 튀지 않게)
+   * - section-line: 0.22    → 0.18    (3×3 한눈에 보이되 더 차분)
+   * - cell-line:    유지 (0.05)
+   */
+  --cell-empty:#12182A;--cell-alt:#1C2540;--cell-line:rgba(255,255,255,0.05);
+  --section-line:rgba(255,255,255,0.20);
   --block:#DCB87A;--block-light:#F0D8A5;--block-dark:#8B6630;
   /* 특수 블록 색상 3종 */
-  --block-cross-light:#FFBCE0;--block-cross:#FF70B8;--block-cross-dark:#B03880;
+  --block-cross-light:#8EC5FF;--block-cross:#3B82F6;--block-cross-dark:#1E3A8A;
   --block-bomb-light:#FFD766;--block-bomb:#FF5A1A;--block-bomb-dark:#6A1208;
   --block-ice-light:#6B7280;--block-ice:#3A4050;--block-ice-dark:#15181F;
   --gold:#B8975C;--gold-dim:rgba(184,151,92,0.10);
@@ -185,11 +191,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 #s-lobby{background:transparent}
 .lobby-bg{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 70% 35% at 50% 0%,rgba(251,191,36,.05),transparent 60%),radial-gradient(ellipse 40% 40% at 80% 85%,rgba(139,92,246,.04),transparent 60%)}
 .lobby-inner{position:relative;z-index:1;display:flex;flex-direction:column;flex:1;overflow:hidden}
-.lobby-scroll{flex:1;overflow:hidden;-webkit-overflow-scrolling:touch;padding:calc(var(--safe-top) + clamp(12px,2.5vh,24px)) 22px clamp(8px,1.5vh,16px);display:flex;flex-direction:column;gap:clamp(8px,1.4vh,14px);overscroll-behavior:contain}
-@media(max-height:640px){.lobby-scroll{overflow-y:auto;overflow-x:hidden}}
+.lobby-scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:calc(var(--safe-top) + clamp(12px,2.5vh,24px)) 22px clamp(8px,1.5vh,16px);display:flex;flex-direction:column;gap:clamp(8px,1.4vh,14px);overscroll-behavior:contain}
 .lobby-footer{padding:0 22px clamp(10px,2.5vh,20px);flex-shrink:0;padding-bottom:max(12px,env(safe-area-inset-bottom,0px))}
 .lobby-header{display:flex;align-items:center;justify-content:center;margin-bottom:0}
-.lobby-title{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:24px;font-weight:800;letter-spacing:-.3px;background:linear-gradient(135deg,#ffe066,#d4a510 40%,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none}
+.lobby-title{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:clamp(22px,6.5vw,36px);font-weight:800;letter-spacing:-.3px;background:linear-gradient(135deg,#ffe066,#d4a510 40%,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none}
 
 /* Tier Card */
 .tier-card{background:linear-gradient(165deg,#0c1222,#080e1a);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:clamp(12px,2.2vh,20px);text-align:center;position:relative;overflow:hidden;box-shadow:inset 0 1px #ffffff14,0 4px 24px #00000080;flex-shrink:0}
@@ -275,12 +280,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .best-score{font-size:17px;font-weight:700;color:var(--gold);letter-spacing:.3px;opacity:.9;font-variant-numeric:tabular-nums}
 
 /* ═══ Trash Slot — 판당 1회 블록 삭제 (위기 극복) ═══ */
-.hold-row{position:absolute;top:clamp(58px,8.5vh,86px);left:max(18px,env(safe-area-inset-left,0px));z-index:5;pointer-events:none}
+.hold-row{position:absolute;top:clamp(58px,8.5vh,86px);right:max(4px,env(safe-area-inset-right,0px));z-index:5;pointer-events:none}
 .hold-row .hold-slot{pointer-events:auto}
-.hold-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px;border-radius:14px;background:linear-gradient(150deg,rgba(255,120,120,.14),rgba(255,120,120,.05));border:1.5px solid rgba(255,120,120,.32);color:rgba(255,220,220,.95);font-size:11px;font-weight:700;cursor:pointer;width:76px;height:76px;box-sizing:border-box;overflow:hidden;transition:transform .1s var(--ease-snap,ease-out),opacity .15s ease,background .15s ease,border-color .15s ease;user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.04)}
+.hold-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:5px;border-radius:12px;background:linear-gradient(150deg,rgba(255,120,120,.14),rgba(255,120,120,.05));border:1.5px solid rgba(255,120,120,.32);color:rgba(255,220,220,.95);font-size:11px;font-weight:700;cursor:pointer;width:64px;height:64px;box-sizing:border-box;overflow:hidden;transition:transform .1s var(--ease-snap,ease-out),opacity .15s ease,background .15s ease,border-color .15s ease;user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 6px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.04)}
 .hold-slot.locked{opacity:.35;pointer-events:none;filter:grayscale(.7)}
-.hold-slot.drop-target{border-color:rgba(255,120,120,.95);background:linear-gradient(150deg,rgba(255,120,120,.35),rgba(255,120,120,.15));box-shadow:0 0 0 2px rgba(255,120,120,.5),0 0 12px rgba(255,120,120,.4)}
-.hold-slot.drop-hover{transform:scale(1.08);border-color:rgba(255,80,80,1);background:linear-gradient(150deg,rgba(255,90,90,.55),rgba(200,40,40,.3));box-shadow:0 0 0 4px rgba(255,80,80,.45),0 0 18px rgba(255,80,80,.7)}
+.hold-slot.drop-target{}
+.hold-slot.drop-hover{transform:scale(1.05);border-color:rgba(255,120,120,.7)}
 .hold-slot.sucking{animation:trashSuckPulse .35s ease-out;background:radial-gradient(circle at center,rgba(255,140,140,.85),rgba(200,40,40,.3));border-color:rgba(255,180,180,1)}
 @keyframes trashSuckPulse{0%{transform:scale(1.18);box-shadow:0 0 0 8px rgba(255,120,120,.7),0 0 24px rgba(255,80,80,.8)}60%{transform:scale(.88)}100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,120,120,0),0 0 0 rgba(255,80,80,0)}}
 #ghost.sucking{transition:transform .32s cubic-bezier(.5,-0.05,.7,.3),opacity .32s ease;opacity:0}
@@ -354,7 +359,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .board-area{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:clamp(4px,1vh,12px) clamp(2px,.5vw,4px) 0;min-height:0;contain:layout;overflow:hidden}
 .board-outer{width:var(--board-size,100%);max-width:var(--board-size,100%)}
 /* ── 보드 프레임: 1단 레이어 — 가장 깊고 무거운 바깥틀 ── */
-.board-frame{background:transparent;border-radius:12px;padding:0;border:none;box-shadow:none;position:relative}
+/* 2026-04-26 ULTRA PREMIUM POLISH: 보드 프레임 묵직한 깊이감
+ * - 깊은 dual-tone gradient (위에서 아래로 살짝 어두워짐)
+ * - 외부 drop shadow 28px: "들떠 보이지 않고 깔린" 무게감
+ * - inset top white 0.045: 상단 미세 하이라이트 (액자 효과)
+ * - inset bottom black 0.65: 하단 깊이 음영 (프리미엄 판 느낌)
+ * - danger/fail-soon 상태는 box-shadow가 교체되므로 별도 유지 (706, 714행)
+ */
+.board-frame{background:linear-gradient(180deg,#070A12,#04060B);border-radius:12px;padding:0;border:none;box-shadow:0 10px 28px rgba(0,0,0,0.42),inset 0 1px 0 rgba(255,255,255,0.045),inset 0 -1px 0 rgba(0,0,0,0.65);position:relative}
 .board-frame::before{display:none}
 .board-frame::after{display:none}
 /* ── Preview Overlay: 드래그 중 예상 착수 위치 표시 (물 흐르듯 transform 이동) ── */
@@ -376,16 +388,16 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
    - box-shadow를 inset 0 0 0 1px 대칭 outline으로 (상하 비대칭 제거)
    - ::after 상단 그라디언트 제거 (위에서 빛 받는 느낌 제거)
    - border-radius 2px (교차점 + 자 점 최소화) */
-.cell{aspect-ratio:1;border-radius:2px;background:#1A2038;border:none;position:relative;overflow:hidden;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);contain:layout style}
+.cell{aspect-ratio:1;border-radius:2px;background:var(--cell-empty);border:none;position:relative;overflow:hidden;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.22),inset 0 1px 0 rgba(255,255,255,0.018);contain:layout style}
 .cell::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:transparent}
 /* ── Preview 오버레이 (드래그 중 부드러운 fade) ── */
 .cell::before{content:'';position:absolute;inset:2px;border-radius:4px;background:transparent;opacity:0;pointer-events:none;z-index:2;transition:opacity 120ms ease-out}
 /* ── 교차 구역: 2,4,6,8번 — 매우 미묘한 톤 차이로만 구분 ── */
-.cell.section-alt{background:#4A5578;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.cell.section-alt{background:var(--cell-alt);box-shadow:inset 0 0 0 1px rgba(255,255,255,0.026),inset 0 -1px 0 rgba(0,0,0,0.16)}
 /* ── 3x3 경계: board::after 오버레이로 분리 — 블록 위에 항상 표시 ── */
 .cell.filled .block-inner{position:absolute;inset:2px;border-radius:9px;background:linear-gradient(155deg,var(--block-light) 0%,var(--block) 55%,var(--block-dark) 100%);box-shadow:inset 0 2px 1px rgba(255,255,255,.45),inset 0 -2px 2px rgba(75,45,15,.35),inset 0 0 0 1px rgba(60,34,12,.18)}
 /* 특수 블록: 크로스 (마젠타/핑크) - inset shadow만 (외부 glow 제거, paint 비용 차단) */
-.cell.special-cross .block-inner,.pc.on.special-cross{background:linear-gradient(155deg,var(--block-cross-light) 0%,var(--block-cross) 55%,var(--block-cross-dark) 100%) !important;box-shadow:inset 0 2px 1px rgba(255,255,255,.55),inset 0 -2px 2px rgba(120,32,80,.4),inset 0 0 0 1.5px rgba(176,56,128,.35) !important}
+.cell.special-cross .block-inner,.pc.on.special-cross{background:linear-gradient(155deg,var(--block-cross-light) 0%,var(--block-cross) 55%,var(--block-cross-dark) 100%) !important;box-shadow:inset 0 2px 1px rgba(255,255,255,.55),inset 0 -2px 2px rgba(10,30,80,.45),inset 0 0 0 1.5px rgba(40,110,200,.45) !important}
 /* 특수 블록: 폭탄 (화약/불꽃 — 황금 주황 → 불꽃 빨강 → 다크 레드) */
 .cell.special-bomb .block-inner,.pc.on.special-bomb{background:linear-gradient(155deg,var(--block-bomb-light) 0%,var(--block-bomb) 55%,var(--block-bomb-dark) 100%) !important;box-shadow:inset 0 2px 1px rgba(255,230,140,.7),inset 0 -2px 2px rgba(100,10,0,.55),inset 0 0 0 1.5px rgba(255,100,40,.55),inset 0 0 8px rgba(255,150,50,.3) !important}
 /* 특수 블록: 얼음 (블루/서리) */
@@ -398,18 +410,27 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 /* ═══ 고급 레이저 빔 — 중앙에서 양쪽으로 쭉 퍼지는 느낌 ═══ */
 /* 코어 빔: 중앙 0 → 양쪽으로 부드럽게 확장 (살짝 두께 부풀어오르다 안정) */
 @keyframes specialBurstRow{
-  0%  {opacity:0;transform:scaleX(0) scaleY(1)}
-  5%  {opacity:1;transform:scaleX(0.06) scaleY(1)}
-  38% {opacity:1;transform:scaleX(1) scaleY(1)}
-  65% {opacity:1;transform:scaleX(1) scaleY(1)}
-  100%{opacity:0;transform:scaleX(1) scaleY(1)}
+  0%   {opacity:0;transform:scaleX(0);filter:brightness(4)}
+  7%   {opacity:1;transform:scaleX(1);filter:brightness(4)}
+  20%  {opacity:1;transform:scaleX(1);filter:brightness(2.5)}
+  50%  {opacity:1;transform:scaleX(1);filter:brightness(1.8)}
+  72%  {opacity:.7;transform:scaleX(1);filter:brightness(1.2)}
+  100% {opacity:0;transform:scaleX(1);filter:brightness(1)}
 }
 @keyframes specialBurstCol{
-  0%  {opacity:0;transform:scaleY(0) scaleX(1)}
-  5%  {opacity:1;transform:scaleY(0.06) scaleX(1)}
-  38% {opacity:1;transform:scaleY(1) scaleX(1)}
-  65% {opacity:1;transform:scaleY(1) scaleX(1)}
-  100%{opacity:0;transform:scaleY(1) scaleX(1)}
+  0%   {opacity:0;transform:scaleY(0);filter:brightness(4)}
+  7%   {opacity:1;transform:scaleY(1);filter:brightness(4)}
+  20%  {opacity:1;transform:scaleY(1);filter:brightness(2.5)}
+  50%  {opacity:1;transform:scaleY(1);filter:brightness(1.8)}
+  72%  {opacity:.7;transform:scaleY(1);filter:brightness(1.2)}
+  100% {opacity:0;transform:scaleY(1);filter:brightness(1)}
+}
+/* Cross 중심 대폭발 플래시 */
+@keyframes crossCenterFlash{
+  0%  {transform:translate(-50%,-50%) scale(0.05);opacity:1}
+  18% {transform:translate(-50%,-50%) scale(1);opacity:1}
+  50% {transform:translate(-50%,-50%) scale(1.6);opacity:.5}
+  100%{transform:translate(-50%,-50%) scale(2.8);opacity:0}
 }
 /* Halo 레이저: 코어보다 천천히 + 더 크게 + 진한 blur (외곽 기운) */
 @keyframes specialBurstRowHalo{
@@ -428,6 +449,18 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   78% {opacity:.3;transform:scaleY(1.12) scaleX(.7);filter:blur(10px)}
   100%{opacity:0;transform:scaleY(1.2)  scaleX(.2);filter:blur(16px)}
 }
+@keyframes specialBurstRowWide{
+  0%  {opacity:0;transform:scaleX(0)}
+  7%  {opacity:.85;transform:scaleX(1)}
+  40% {opacity:.65;transform:scaleX(1)}
+  100%{opacity:0;transform:scaleX(1)}
+}
+@keyframes specialBurstColWide{
+  0%  {opacity:0;transform:scaleY(0)}
+  7%  {opacity:.85;transform:scaleY(1)}
+  40% {opacity:.65;transform:scaleY(1)}
+  100%{opacity:0;transform:scaleY(1)}
+}
 @keyframes specialBurstRadial{
   0%{opacity:0;transform:translate(-50%,-50%) scale(0);filter:blur(0)}
   20%{opacity:1;transform:translate(-50%,-50%) scale(.7);filter:blur(0.4px)}
@@ -439,40 +472,40 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   position:fixed;pointer-events:none;z-index:900;
   background:linear-gradient(90deg,
     transparent 0%,
-    rgba(0,255,224,.15) 4%,
-    rgba(0,255,224,.85) 20%,
-    rgba(200,255,248,1) 45%,
+    rgba(0,240,210,.25) 3%,
+    rgba(0,255,224,.95) 16%,
+    rgba(140,255,245,1) 36%,
     rgba(255,255,255,1) 50%,
-    rgba(200,255,248,1) 55%,
-    rgba(0,255,224,.85) 80%,
-    rgba(0,255,224,.15) 96%,
+    rgba(140,255,245,1) 64%,
+    rgba(0,255,224,.95) 84%,
+    rgba(0,240,210,.25) 97%,
     transparent 100%);
   height:var(--burst-h,4px);
   border-radius:0;
   transform-origin:center;
-  box-shadow:0 0 8px rgba(0,255,224,.95),0 0 20px rgba(0,255,224,.55),0 0 40px rgba(0,200,180,.3);
+  box-shadow:0 0 10px rgba(0,255,224,1),0 0 28px rgba(0,255,224,.8),0 0 60px rgba(0,220,200,.5),0 0 90px rgba(0,180,160,.25);
   mix-blend-mode:screen;
-  animation:specialBurstRow 480ms cubic-bezier(0.19,1,0.22,1) forwards;
+  animation:specialBurstRow 580ms cubic-bezier(0.19,1,0.22,1) forwards;
   will-change:transform,opacity;
 }
 .special-burst-col{
   position:fixed;pointer-events:none;z-index:900;
   background:linear-gradient(180deg,
     transparent 0%,
-    rgba(0,255,224,.15) 4%,
-    rgba(0,255,224,.85) 20%,
-    rgba(200,255,248,1) 45%,
+    rgba(0,240,210,.25) 3%,
+    rgba(0,255,224,.95) 16%,
+    rgba(140,255,245,1) 36%,
     rgba(255,255,255,1) 50%,
-    rgba(200,255,248,1) 55%,
-    rgba(0,255,224,.85) 80%,
-    rgba(0,255,224,.15) 96%,
+    rgba(140,255,245,1) 64%,
+    rgba(0,255,224,.95) 84%,
+    rgba(0,240,210,.25) 97%,
     transparent 100%);
   width:var(--burst-w,4px);
   border-radius:0;
   transform-origin:center;
-  box-shadow:0 0 8px rgba(0,255,224,.95),0 0 20px rgba(0,255,224,.55),0 0 40px rgba(0,200,180,.3);
+  box-shadow:0 0 10px rgba(0,255,224,1),0 0 28px rgba(0,255,224,.8),0 0 60px rgba(0,220,200,.5),0 0 90px rgba(0,180,160,.25);
   mix-blend-mode:screen;
-  animation:specialBurstCol 480ms cubic-bezier(0.19,1,0.22,1) forwards;
+  animation:specialBurstCol 580ms cubic-bezier(0.19,1,0.22,1) forwards;
   will-change:transform,opacity;
 }
 /* Halo 빔 — 코어 외곽의 큰 glow */
@@ -480,11 +513,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   position:fixed;pointer-events:none;z-index:899;
   background:linear-gradient(90deg,
     transparent 0%,
-    rgba(255,140,200,.2) 10%,
-    rgba(255,180,220,.45) 35%,
-    rgba(255,210,235,.6) 50%,
-    rgba(255,180,220,.45) 65%,
-    rgba(255,140,200,.2) 90%,
+    rgba(120,220,255,.2) 10%,
+    rgba(160,235,255,.45) 35%,
+    rgba(200,250,255,.6) 50%,
+    rgba(160,235,255,.45) 65%,
+    rgba(120,220,255,.2) 90%,
     transparent 100%);
   height:var(--halo-h,40px);
   border-radius:100px;
@@ -497,11 +530,11 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   position:fixed;pointer-events:none;z-index:899;
   background:linear-gradient(180deg,
     transparent 0%,
-    rgba(255,140,200,.2) 10%,
-    rgba(255,180,220,.45) 35%,
-    rgba(255,210,235,.6) 50%,
-    rgba(255,180,220,.45) 65%,
-    rgba(255,140,200,.2) 90%,
+    rgba(120,220,255,.2) 10%,
+    rgba(160,235,255,.45) 35%,
+    rgba(200,250,255,.6) 50%,
+    rgba(160,235,255,.45) 65%,
+    rgba(120,220,255,.2) 90%,
     transparent 100%);
   width:var(--halo-w,40px);
   border-radius:100px;
@@ -510,10 +543,45 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   animation:specialBurstColHalo 1450ms cubic-bezier(0.19,1,0.22,1) forwards;
   will-change:transform,opacity,filter;
 }
+/* 와이드 글로우 빔 — 코어 뒤의 넓은 에너지 방사 */
+.special-burst-row-wide{
+  position:fixed;pointer-events:none;z-index:897;
+  background:linear-gradient(90deg,
+    transparent 0%,
+    rgba(0,200,255,.1) 6%,
+    rgba(0,230,255,.42) 28%,
+    rgba(100,245,255,.62) 50%,
+    rgba(0,230,255,.42) 72%,
+    rgba(0,200,255,.1) 94%,
+    transparent 100%);
+  height:var(--wide-h,72px);
+  border-radius:50%;
+  transform-origin:center;
+  mix-blend-mode:screen;
+  animation:specialBurstRowWide 740ms cubic-bezier(0.19,1,0.22,1) forwards;
+}
+.special-burst-col-wide{
+  position:fixed;pointer-events:none;z-index:897;
+  background:linear-gradient(180deg,
+    transparent 0%,
+    rgba(0,200,255,.1) 6%,
+    rgba(0,230,255,.42) 28%,
+    rgba(100,245,255,.62) 50%,
+    rgba(0,230,255,.42) 72%,
+    rgba(0,200,255,.1) 94%,
+    transparent 100%);
+  width:var(--wide-w,72px);
+  border-radius:50%;
+  transform-origin:center;
+  mix-blend-mode:screen;
+  animation:specialBurstColWide 740ms cubic-bezier(0.19,1,0.22,1) forwards;
+}
+.mobile-reduce .special-burst-row-wide,.mobile-reduce .special-burst-col-wide{mix-blend-mode:normal !important}
 /* 저전력에서는 halo 비활성화 (렌더 비용 절감) */
 .low-perf .special-burst-row-halo,.low-perf .special-burst-col-halo{display:none}
-/* 모바일 감쇠 — halo 비활성화 (iOS/Android 공통, mix-blend+blur 부하 차단) */
-.mobile-reduce .special-burst-row-halo,.mobile-reduce .special-burst-col-halo{display:none}
+.low-perf .special-burst-row-wide,.low-perf .special-burst-col-wide{display:none}
+/* 모바일 감쇠 — blur만 제거, halo/wide는 표시 유지 */
+.mobile-reduce .special-burst-row-halo,.mobile-reduce .special-burst-col-halo{filter:none !important}
 @media (prefers-reduced-motion:reduce){
   .special-burst-row-halo,.special-burst-col-halo{animation:none !important;opacity:0 !important}
 }
@@ -530,12 +598,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   box-shadow:0 0 40px rgba(255,160,60,.75),0 0 80px rgba(255,100,40,.4);
   transform:translate(-50%,-50%) scale(0);
   mix-blend-mode:screen;
-  animation:specialBurstRadial 780ms cubic-bezier(0.22,0.61,0.36,1) forwards;
+  animation:specialBurstRadial 420ms cubic-bezier(0.22,0.61,0.36,1) forwards;
   will-change:transform,opacity,filter;
 }
 /* 저전력/reduced-motion */
 .low-perf .special-burst-row,.low-perf .special-burst-col{animation-duration:320ms !important;mix-blend-mode:normal;box-shadow:0 0 8px rgba(0,255,224,.5) !important}
-.low-perf .special-burst-radial{animation-duration:520ms !important;mix-blend-mode:normal;box-shadow:none !important;filter:none !important}
+.low-perf .special-burst-radial{animation-duration:280ms !important;mix-blend-mode:normal;box-shadow:none !important;filter:none !important}
 /* 모바일 감쇠: mix-blend/filter blur 차단 (iOS Safari 렉 방지), 박스 섀도는 단순화 */
 .mobile-reduce .special-burst-row,.mobile-reduce .special-burst-col{
   mix-blend-mode:normal !important;
@@ -568,7 +636,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   35%{transform:translate(-50%,-50%) rotate(45deg) scale(1.1);opacity:1}
   100%{transform:translate(-50%,-50%) rotate(45deg) scale(2.2);opacity:0}
 }
-.cross-flash-ring{position:fixed;pointer-events:none;z-index:901;width:14px;height:14px;border-radius:0;border:2px solid rgba(0,255,224,.95);background:rgba(180,255,248,.35);animation:crossFlashRing 360ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity}
+.cross-flash-ring{position:fixed;pointer-events:none;z-index:901;width:32px;height:32px;border-radius:0;border:2px solid rgba(0,255,224,.95);background:rgba(160,255,248,.18);box-shadow:0 0 8px rgba(0,255,224,.7),inset 0 0 5px rgba(0,255,224,.3);animation:crossFlashRing 420ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity}
 .low-perf .cross-spark{animation-duration:200ms !important}
 .low-perf .cross-flash-ring{animation-duration:200ms !important}
 /* 모바일: screen blend / blur 차단 */
@@ -576,6 +644,39 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .mobile-reduce .flame-particle{mix-blend-mode:normal !important}
 .mobile-reduce .puff-cloud{mix-blend-mode:normal !important}
 @media (prefers-reduced-motion:reduce){.cross-spark,.cross-flash-ring{animation:none !important;opacity:0 !important}}
+/* ⚡ Beam scatter sparks — 빔 전체 길이에 수직 발사 */
+@keyframes beamSparkFly{
+  0%  {transform:translate(0,0) scale(1.4);opacity:1}
+  60% {opacity:.7}
+  100%{transform:translate(var(--tx),var(--ty)) scale(0);opacity:0}
+}
+.beam-spark{position:fixed;pointer-events:none;z-index:903;border-radius:50%;background:radial-gradient(circle,#FFFFFF 0%,#00FFE0 55%,transparent 100%);animation:beamSparkFly 280ms ease-out forwards;will-change:transform,opacity}
+/* ◉ 빔 끝점 충격 플래시 — 보드 모서리 4방향 */
+@keyframes endpointFlash{
+  0%  {transform:translate(-50%,-50%) scale(0.15);opacity:1}
+  30% {transform:translate(-50%,-50%) scale(1.1);opacity:1}
+  100%{transform:translate(-50%,-50%) scale(2.5);opacity:0}
+}
+.cross-endpoint-flash{position:fixed;pointer-events:none;z-index:904;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,1) 0%,rgba(0,255,224,.9) 38%,transparent 100%);box-shadow:0 0 10px rgba(0,255,224,.75);animation:endpointFlash 380ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity}
+/* ○ 원형 충격파 링 */
+@keyframes crossBurstCircle{
+  0%  {transform:translate(-50%,-50%) scale(0.05);opacity:1}
+  20% {transform:translate(-50%,-50%) scale(0.7);opacity:.95}
+  65% {transform:translate(-50%,-50%) scale(1.9);opacity:.35}
+  100%{transform:translate(-50%,-50%) scale(3.2);opacity:0}
+}
+.cross-burst-circle{position:fixed;pointer-events:none;z-index:902;width:36px;height:36px;border-radius:50%;border:2px solid rgba(0,255,224,.8);box-shadow:0 0 8px rgba(0,255,224,.6);animation:crossBurstCircle 500ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity}
+/* ✦ Cross 중심 대섬광 */
+.cross-center-flash{position:fixed;pointer-events:none;z-index:907;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,1) 0%,rgba(180,255,248,.95) 18%,rgba(0,255,224,.7) 45%,rgba(0,180,200,.2) 75%,transparent 100%);mix-blend-mode:screen;animation:crossCenterFlash 480ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity}
+.low-perf .cross-center-flash{display:none}
+.mobile-reduce .cross-center-flash{mix-blend-mode:normal !important}
+@media (prefers-reduced-motion:reduce){.cross-center-flash{animation:none !important;opacity:0 !important}}
+/* ▦ 보드 순간 플래시 */
+@keyframes crossBoardFlash{0%{opacity:1}100%{opacity:0}}
+.low-perf .beam-spark{display:none}
+.low-perf .cross-endpoint-flash{display:none}
+.low-perf .cross-burst-circle{animation-duration:300ms !important}
+@media (prefers-reduced-motion:reduce){.beam-spark,.cross-endpoint-flash,.cross-burst-circle{animation:none !important;opacity:0 !important}}
 /* 카툰 구름 (bomb) */
 @keyframes puffExpand{
   0%{transform:translate(-50%,-50%) scale(0.2);opacity:0.2}
@@ -583,7 +684,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   70%{transform:translate(-50%,-50%) scale(1.4);opacity:0.7}
   100%{transform:translate(-50%,-50%) scale(1.7);opacity:0}
 }
-.puff-cloud{position:fixed;pointer-events:none;z-index:901;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(255,220,150,.95) 0%,rgba(255,160,80,.75) 40%,rgba(180,90,20,.3) 75%,transparent 100%);animation:puffExpand 600ms cubic-bezier(0.25,0.46,0.45,0.94) forwards;will-change:transform,opacity;mix-blend-mode:screen}
+.puff-cloud{position:fixed;pointer-events:none;z-index:901;width:34px;height:34px;border-radius:50%;background:radial-gradient(circle,rgba(255,220,150,.95) 0%,rgba(255,160,80,.75) 40%,rgba(180,90,20,.3) 75%,transparent 100%);animation:puffExpand 330ms cubic-bezier(0.25,0.46,0.45,0.94) forwards;will-change:transform,opacity;mix-blend-mode:screen}
 /* 별 파편 (bomb) */
 @keyframes starBurstFly{
   0%{transform:translate(0,0) scale(0) rotate(0deg);opacity:1}
@@ -598,8 +699,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   60%{transform:translate(calc(var(--tx)*.78),calc(var(--ty)*.78)) scale(1);opacity:.85;filter:blur(0.8px)}
   100%{transform:translate(var(--tx),var(--ty)) scale(0.15);opacity:0;filter:blur(1.8px)}
 }
-.flame-particle{position:fixed;pointer-events:none;z-index:902;border-radius:50%;background:radial-gradient(circle,#FFF4A0 0%,#FFB040 28%,#FF4A10 58%,rgba(120,16,2,0) 90%);animation:flameBurstFly 680ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity,filter;mix-blend-mode:screen}
-.low-perf .flame-particle{animation-duration:420ms !important;mix-blend-mode:normal}
+.flame-particle{position:fixed;pointer-events:none;z-index:902;border-radius:50%;background:radial-gradient(circle,#FFF4A0 0%,#FFB040 28%,#FF4A10 58%,rgba(120,16,2,0) 90%);animation:flameBurstFly 380ms cubic-bezier(0.22,0.61,0.36,1) forwards;will-change:transform,opacity,filter;mix-blend-mode:screen}
+.low-perf .flame-particle{animation-duration:240ms !important;mix-blend-mode:normal}
 @media (prefers-reduced-motion:reduce){.flame-particle{animation:none !important;opacity:0 !important}}
 /* 🎆 폭죽 효과 — core flash + 방사 컬러 스파크 + 반짝 twinkle */
 @keyframes fireworkCore{
@@ -607,15 +708,15 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   35%{transform:translate(-50%,-50%) scale(1);opacity:1}
   100%{transform:translate(-50%,-50%) scale(2);opacity:0}
 }
-.firework-core{position:fixed;pointer-events:none;z-index:903;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,#FFFFFF 0%,#FFF0A8 28%,rgba(255,200,80,.55) 55%,rgba(255,120,40,.15) 80%,transparent 100%);animation:fireworkCore 420ms cubic-bezier(0.2,0.6,0.3,1) forwards;will-change:transform,opacity;mix-blend-mode:screen}
+.firework-core{position:fixed;pointer-events:none;z-index:903;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle,#FFEEDD 0%,#FFB870 22%,rgba(255,120,40,.6) 50%,rgba(200,40,10,.25) 80%,transparent 100%);animation:fireworkCore 240ms cubic-bezier(0.2,0.6,0.3,1) forwards;will-change:transform,opacity;mix-blend-mode:screen}
 @keyframes fireworkSpark{
   0%{transform:translate(0,0) scale(.8);opacity:1}
   18%{transform:translate(calc(var(--tx)*.22),calc(var(--ty)*.22 - 4px)) scale(1.1);opacity:1}
   65%{transform:translate(calc(var(--tx)*.8),calc(var(--ty)*.8 + 6px)) scale(.9);opacity:.9}
   100%{transform:translate(var(--tx),calc(var(--ty) + 28px)) scale(.25);opacity:0}
 }
-.firework-spark{position:fixed;pointer-events:none;z-index:904;width:6px;height:6px;border-radius:50%;box-shadow:0 0 4px 1px currentColor,0 0 12px 3px currentColor;animation:fireworkSpark 900ms cubic-bezier(0.1,0.65,0.3,1) forwards;will-change:transform,opacity;mix-blend-mode:screen}
-.low-perf .firework-spark{animation-duration:520ms !important;box-shadow:0 0 3px 0 currentColor !important;mix-blend-mode:normal}
+.firework-spark{position:fixed;pointer-events:none;z-index:904;width:1.5px;height:1.5px;border-radius:50%;box-shadow:0 0 1px 0 currentColor,0 0 3px 0 currentColor;animation:fireworkSpark 500ms cubic-bezier(0.1,0.65,0.3,1) forwards;will-change:transform,opacity;mix-blend-mode:screen}
+.low-perf .firework-spark{animation-duration:300ms !important;box-shadow:0 0 3px 0 currentColor !important;mix-blend-mode:normal}
 @keyframes fireworkTwinkle{
   0%{transform:translate(-50%,-50%) scale(.3);opacity:0}
   40%{transform:translate(-50%,-50%) scale(1.3);opacity:1}
@@ -720,12 +821,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 /* ═══ 고급 다층 그라디언트 + 부드러운 bevel shadow ═══ */
 @keyframes crossBeamPulse{
   0%,100%{
-    background:radial-gradient(ellipse at center,rgba(255,180,225,.24) 0%,rgba(255,120,190,.16) 55%,rgba(190,60,140,.06) 100%),linear-gradient(180deg,rgba(255,200,230,.12) 0%,rgba(255,100,175,.18) 100%);
-    box-shadow:inset 0 1px 0 rgba(255,230,245,.35),inset 0 -1px 0 rgba(140,30,95,.3),inset 0 0 0 1px rgba(255,180,220,.22),inset 0 0 18px rgba(255,130,195,.22);
+    background:radial-gradient(ellipse at center,rgba(140,220,255,.24) 0%,rgba(60,180,250,.16) 55%,rgba(30,90,200,.06) 100%),linear-gradient(180deg,rgba(180,235,255,.12) 0%,rgba(40,160,255,.18) 100%);
+    box-shadow:inset 0 1px 0 rgba(220,245,255,.35),inset 0 -1px 0 rgba(20,40,90,.3),inset 0 0 0 1px rgba(140,210,255,.22),inset 0 0 18px rgba(80,180,255,.22);
   }
   50%{
-    background:radial-gradient(ellipse at center,rgba(255,200,235,.4) 0%,rgba(255,140,200,.28) 55%,rgba(210,80,160,.12) 100%),linear-gradient(180deg,rgba(255,220,240,.2) 0%,rgba(255,120,190,.32) 100%);
-    box-shadow:inset 0 1px 0 rgba(255,245,250,.55),inset 0 -1px 0 rgba(150,40,105,.4),inset 0 0 0 1px rgba(255,210,235,.4),inset 0 0 22px rgba(255,150,210,.38);
+    background:radial-gradient(ellipse at center,rgba(170,235,255,.4) 0%,rgba(80,200,255,.28) 55%,rgba(40,110,210,.12) 100%),linear-gradient(180deg,rgba(200,245,255,.2) 0%,rgba(60,180,255,.32) 100%);
+    box-shadow:inset 0 1px 0 rgba(235,250,255,.55),inset 0 -1px 0 rgba(30,55,110,.4),inset 0 0 0 1px rgba(180,225,255,.4),inset 0 0 22px rgba(110,200,255,.38);
   }
 }
 @keyframes bombRadialPulse{
@@ -739,27 +840,27 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   }
 }
 .cell.special-preview-cross{
-  background:radial-gradient(ellipse at center,rgba(255,180,225,.24) 0%,rgba(255,120,190,.16) 55%,rgba(190,60,140,.06) 100%),linear-gradient(180deg,rgba(255,200,230,.12) 0%,rgba(255,100,175,.18) 100%) !important;
-  box-shadow:inset 0 1px 0 rgba(255,230,245,.35),inset 0 -1px 0 rgba(140,30,95,.3),inset 0 0 0 1px rgba(255,180,220,.22),inset 0 0 18px rgba(255,130,195,.22) !important;
+  background:radial-gradient(ellipse at center,rgba(140,220,255,.24) 0%,rgba(60,180,250,.16) 55%,rgba(30,90,200,.06) 100%),linear-gradient(180deg,rgba(180,235,255,.12) 0%,rgba(40,160,255,.18) 100%) !important;
+  box-shadow:inset 0 1px 0 rgba(220,245,255,.35),inset 0 -1px 0 rgba(20,40,90,.3),inset 0 0 0 1px rgba(140,210,255,.22),inset 0 0 18px rgba(80,180,255,.22) !important;
   animation:crossBeamPulse 1100ms ease-in-out infinite;
   z-index:6;
 }
 /* 가로줄 셀(row 방향) — 부드러운 수평 빛줄기 (넓은 그라디언트 퍼짐) */
 .cell.special-preview-cross.cross-h::after{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:5;
-  background:linear-gradient(0deg,transparent 36%,rgba(255,200,230,.2) 44%,rgba(255,240,250,.62) 50%,rgba(255,200,230,.2) 56%,transparent 64%);
+  background:linear-gradient(0deg,transparent 36%,rgba(160,225,255,.2) 44%,rgba(200,250,255,.62) 50%,rgba(160,225,255,.2) 56%,transparent 64%);
 }
 /* 세로줄 셀(col 방향) — 부드러운 수직 빛줄기 */
 .cell.special-preview-cross.cross-v::after{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:5;
-  background:linear-gradient(90deg,transparent 36%,rgba(255,200,230,.2) 44%,rgba(255,240,250,.62) 50%,rgba(255,200,230,.2) 56%,transparent 64%);
+  background:linear-gradient(90deg,transparent 36%,rgba(160,225,255,.2) 44%,rgba(200,250,255,.62) 50%,rgba(160,225,255,.2) 56%,transparent 64%);
 }
 /* 교차점(중앙 셀) — 십자 + 중앙 방사 글로우 */
 .cell.special-preview-cross.cross-h.cross-v::after{
   background:
-    radial-gradient(circle at center,rgba(255,255,255,.5) 0%,rgba(255,220,240,.28) 28%,transparent 60%),
-    linear-gradient(90deg,transparent 36%,rgba(255,240,250,.68) 50%,transparent 64%),
-    linear-gradient(0deg,transparent 36%,rgba(255,240,250,.68) 50%,transparent 64%);
+    radial-gradient(circle at center,rgba(255,255,255,.5) 0%,rgba(200,245,255,.28) 28%,transparent 60%),
+    linear-gradient(90deg,transparent 36%,rgba(200,250,255,.68) 50%,transparent 64%),
+    linear-gradient(0deg,transparent 36%,rgba(200,250,255,.68) 50%,transparent 64%);
 }
 .cell.special-preview-bomb{
   background:radial-gradient(ellipse at center,rgba(255,180,80,.32) 0%,rgba(255,110,35,.22) 55%,rgba(160,50,15,.1) 100%),linear-gradient(180deg,rgba(255,170,70,.15) 0%,rgba(255,85,20,.26) 100%) !important;
@@ -777,8 +878,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 }
 /* 특수 프리뷰 중 preview-clear 노란 오버라이드 차단 (고급 팔레트 복원) */
 .cell.special-preview-cross.preview-clear:not(.filled){
-  background:radial-gradient(ellipse at center,rgba(255,180,225,.24) 0%,rgba(255,120,190,.16) 55%,rgba(190,60,140,.06) 100%),linear-gradient(180deg,rgba(255,200,230,.12) 0%,rgba(255,100,175,.18) 100%) !important;
-  box-shadow:inset 0 1px 0 rgba(255,230,245,.35),inset 0 -1px 0 rgba(140,30,95,.3),inset 0 0 0 1px rgba(255,180,220,.22),inset 0 0 18px rgba(255,130,195,.22) !important;
+  background:radial-gradient(ellipse at center,rgba(140,220,255,.24) 0%,rgba(60,180,250,.16) 55%,rgba(30,90,200,.06) 100%),linear-gradient(180deg,rgba(180,235,255,.12) 0%,rgba(40,160,255,.18) 100%) !important;
+  box-shadow:inset 0 1px 0 rgba(220,245,255,.35),inset 0 -1px 0 rgba(20,40,90,.3),inset 0 0 0 1px rgba(140,210,255,.22),inset 0 0 18px rgba(80,180,255,.22) !important;
 }
 .cell.special-preview-bomb.preview-clear:not(.filled){
   background:radial-gradient(ellipse at center,rgba(255,180,80,.32) 0%,rgba(255,110,35,.22) 55%,rgba(160,50,15,.1) 100%),linear-gradient(180deg,rgba(255,170,70,.15) 0%,rgba(255,85,20,.26) 100%) !important;
@@ -955,8 +1056,8 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .modal-close{width:30px;height:30px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text-2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .modal-btn{flex:1;padding:14px;border-radius:14px;border:none;font-size:15px;font-weight:800;cursor:pointer;transition:transform .08s var(--ease-snap)}
 .modal-btn:active{transform:scale(.96)}
-.modal-btn.primary{background:var(--gold);color:#1a1000}
-.modal-btn.danger{background:var(--red);color:#fff}
+.modal-btn.primary{background:linear-gradient(135deg,rgba(80,180,255,0.78),rgba(20,120,240,0.62));color:#FFFFFF;border:1px solid rgba(180,230,255,0.6);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -1px 0 rgba(0,30,80,0.30),0 4px 16px rgba(0,90,200,0.45);text-shadow:0 1px 2px rgba(0,30,70,0.55)}
+.modal-btn.danger{background:linear-gradient(135deg,rgba(255,90,90,0.78),rgba(220,30,30,0.62));color:#FFFFFF;border:1px solid rgba(255,180,180,0.6);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -1px 0 rgba(80,0,0,0.30),0 4px 16px rgba(200,30,30,0.45);text-shadow:0 1px 2px rgba(60,0,0,0.55)}
 .modal-btn.secondary{background:#ffffff0f;border:1px solid rgba(255,255,255,.08);color:#ffffffa6}
 
 /* Ad Overlay */
@@ -970,9 +1071,9 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 #s-result{background:transparent;position:relative}
 #s-result::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;background:radial-gradient(ellipse 70% 40% at 50% 5%,rgba(251,191,36,.04),transparent 60%),radial-gradient(ellipse 50% 50% at 80% 90%,rgba(139,92,246,.05),transparent 60%)}
 #s-result > *{position:relative;z-index:1}
-.result-inner{display:flex;flex-direction:column;flex:1;overflow:hidden;opacity:0;transform:translateY(30px) scale(.96);transition:opacity .4s cubic-bezier(.16,1,.3,1),transform .4s cubic-bezier(.16,1,.3,1)}
+.result-inner{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;opacity:0;transform:translateY(30px) scale(.96);transition:opacity .4s cubic-bezier(.16,1,.3,1),transform .4s cubic-bezier(.16,1,.3,1)}
 .result-inner.show{opacity:1;transform:translateY(0) scale(1)}
-.result-scroll{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;flex:1;overflow-y:auto;overflow-x:hidden;padding:calc(var(--safe-top) + 20px) 18px 12px;display:flex;flex-direction:column;contain:layout style;gap:10px}
+.result-scroll{overscroll-behavior:contain;-webkit-overflow-scrolling:touch;flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:calc(var(--safe-top) + 20px) 18px 24px;display:flex;flex-direction:column;gap:10px}
 .result-title{font-size:clamp(18px,5vw,24px);font-weight:900;text-align:center;color:#67E8F9;letter-spacing:.3px;margin-bottom:4px;line-height:1.4}
 @keyframes resCardIn{0%{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .result-footer{text-align:center;padding:8px 0 max(8px,env(safe-area-inset-bottom,0px));font-size:12px;color:rgba(255,255,255,.2);font-weight:600;letter-spacing:.3px;flex-shrink:0}
@@ -1042,6 +1143,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .meta2-val.green{color:#4ade80}
 .meta2-sub{font-size:10px;color:rgba(255,255,255,.25);font-weight:700}
 
+/* Highlight Card (위기 탈출 등 이번 판 하이라이트) */
+.result-highlight{display:none;gap:10px;animation:resCardIn .4s cubic-bezier(.16,1,.3,1) .38s both}
+.result-highlight.show{display:flex}
+.hl-item{flex:1;background:linear-gradient(165deg,rgba(255,140,0,.10),rgba(200,60,0,.05));border:1px solid rgba(255,160,0,.22);border-radius:16px;padding:14px 10px;text-align:center}
+.hl-lbl{font-size:10px;font-weight:700;color:rgba(255,180,60,.55);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.hl-val{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:22px;font-weight:900;color:#FFB020;line-height:1.1;margin-bottom:3px}
+.hl-sub{font-size:10px;color:rgba(255,255,255,.28);font-weight:700}
+
 /* Extend Buttons */
 .ext-row{display:flex;gap:8px}
 .ext-btn{flex:1;padding:12px 8px;border-radius:14px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:transform .08s var(--ease-snap);position:relative;overflow:hidden}
@@ -1054,6 +1163,17 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 /* ═══ 2줄 클리어 선택 모드 (Line Select) ═══ */
 .line-select-sheet{position:fixed;left:0;right:0;bottom:0;z-index:90;background:linear-gradient(180deg,rgba(16,18,32,.98),rgba(8,10,20,.99));border-top:1px solid rgba(99,179,237,.35);border-radius:18px 18px 0 0;padding:14px 16px 18px;box-shadow:0 -10px 30px rgba(0,0,0,.55);transform:translateY(100%);transition:transform .26s cubic-bezier(.16,1,.3,1);pointer-events:none}
 .line-select-sheet.on{transform:translateY(0);pointer-events:auto}
+/* 2026-04-26: 모달이 9×9 보드 하단을 가리는 버그 수정
+ * - padding은 clientHeight에 포함돼 fitBoard 미작동 → transform 기반으로 변경
+ * - 보드를 시트 높이의 절반만큼 위로 끌어올림 (시각적 가시성 확보)
+ * - 동시에 scale 적용해서 작은 화면에선 보드도 살짝 축소 (작은 화면 안전장치)
+ * - transform-origin: top center 로 상단 기준 (HUD 침범 방지)
+ */
+body.ls-active .board-area{
+  transform:translateY(calc(-1 * var(--ls-shift, 0px)));
+  transition:transform .26s cubic-bezier(.16,1,.3,1);
+  transform-origin:top center;
+}
 .ls-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
 .ls-title{font-size:14px;font-weight:800;color:#fff;display:flex;align-items:center;gap:6px}
 .ls-count{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--cyan,#63B3ED);background:rgba(99,179,237,.12);padding:3px 9px;border-radius:10px;border:1px solid rgba(99,179,237,.25)}
@@ -1509,6 +1629,49 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   .cell.clearing .block-inner *{ animation: none !important; opacity: 0 !important; }
 }
 
+/* Weekly Leaderboard (포팅: potato_Family) */
+.rank-card { background: linear-gradient(165deg, rgba(14,18,32,.72), rgba(8,12,22,.82));
+  border: 1px solid rgba(96,165,250,.12); border-radius: 18px; padding: 14px 14px 12px;
+  position: relative; overflow: hidden; box-shadow: inset 0 1px rgba(255,255,255,.06), 0 4px 20px rgba(0,0,0,.4);
+  flex-shrink: 0; }
+.rank-card::before { content: ""; position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(96,165,250,.3), transparent); }
+.rank-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 0 2px; }
+.rank-head-left { display: flex; align-items: center; gap: 6px; }
+.rank-head-badge { font-size: 14px; }
+.rank-head-title { font-size: 10px; font-weight: 800; letter-spacing: 2.5px;
+  color: rgba(147,197,253,.75); text-transform: uppercase; }
+.rank-head-reset { font-size: 9px; font-weight: 700; color: rgba(255,255,255,.3); letter-spacing: .5px; }
+.rank-list { display: flex; flex-direction: column; gap: 4px; }
+.rank-row { display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+  border-radius: 10px; background: rgba(255,255,255,.02); border: 1px solid transparent; }
+.rank-row.top1 { background: linear-gradient(90deg, rgba(251,191,36,.14), rgba(251,191,36,.04));
+  border-color: rgba(251,191,36,.25); }
+.rank-row.top2 { background: linear-gradient(90deg, rgba(203,213,225,.12), rgba(203,213,225,.02));
+  border-color: rgba(203,213,225,.18); }
+.rank-row.top3 { background: linear-gradient(90deg, rgba(217,119,6,.14), rgba(217,119,6,.03));
+  border-color: rgba(217,119,6,.22); }
+.rank-row.me { background: linear-gradient(90deg, rgba(74,222,128,.18), rgba(74,222,128,.04));
+  border-color: rgba(74,222,128,.35); box-shadow: 0 0 12px rgba(74,222,128,.12); }
+.rank-pos { width: 28px; text-align: center; font-family: 'Orbitron', sans-serif;
+  font-size: 13px; font-weight: 900; color: rgba(255,255,255,.55); flex-shrink: 0; }
+.rank-row.top1 .rank-pos { color: #fbbf24; text-shadow: 0 0 6px rgba(251,191,36,.35); }
+.rank-row.top2 .rank-pos { color: #e2e8f0; }
+.rank-row.top3 .rank-pos { color: #f59e0b; }
+.rank-row.me .rank-pos { color: #4ade80; text-shadow: 0 0 6px rgba(74,222,128,.4); }
+.rank-avatar { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 13px;
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); }
+.rank-name { flex: 1; font-size: 12px; font-weight: 700; color: rgba(255,255,255,.82);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .2px; }
+.rank-row.me .rank-name { color: #dcfce7; font-weight: 800; }
+.rank-row.me .rank-name::after { content: " (나)"; color: #4ade80; font-size: 10px; font-weight: 700; }
+.rank-score { font-family: 'Orbitron', sans-serif; font-size: 13px; font-weight: 700;
+  color: #fbbf24; letter-spacing: -.3px; flex-shrink: 0; }
+.rank-row.me .rank-score { color: #4ade80; }
+.rank-gap { text-align: center; color: rgba(255,255,255,.25); font-size: 14px; letter-spacing: 4px; padding: 2px 0; }
+.rank-empty { text-align: center; font-size: 11px; color: rgba(255,255,255,.4); padding: 14px 0; font-weight: 600; }
+
 </style>
 </head>
 <body>
@@ -1575,10 +1738,21 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
           <div class="stats-progress-sub" id="lobby-rank-msg"></div>
         </div>
       </div>
+      <!-- 3.5. Weekly Ranking -->
+      <div class="rank-card" id="rank-card">
+        <div class="rank-head">
+          <div class="rank-head-left">
+            <span class="rank-head-badge">🏆</span>
+            <span class="rank-head-title">Weekly Ranking</span>
+          </div>
+          <span class="rank-head-reset" id="rank-head-reset">갱신까지 —</span>
+        </div>
+        <div class="rank-list" id="rank-list"></div>
+      </div>
       <!-- 4. 게임 가이드 -->
       <button class="guide-trigger" id="guide-trigger" onclick="openGuide()">
         <span class="guide-trigger-ico">📖</span>
-        <span class="guide-trigger-text">게임 가이드 · 꿀팁</span>
+        <span class="guide-trigger-text">킹덤 꿀팁</span>
         <span class="guide-trigger-arrow">›</span>
       </button>
     </div>
@@ -1651,7 +1825,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
       <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">진행 중인 게임이 사라집니다</div>
       <button class="modal-btn secondary" id="mute-btn" onclick="toggleMute()" style="width:100%;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px"><span id="mute-icon">🔊</span><span id="mute-label">사운드 ON</span></button>
       <div style="display:flex;gap:8px">
-        <button class="modal-btn secondary" onclick="cancelQuit()">계속하기</button>
+        <button class="modal-btn primary" onclick="cancelQuit()">계속하기</button>
         <button class="modal-btn danger" onclick="doQuit()">그만두기</button>
       </div>
     </div>
@@ -1729,7 +1903,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
       <!-- 주간 기록 카드 -->
       <div class="result-weekly-card" id="weekly-card">
-        <div class="weekly-title">이번 주 도전 기록</div>
+        <div class="weekly-title">이번 주 수확 기록</div>
         <div class="weekly-body">
           <div class="weekly-row">
             <span class="weekly-lbl">내 최고</span>
@@ -1739,11 +1913,6 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
             <span class="weekly-lbl">내 순위</span>
             <span class="weekly-val" id="w-rank">—</span>
           </div>
-          <div class="weekly-row">
-            <span class="weekly-lbl">상위 10% 컷</span>
-            <span class="weekly-val weekly-cut-val" id="w-cut">—</span>
-          </div>
-          <div class="weekly-cut-diff" id="w-cut-diff"></div>
         </div>
       </div>
 
@@ -1774,6 +1943,15 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
         </div>
       </div>
 
+      <!-- 이번 판 하이라이트 (위기 탈출 시 표시) -->
+      <div class="result-highlight" id="r-highlight">
+        <div class="hl-item">
+          <div class="hl-lbl">위기 탈출</div>
+          <div class="hl-val" id="r-crisis">0</div>
+          <div class="hl-sub">번 살아남음</div>
+        </div>
+      </div>
+
       <!-- 다음 목표 -->
       <div class="result-goal-card" id="r-goal-card">
         <div class="r-goal-text" id="r-goal-text">🏆 다음 판도 최고 기록에 도전하세요</div>
@@ -1782,7 +1960,7 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 
     <!-- 하단 버튼 -->
     <div class="result-actions">
-      <button class="replay-btn" onclick="retryGame()">신기록 재도전</button>
+      <button class="replay-btn" onclick="retryGame()">다시 도전하기</button>
       <button class="back-btn" onclick="goToLobby()">로비로 나가기</button>
     </div>
     <div class="result-footer">@potato_woodoku_bot</div>
@@ -2383,15 +2561,16 @@ function closeGuide(){document.getElementById('guide-overlay').classList.remove(
 
 function showResultScreen(){
   const finalScore=score*_scoreMultiplier;
+  const prevWeeklyBest=weeklyBest;  // 첫 판 신기록 오인 방지: 갱신 전 값 캡처
   saveWeekly(finalScore);
   const pct=estimateTopPercent(finalScore);
   const earnedCoins=calcGameCoins(finalScore);
   const msResult=calcMilestoneReward(finalScore);
   const totalEarned=earnedCoins+msResult.totalReward;
   addCoins(totalEarned);
-  // 동적 타이틀
+  // 동적 타이틀 (이전 기록이 있고 그것을 갱신했을 때만 "신기록")
   const titleEl=document.getElementById('r-title');
-  if(finalScore>=weeklyBest&&finalScore>0){titleEl.textContent='🔥 신기록 달성!'}
+  if(prevWeeklyBest>0 && finalScore>prevWeeklyBest){titleEl.textContent='🔥 신기록 달성!'}
   else if(finalScore>=500){titleEl.textContent='대단해요!'}
   else if(finalScore>=200){titleEl.textContent='좋은 시도였어요'}
   else{titleEl.textContent='다음 판이 진짜다'}
@@ -2429,16 +2608,23 @@ function showResultScreen(){
   // Weekly card
   document.getElementById('w-best').textContent=weeklyBest>0?weeklyBest.toLocaleString()+'점':'—';
   document.getElementById('w-rank').textContent='상위 '+pct+'%';
+  // 상위 10% 컷 행 제거됨 — w-cut / w-cut-diff null 가드 (cut은 아래 goalDiff에서도 쓰므로 밖에 선언)
   const cut=getTop10Cut();
-  document.getElementById('w-cut').textContent=cut.toLocaleString()+'점';
-  const diff=weeklyBest-cut;
-  const diffEl=document.getElementById('w-cut-diff');
-  if(weeklyBest>0){if(diff>=0){diffEl.textContent='🏆 상위 10% 달성! +1,000 코인';diffEl.className='weekly-cut-diff positive'}else{diffEl.textContent=(Math.abs(diff)).toLocaleString()+'점 더 필요';diffEl.className='weekly-cut-diff negative'}}else{diffEl.textContent='';diffEl.className='weekly-cut-diff'}
+  const _wCut=document.getElementById('w-cut');
+  if(_wCut){_wCut.textContent=cut.toLocaleString()+'점';const diff=weeklyBest-cut;const diffEl=document.getElementById('w-cut-diff');if(diffEl){if(weeklyBest>0){if(diff>=0){diffEl.textContent='🏆 상위 10% 달성! +1,000 코인';diffEl.className='weekly-cut-diff positive'}else{diffEl.textContent=(Math.abs(diff)).toLocaleString()+'점 더 필요';diffEl.className='weekly-cut-diff negative'}}else{diffEl.textContent='';diffEl.className='weekly-cut-diff'}}}
   // Milestone card
   renderMilestoneCard(finalScore,msResult);
   // Meta
   document.getElementById('r-coins').textContent='+'+totalEarned.toLocaleString();
   document.getElementById('r-streak').textContent=maxStreak;
+  // Highlight card (위기 탈출)
+  const hlCard=document.getElementById('r-highlight');
+  if(crisisEscapes>0){
+    document.getElementById('r-crisis').textContent=crisisEscapes;
+    hlCard.classList.add('show');
+  }else{
+    hlCard.classList.remove('show');
+  }
   // Goal card
   const goalCard=document.getElementById('r-goal-card');
   const goalText=document.getElementById('r-goal-text');
@@ -2539,7 +2725,7 @@ function weightedPickSmall(){const pool=SPAWN_POOL.filter(p=>p.size<=3);return p
 
 // ═══ GAME STATE ═══
 const GRID=9,PTS_PER_BLOCK=1,PTS_PER_CLEAR=20;  // v9.5: COMBO_BONUS/streakBonus 제거 — calculateClearScore 단일 경로
-let board=[],pieces=[],selIdx=null,score=0,best=0,streak=0,maxStreak=0,totalClears=0;
+let board=[],pieces=[],selIdx=null,score=0,best=0,streak=0,maxStreak=0,totalClears=0,crisisEscapes=0;
 let dragIdx=-1,dragActive=false,prevHover=[],cellEls=[],_boardFilled=0;
 let extendDiamondUsed=false,extendAdUsed=false,isTouchDrag=false,gameActive=false;
 // ═══ Keep (Hold) 상태: 판당 1회 블록 보관 ═══
@@ -2552,9 +2738,9 @@ let _iceGenCounter=0;  // 얼음 생성 주기 카운터
 let _lastSpecialType=null; // 연속 같은 특수 타입 방지 (Issue 4 fix)
 
 // 특수 블록 얼굴 SVG
-const CROSS_FACE=`<svg viewBox="0 0 28 28"><circle cx="5.5" cy="8.5" r=".45" fill="#FFF" opacity=".5"/><circle cx="23" cy="15.5" r=".45" fill="#FFF" opacity=".5"/><circle cx="8" cy="22" r=".45" fill="#FFF" opacity=".5"/><path d="M14 6 L14 22 M6 14 L22 14" stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" opacity=".95"/><path d="M14 6 L14 22 M6 14 L22 14" stroke="#FFE0F0" stroke-width="1.2" stroke-linecap="round"/><circle cx="14" cy="14" r="2" fill="#FFFFFF" opacity=".6"/></svg>`;
+const CROSS_FACE=`<svg viewBox="0 0 28 28"><path d="M16.2 3 L8 16 L13 16 L11 25 L20.5 12 L15.2 12 L17.2 3 Z" fill="#FFE34A" stroke="#FFFFFF" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round"/><path d="M16.2 3 L8 16 L13 16 L11 25 L20.5 12 L15.2 12 L17.2 3 Z" fill="none" stroke="#FFF8C4" stroke-width="0.4" stroke-linejoin="round" opacity=".7"/></svg>`;
 
-const BOMB_FACE=`<svg viewBox="0 0 28 28"><circle cx="5.5" cy="8.5" r=".45" fill="#FF9060" opacity=".55"/><circle cx="23" cy="15.5" r=".45" fill="#FF9060" opacity=".55"/><circle cx="8" cy="22" r=".45" fill="#FF9060" opacity=".55"/><ellipse cx="9.5" cy="13" rx="1.7" ry="2.2" fill="#1A0800" transform="rotate(-8 9.5 13)"/><ellipse cx="9.1" cy="12.3" rx=".7" ry=".55" fill="#FFE3A3"/><ellipse cx="18.5" cy="13" rx="1.7" ry="2.2" fill="#1A0800" transform="rotate(8 18.5 13)"/><ellipse cx="18.1" cy="12.3" rx=".7" ry=".55" fill="#FFE3A3"/><path d="M10.5 19 Q14 21.5 17.5 19" fill="none" stroke="#1A0800" stroke-width="1.5" stroke-linecap="round"/><path d="M13 3 L14 5 L15 3" stroke="#FF6B1A" stroke-width="1.3" fill="none" stroke-linecap="round"/><circle cx="14" cy="2.3" r="1.2" fill="#FFD700" opacity=".9"/></svg>`;
+const BOMB_FACE=`<svg viewBox="0 0 28 28"><circle cx="14" cy="18" r="9" fill="#0C0604"/><circle cx="14.8" cy="18.8" r="8.4" fill="#1C0E06" opacity=".6"/><circle cx="14" cy="18" r="9" fill="none" stroke="#2E1206" stroke-width="1.1"/><ellipse cx="10.2" cy="13.2" rx="3.4" ry="2.2" fill="rgba(255,255,255,.2)" transform="rotate(-28 10.2 13.2)"/><ellipse cx="9.4" cy="12.6" rx="1.3" ry=".85" fill="rgba(255,255,255,.42)" transform="rotate(-28 9.4 12.6)"/><rect x="12.4" y="8" width="3.2" height="2.8" rx="1.3" fill="#4A2C0E"/><rect x="12.4" y="8" width="3.2" height="1.1" rx=".9" fill="rgba(255,190,80,.22)"/><path d="M14 8 Q17.2 5.5 18.2 3.4 Q19.2 1.3 17.9 0.6" stroke="#2A1200" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M14 8 Q17.2 5.5 18.2 3.4 Q19.2 1.3 17.9 0.6" stroke="#8C5818" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M14 8 Q17.2 5.5 18.2 3.4 Q19.2 1.3 17.9 0.6" stroke="rgba(220,150,60,.35)" stroke-width=".55" fill="none" stroke-linecap="round"/><ellipse cx="17.8" cy="0.9" rx="2.4" ry="3.0" fill="#FF8000" opacity=".35"/><ellipse cx="17.8" cy="1.1" rx="1.7" ry="2.2" fill="#FFD000"/><ellipse cx="17.8" cy="1.5" rx="1.0" ry="1.45" fill="#FF4D00"/><ellipse cx="17.8" cy="2.0" rx=".5" ry=".75" fill="rgba(255,255,255,.7)"/><circle cx="19.8" cy="2.1" r=".46" fill="#FFD000" opacity=".82"/><circle cx="16.0" cy="0.1" r=".38" fill="#FFE870" opacity=".72"/><circle cx="20.2" cy="0.8" r=".3" fill="#FF9000" opacity=".6"/></svg>`;
 
 // ═══ 쇠사슬 블록 동적 생성 — hits 남은 횟수 표시 ═══
 // hitsLeft: 남은 타수 (2 → 1), maxHits: 최초 (2, 3, 4)
@@ -2815,9 +3001,14 @@ function _countMovesUpTo(max){
 function _getCrisisTier(){
   const empty=countEmpty();
   const m=_crisisMinMovesSeen;
-  if(empty<= 9||m<=1) return 'death';
-  if(empty<=15||m<=2) return 'crisis';
-  if(empty<=20||m<=4) return 'pressure';
+  // 점수 구간별 임계값 (고점일수록 더 이른 압박)
+  let d,cr,pr;
+  if(score>=15000){      d=13; cr=25; pr=36; }  // 15k+: 64% 차면 pressure
+  else if(score>=10000){ d=11; cr=20; pr=28; }  // 10k~: 65% 차면 pressure
+  else{                  d= 9; cr=15; pr=20; }  // 기본
+  if(empty<=d||m<=1) return 'death';
+  if(empty<=cr||m<=2) return 'crisis';
+  if(empty<=pr||m<=4) return 'pressure';
   return 'normal';
 }
 // 주어진 filled 비트맵에 대해 완성되는 행/열/박스를 clearMask로 반환
@@ -2927,10 +3118,24 @@ const _TIER_WEIGHTS={
   crisis  :{dead:10,survive:40,recover:35,jackpot:15},
   death   :{dead: 0,survive:35,recover:20,jackpot:10}  // dead 0 + 랜덤 35% 별도 → 총 100%
 };
+let _lastSetWasJackpot=false; // jackpot 연속 방지 플래그
+let _pickedJackpotThisSet=false; // _pickFromBuckets 내부 추적용
 function _pickFromBuckets(buckets,tier){
-  const w=_TIER_WEIGHTS[tier];
+  const base=_TIER_WEIGHTS[tier];
+  // 고점 구간: dead 가중치 상향, jackpot/recover 하향 (난이도 압박 강화)
+  let dBonus=0,rPenalty=0,jPenalty=0;
+  if(score>=15000){      dBonus=18; rPenalty=10; jPenalty=8; }
+  else if(score>=10000){ dBonus= 9; rPenalty= 5; jPenalty=4; }
+  const w={
+    dead   :Math.min(50, base.dead    + dBonus),
+    survive:base.survive,
+    recover:Math.max( 8, base.recover - rPenalty),
+    jackpot:Math.max( 4, base.jackpot - jPenalty)
+  };
   const eff=[];
   for(const t of ['dead','survive','recover','jackpot']){
+    // jackpot 연속 방지: 직전 세트가 jackpot이었으면 이번엔 jackpot 가중치 0
+    if(t==='jackpot' && _lastSetWasJackpot) continue;
     if(w[t]>0 && buckets[t] && buckets[t].length>0) eff.push({t,w:w[t]});
   }
   if(eff.length===0){
@@ -2944,18 +3149,24 @@ function _pickFromBuckets(buckets,tier){
   let r=Math.random()*total;
   for(const e of eff){
     r-=e.w;
-    if(r<=0){const arr=buckets[e.t]; return arr[Math.floor(Math.random()*arr.length)];}
+    if(r<=0){if(e.t==='jackpot')_pickedJackpotThisSet=true;const arr=buckets[e.t]; return arr[Math.floor(Math.random()*arr.length)];}
   }
-  const last=eff[eff.length-1]; return buckets[last.t][0];
+  const last=eff[eff.length-1];if(last.t==='jackpot')_pickedJackpotThisSet=true; return buckets[last.t][0];
 }
 function _defToPiece(def){
   return {shape:normalizeShape(def.cells),face:Math.floor(Math.random()*POTATOES.length),used:false};
 }
 function _illusionGenerateSet(){
+  _pickedJackpotThisSet=false;
   const tier=_getCrisisTier();
   if(tier==='normal'){
-    // 평시: 완전 랜덤 유지 (분류 비용 회피)
-    return [randPiece(),randPiece(),randPiece()];
+    if(score<10000){
+      // 저점 평시: 완전 랜덤 유지 (분류 비용 회피)
+      _lastSetWasJackpot=false;
+      return [randPiece(),randPiece(),randPiece()];
+    }
+    // 고점(10k+) 평시: 보드가 넓어도 pressure 가중치 적용 (난이도 유지)
+    // tier를 'pressure'로 격상해 평가 루프 진행
   }
   // 후보 분류 (SPAWN_POOL 1회 평가 — baseline 은 루프 외부 1회 계산)
   const boardBmp=_getBoardBitmap();
@@ -2967,20 +3178,23 @@ function _illusionGenerateSet(){
     buckets[ev.type].push(def);
   }
   // 3개 생성 — death에서는 "완전 랜덤 35%" 혼합 (완전 구제 회피)
+  // normal+고점은 pressure로 격상해서 평가 결과 활용
+  const effectiveTier = (tier==='normal') ? 'pressure' : tier;
   const pickOne=()=>{
-    if(tier==='death' && Math.random()<0.35) return randPiece();
-    const def=_pickFromBuckets(buckets,tier);
+    if(effectiveTier==='death' && Math.random()<0.35) return randPiece();
+    const def=_pickFromBuckets(buckets,effectiveTier);
     return def ? _defToPiece(def) : randPiece();
   };
   let out=[pickOne(),pickOne(),pickOne()];
   // 2+ placeable 보장 — crisis/death 한정, 최대 2회 재추첨 (패턴 노출 방지 위해 짧게)
-  if(tier==='crisis'||tier==='death'){
+  if(effectiveTier==='crisis'||effectiveTier==='death'){
     for(let retry=0;retry<2;retry++){
       const placeable=out.filter(p=>_canPlaceAnywhere(p.shape)).length;
       if(placeable>=2) break;
       out=[pickOne(),pickOne(),pickOne()];
     }
   }
+  _lastSetWasJackpot=_pickedJackpotThisSet;
   return out;
 }
 function newSet(){
@@ -3016,21 +3230,13 @@ function newSet(){
       id:'Special_'+specialType
     };
   }
-  // ★ 테스트용 강제 스폰 — URL ?spawn=... 또는 localStorage pw2_testMode=1 (매 세트마다 반영)
-  // ★ 테스트 모드 기본 ON (slot0=cross, slot1=bomb) — 해제: setTest(false)
+  // ★ 개발용 강제 스폰 — URL ?spawn=cross|bomb|both 로만 활성화 (localStorage 무시)
   try{
     const _urlSpawn = new URLSearchParams(location.search).get('spawn');
-    const _lsTest = (()=>{try{return localStorage.getItem('pw2_testMode')}catch(e){return null}})();
-    // 우선순위: URL 파라미터 > localStorage > 기본(null=정상 랜덤)
-    let _devSpawn = _urlSpawn;
-    if(!_devSpawn){
-      if(_lsTest === '1' || _lsTest === 'on') _devSpawn = 'both';  // 명시적 ON (setTest(true))
-      else _devSpawn = null;  // 기본: 테스트 모드 OFF → 원래 랜덤 확률 사용
-    }
     const _mkSpec = (t)=>({shape:[[0,0]],face:Math.floor(Math.random()*POTATOES.length),special:t,used:false,size:1,id:'Special_'+t});
-    if(_devSpawn==='cross'||_devSpawn==='bomb'){
-      pieces[0] = _mkSpec(_devSpawn);
-    }else if(_devSpawn==='both'){
+    if(_urlSpawn==='cross'||_urlSpawn==='bomb'){
+      pieces[0] = _mkSpec(_urlSpawn);
+    }else if(_urlSpawn==='both'){
       pieces[0] = _mkSpec('cross');
       pieces[1] = _mkSpec('bomb');
     }
@@ -3247,7 +3453,7 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
     const labelSize=effectiveLines>=4?48:effectiveLines>=3?40:effectiveLines>=2?34:effectiveLines>=1?28:22;
     const labelColor=effectiveLines>=3?'#FFD700':effectiveLines>=1?'#F5C842':'rgba(247,250,252,0.7)';
     spawnLabel('+'+turnGain,cx,cy,labelColor,labelSize,effectiveLines>=3);
-    if(effectiveLines>0)triggerClearFX(cx,cy,effectiveLines,cleared.removed);
+    if(effectiveLines>0)triggerClearFX(cx,cy,effectiveLines,cleared.removed,!!p.special);
   }
   if(effectiveLines>=2)haptic('success');
   // P1 FINAL: 3줄+ HUD 미세 강조 (단발 220ms)
@@ -3647,6 +3853,75 @@ const STAR_COLORS=['#FFD700','#FFF8C7','#FFA94D','#FFE4B5','#FFF'];
 // ═══ 특수 블록 발동 연출 (렉 방지: DOM 생성 rAF로 지연) ═══
 // ═══ 세트 B 파티클 헬퍼 (렉 최소화: DocumentFragment 일괄 append + transform/opacity 애니) ═══
 // ✦ Cross 스파크 — 가로/세로 축 따라 샤프하게 튀는 핑크 입자
+// ⚡ 빔 전체 길이 산포 스파크
+function spawnBeamSparks(cx,cy,totalW,totalH,armLenLeft,armLenTop){
+  const count=Math.max(8,Math.round(14*_particleScale()));
+  const frag=document.createDocumentFragment();
+  const nodes=[];
+  for(let i=0;i<count;i++){
+    const isH=Math.random()>0.5;
+    const el=document.createElement('div');
+    el.className='beam-spark';
+    let bx,by,tx,ty;
+    if(isH){
+      bx=cx-armLenLeft+Math.random()*totalW;
+      by=cy+(Math.random()-0.5)*6;
+      tx=(Math.random()-0.5)*16;
+      ty=(Math.random()>0.5?1:-1)*(8+Math.random()*22);
+    }else{
+      bx=cx+(Math.random()-0.5)*6;
+      by=cy-armLenTop+Math.random()*totalH;
+      tx=(Math.random()>0.5?1:-1)*(8+Math.random()*22);
+      ty=(Math.random()-0.5)*16;
+    }
+    const size=2+Math.random()*3;
+    const delay=Math.random()*100;
+    el.style.cssText=`left:${bx}px;top:${by}px;width:${size}px;height:${size}px;--tx:${tx}px;--ty:${ty}px;animation-delay:${delay}ms`;
+    frag.appendChild(el);nodes.push(el);
+  }
+  document.body.appendChild(frag);
+  setTimeout(()=>nodes.forEach(n=>n.remove()),420);
+}
+// ◉ 4방향 끝점 충격 플래시
+function spawnEndpointFlashes(bL,bR,bT,bB,cx,cy){
+  const pts=[{x:bL,y:cy},{x:bR,y:cy},{x:cx,y:bT},{x:cx,y:bB}];
+  const frag=document.createDocumentFragment();
+  const nodes=[];
+  pts.forEach(p=>{
+    const el=document.createElement('div');
+    el.className='cross-endpoint-flash';
+    el.style.cssText=`left:${p.x}px;top:${p.y}px`;
+    frag.appendChild(el);nodes.push(el);
+  });
+  document.body.appendChild(frag);
+  setTimeout(()=>nodes.forEach(n=>n.remove()),460);
+}
+// ✦ 중심 대섬광
+function spawnCrossCenterFlash(cx,cy){
+  const el=document.createElement('div');
+  el.className='cross-center-flash';
+  el.style.cssText=`left:${cx}px;top:${cy}px`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),520);
+}
+// ○ 원형 충격파 링
+function spawnCrossBurstCircle(cx,cy){
+  const el=document.createElement('div');
+  el.className='cross-burst-circle';
+  el.style.cssText=`left:${cx}px;top:${cy}px`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),600);
+}
+// ▦ 보드 순간 플래시
+function flashBoardCross(){
+  const bf=document.getElementById('board');
+  if(!bf) return;
+  const br=bf.getBoundingClientRect();
+  const fl=document.createElement('div');
+  fl.style.cssText=`position:fixed;left:${br.left}px;top:${br.top}px;width:${br.width}px;height:${br.height}px;background:rgba(0,255,224,0.15);border-radius:10px;pointer-events:none;z-index:801;animation:crossBoardFlash 180ms ease-out forwards`;
+  document.body.appendChild(fl);
+  setTimeout(()=>fl.remove(),200);
+}
 function spawnCrossSparks(cx,cy,bL,bR,bT,bB){
   const tips=[
     {x:bL,y:cy,ax:-1,ay:0},
@@ -3751,7 +4026,7 @@ function spawnPuffCloud(cx,cy){
   el.className='puff-cloud';
   el.style.cssText='left:'+cx+'px;top:'+cy+'px';
   document.body.appendChild(el);
-  setTimeout(()=>el.remove(),640);
+  setTimeout(()=>el.remove(),360);
 }
 // 🔥 불꽃 파편 — radial-gradient 구체가 사방으로 튀며 꺼지는 효과
 function spawnFlameBurst(cx,cy){
@@ -3763,7 +4038,7 @@ function spawnFlameBurst(cx,cy){
     const dist=45+Math.random()*65;
     const tx=Math.cos(angle)*dist;
     const ty=Math.sin(angle)*dist-Math.random()*22;  // 살짝 위로 치솟음 (불꽃은 위로)
-    const size=10+Math.random()*14;  // 10~24px 무작위
+    const size=3+Math.random()*4;  // 3~7px 무작위
     const delay=(Math.random()*80)|0;
     const el=document.createElement('div');
     el.className='flame-particle';
@@ -3772,7 +4047,7 @@ function spawnFlameBurst(cx,cy){
     nodes.push(el);
   }
   document.body.appendChild(frag);
-  setTimeout(()=>{for(let i=0;i<nodes.length;i++)nodes[i].remove()},800);
+  setTimeout(()=>{for(let i=0;i<nodes.length;i++)nodes[i].remove()},460);
 }
 const _STAR_EMOJIS=['⭐','✨','💥','🌟'];
 function spawnStarBurst(cx,cy){
@@ -3795,7 +4070,7 @@ function spawnStarBurst(cx,cy){
   setTimeout(()=>{for(let i=0;i<nodes.length;i++)nodes[i].remove()},740);
 }
 // 🎆 폭죽 효과 — 코어 플래시 + 컬러 스파크 방사(중력) + 반짝이는 트윙클
-const _FIREWORK_COLORS=['#FFD700','#FF69B4','#40E0FF','#7CFF5A','#FFAB40','#D580FF','#FFFFFF','#FF4A6B','#FFE040'];
+const _FIREWORK_COLORS=['#FF6020','#FF4500','#E03B00','#D32A0A','#FF3010','#FF7A20','#B82008','#FF5A0A','#A11A0A'];
 function spawnFirework(cx,cy){
   if(typeof _particleScale!=='function') return;
   const scale=_particleScale();
@@ -3804,7 +4079,7 @@ function spawnFirework(cx,cy){
   core.className='firework-core';
   core.style.cssText='left:'+cx+'px;top:'+cy+'px';
   document.body.appendChild(core);
-  setTimeout(()=>core.remove(),440);
+  setTimeout(()=>core.remove(),260);
   // 2. 방사 컬러 스파크 (중력 내려감)
   const sparkCount=Math.max(10,Math.round(26*scale));
   const sparkFrag=document.createDocumentFragment();
@@ -3815,7 +4090,7 @@ function spawnFirework(cx,cy){
     const tx=Math.cos(angle)*dist;
     const ty=Math.sin(angle)*dist;
     const color=_FIREWORK_COLORS[i%_FIREWORK_COLORS.length];
-    const size=4+Math.random()*4;
+    const size=1+Math.random()*1.2;
     const sp=document.createElement('div');
     sp.className='firework-spark';
     sp.style.cssText='left:'+(cx-size/2)+'px;top:'+(cy-size/2)+'px;width:'+size+'px;height:'+size+'px;color:'+color+';--tx:'+tx+'px;--ty:'+ty+'px';
@@ -3823,28 +4098,8 @@ function spawnFirework(cx,cy){
     sparkNodes.push(sp);
   }
   document.body.appendChild(sparkFrag);
-  setTimeout(()=>{for(let i=0;i<sparkNodes.length;i++)sparkNodes[i].remove()},940);
-  // 3. 반짝 트윙클 (작은 별 이모지가 랜덤 위치에서 깜빡)
-  if(scale>=0.7){
-    const twCount=Math.max(4,Math.round(8*scale));
-    const twFrag=document.createDocumentFragment();
-    const twNodes=[];
-    for(let i=0;i<twCount;i++){
-      const a=Math.random()*Math.PI*2;
-      const d=20+Math.random()*55;
-      const tx=cx+Math.cos(a)*d;
-      const ty=cy+Math.sin(a)*d;
-      const delay=(Math.random()*350)|0;
-      const tw=document.createElement('div');
-      tw.className='firework-twinkle';
-      tw.textContent='✦';
-      tw.style.cssText='left:'+tx+'px;top:'+ty+'px;animation-delay:'+delay+'ms';
-      twFrag.appendChild(tw);
-      twNodes.push(tw);
-    }
-    document.body.appendChild(twFrag);
-    setTimeout(()=>{for(let i=0;i<twNodes.length;i++)twNodes[i].remove()},1050);
-  }
+  setTimeout(()=>{for(let i=0;i<sparkNodes.length;i++)sparkNodes[i].remove()},540);
+  // 3. 트윙클(✦) 제거됨 — 폭탄 = 순수 화염/적색 통일성 유지
 }
 // ─── 라인 클리어 — 은은한 하얀 빛가루 (셀 중심에서 분출, tier별로 풍성도 ↑) ───
 // tier: 1=단줄(기본), 2=2줄 콤보, 3=3줄+ 콤보
@@ -3903,13 +4158,25 @@ function triggerSpecialEffect(type,ar,ac,cx,cy){
         const boardEl=document.getElementById('board');
         if(boardEl){
           const br=boardEl.getBoundingClientRect();
-          const armLenLeft  = (cx - br.left)  + 32;
-          const armLenRight = (br.right - cx) + 32;
-          const armLenTop   = (cy - br.top)   + 32;
-          const armLenBot   = (br.bottom - cy)+ 32;
-          const beamThick = 4;
+          const armLenLeft  = cx - br.left;
+          const armLenRight = br.right - cx;
+          const armLenTop   = cy - br.top;
+          const armLenBot   = br.bottom - cy;
+          const beamThick = 10;
+          const wideThick = 44;
           const totalW = armLenLeft + armLenRight;
           const totalH = armLenTop + armLenBot;
+          // 와이드 글로우 빔 (코어 뒤)
+          const hRowW=document.createElement('div');
+          hRowW.className='special-burst-row-wide';
+          hRowW.style.cssText=`left:${cx-armLenLeft}px;top:${cy-wideThick/2}px;width:${totalW}px;--wide-h:${wideThick}px`;
+          document.body.appendChild(hRowW);
+          const vColW=document.createElement('div');
+          vColW.className='special-burst-col-wide';
+          vColW.style.cssText=`left:${cx-wideThick/2}px;top:${cy-armLenTop}px;height:${totalH}px;--wide-w:${wideThick}px`;
+          document.body.appendChild(vColW);
+          setTimeout(()=>{hRowW.remove();vColW.remove()},780);
+          // 코어 빔
           const hRow=document.createElement('div');
           hRow.className='special-burst-row';
           hRow.style.cssText=`left:${cx-armLenLeft}px;top:${cy-beamThick/2}px;width:${totalW}px;--burst-h:${beamThick}px`;
@@ -3918,8 +4185,15 @@ function triggerSpecialEffect(type,ar,ac,cx,cy){
           vCol.className='special-burst-col';
           vCol.style.cssText=`left:${cx-beamThick/2}px;top:${cy-armLenTop}px;height:${totalH}px;--burst-w:${beamThick}px`;
           document.body.appendChild(vCol);
-          setTimeout(()=>{hRow.remove();vCol.remove()},530);
-          setTimeout(()=>spawnCrossSparks(cx,cy,br.left,br.right,br.top,br.bottom),160);
+          setTimeout(()=>{hRow.remove();vCol.remove()},630);
+          // 타이밍별 이펙트 체인
+          spawnCrossCenterFlash(cx,cy);
+          flashBoardCross();
+          spawnCrossBurstCircle(cx,cy);
+          shakeBoardPang();
+          setTimeout(()=>spawnBeamSparks(cx,cy,totalW,totalH,armLenLeft,armLenTop),40);
+          setTimeout(()=>spawnEndpointFlashes(br.left,br.right,br.top,br.bottom,cx,cy),120);
+          setTimeout(()=>spawnCrossSparks(cx,cy,br.left,br.right,br.top,br.bottom),180);
         }
         spawnCrossFlashRing(cx,cy);
       }else if(type==='bomb'){
@@ -3932,7 +4206,7 @@ function triggerSpecialEffect(type,ar,ac,cx,cy){
         const offsetCy=cy+(_strideH?_strideH*0.5:20);
         radial.style.cssText=`left:${offsetCx}px;top:${offsetCy}px;width:${size}px;height:${size}px`;
         document.body.appendChild(radial);
-        setTimeout(()=>radial.remove(),820);  // 780ms 애니 + 여유
+        setTimeout(()=>radial.remove(),460);  // 420ms 애니 + 여유
         spawnLabel('💥 BOOM!',cx,cy-60,'#FF9850',28,true);
         // ★ 세트 B: 카툰 구름 + 🎆 폭죽 + 🔥 불꽃 파편 + 보드 쉐이크
         spawnPuffCloud(offsetCx,offsetCy);
@@ -3944,7 +4218,7 @@ function triggerSpecialEffect(type,ar,ac,cx,cy){
   });
 }
 
-function triggerClearFX(cx, cy, numLines, removed){
+function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
   // ═══ 1순위: 셀 dissolve가 방해받지 않도록 보드 진동 + flash만 즉시 ═══
   // 팝업(콤보 배너/멀티/위기/마일스톤)은 다음 프레임으로 지연 → 같은 프레임에 DOM 폭탄 방지
 
@@ -3976,8 +4250,7 @@ function triggerClearFX(cx, cy, numLines, removed){
   if(numLines>=2){
     requestAnimationFrame(()=>{
       requestAnimationFrame(()=>{  // 2프레임 지연 (약 32ms, 셀 dissolve가 자리잡은 후)
-        showComboBanner(cx, cy, numLines);
-        showComboMultiplier(numLines);
+        if(!isSpecial){showComboBanner(cx, cy, numLines);showComboMultiplier(numLines);}
         // 위기 탈출 (보드 꽉 찬 상태에서 대량 클리어)
         const filledBefore=_boardFilled+(removed?removed.length:0);
         if(filledBefore >= 57){
@@ -4216,6 +4489,7 @@ function showNewRecordPopup(scoreValue){
 }
 // ── 위기 탈출 배너 (보드 거의 꽉 찬 상태에서 대량 클리어 시) ──
 function showCrisisBanner(numLines){
+  crisisEscapes++;
   const el=document.createElement('div');
   el.className='milestone-pop m-high crisis-banner';  // 위치 오버라이드용 별도 클래스
   el.innerHTML=`
@@ -4936,7 +5210,24 @@ function enterLineSelectMode(){
   }
   updateLineSelectUI();
   document.getElementById('ls-backdrop').classList.add('on');
-  document.getElementById('line-select-sheet').classList.add('on');
+  const sheet=document.getElementById('line-select-sheet');
+  sheet.classList.add('on');
+  // 2026-04-26: 모달이 9×9 보드 하단을 가리던 버그 수정
+  // 보드 하단이 시트 상단보다 아래에 있는지 측정 → 가려진 만큼 위로 lift
+  document.body.classList.add('ls-active');
+  requestAnimationFrame(()=>{
+    const sheetH=sheet.offsetHeight;
+    if(sheetH>0)document.documentElement.style.setProperty('--ls-sheet-h',sheetH+'px');
+    // 실제 가림량 측정 (sheet top vs board bottom)
+    const board=document.querySelector('.board-outer');
+    if(!board){return}
+    const boardRect=board.getBoundingClientRect();
+    const vh=window.innerHeight;
+    const sheetTop=vh-sheetH;
+    // 보드 하단이 시트 상단보다 아래면 그 차이만큼 + 8px 여유 lift
+    const overlap=Math.max(0,boardRect.bottom-sheetTop+8);
+    document.documentElement.style.setProperty('--ls-shift',overlap+'px');
+  });
 }
 function toggleLineSelect(type,idx){
   const existingIdx=_lsSelection.findIndex(s=>s.type===type&&s.idx===idx);
@@ -4975,6 +5266,10 @@ function closeLineSelectUI(){
   document.getElementById('ls-backdrop').classList.remove('on');
   document.getElementById('line-select-sheet').classList.remove('on');
   for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++)cellEls[r][c].classList.remove('ls-preview');
+  // 2026-04-26: 모달 가림 버그 수정 — 닫을 때 transform 원복
+  document.body.classList.remove('ls-active');
+  document.documentElement.style.removeProperty('--ls-sheet-h');
+  document.documentElement.style.removeProperty('--ls-shift');
 }
 function cancelLineSelect(){
   Sound.sfx.uiClick();
@@ -5139,6 +5434,7 @@ function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;r
   boardSpecial=Array.from({length:GRID},()=>Array(GRID).fill(null));
   _iceCount=0;_iceGenCounter=0;_lastSpecialType=null;_boardBitmapHash=-1;
   _crisisMinMovesSeen=99;                      // ILLUSION 핸드별 최소 이동 수 리셋
+  _lastSetWasJackpot=false;crisisEscapes=0;
   // ★ 드래그 잔여 클래스 청소 (새 게임 진입 시 트레이 블록 안 보이는 버그 방지)
   document.querySelectorAll('.piece-slot.dragging').forEach(s=>s.classList.remove('dragging'));
   // P0-1 fix: 신규 게임 진입 시 점수 2배 버프 상태 초기화 (startNewGame 누락 방지)
@@ -5156,6 +5452,107 @@ function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;r
   document.body.classList.remove('fail-soon');
   document.querySelector('.hud')?.classList.remove('hud-highlight');
 }
+
+// ===== Weekly Leaderboard (포팅: potato_Family) =====
+const RANK_NAMES = [
+  '감자왕','구운감자','포테이토킹','알감자러버','뽀개기장인','수박농부','수박왕자','감자수확꾼',
+  '토마토파파','체리버스터','멜론러쉬','망고헌터','포도무사','오렌지펀치','레몬소울','파인애플킹',
+  '감자도둑','수박깍질','감자러시','쿠키몬스터','베이컨쉐프','치즈러버','버터감자','스윗포테토',
+  '피자감자','자두터','복숭아빛','딸기대장','키위레전드','블루베리','감자심판','매쉬포테토'
+];
+const RANK_EMOJIS = ['🥔','🍉','🍅','🍒','🍈','🥭','🍇','🍊','🍋','🍍','🥥','🍓','🥝','🍑','🍎','🍐'];
+const RANK_SLOT_HOURS = 1;
+function _rankSlotInfo(){
+  const now=new Date();
+  const day=now.getDay();
+  const daysSinceMon=(day+6)%7;
+  const monday=new Date(now.getFullYear(),now.getMonth(),now.getDate()-daysSinceMon,0,0,0);
+  const elapsedMs=now-monday;
+  const slotMs=RANK_SLOT_HOURS*3600*1000;
+  const slot=Math.max(0,Math.floor(elapsedMs/slotMs));
+  const nextSlotAt=monday.getTime()+(slot+1)*slotMs;
+  return {slot,nextSlotAt};
+}
+function _rankSeed(){
+  const k=getWeekKey();
+  const {slot}=_rankSlotInfo();
+  let h=0;const src=k+'_s'+slot;
+  for(let i=0;i<src.length;i++)h=(h*31+src.charCodeAt(i))|0;
+  return Math.abs(h)||1;
+}
+function _rankSrand(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/0xFFFFFFFF}}
+function _rankFmt(n){if(n>=10000)return(Math.round(n/100)/10)+'K';return n.toLocaleString()}
+function _generateLeaderboard(){
+  const rand=_rankSrand(_rankSeed());
+  const {slot}=_rankSlotInfo();
+  const growth=1+Math.min(0.12,slot*0.00075);
+  const pool=RANK_NAMES.slice();
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
+  const N=30;const list=[];
+  const base=[9500,8900,8300,7800,7200,6700,6200,5800,5400,5000];
+  for(let i=0;i<N;i++){
+    let sc;
+    if(i<10)sc=Math.max(200,Math.round((base[i]+(rand()-0.5)*500)*growth));
+    else if(i<20)sc=Math.max(200,Math.round((4800-(i-10)*280+(rand()-0.5)*350)*growth));
+    else sc=Math.max(150,Math.round((2000-(i-20)*180+(rand()-0.5)*300)*growth));
+    list.push({name:pool[i%pool.length],emoji:RANK_EMOJIS[Math.floor(rand()*RANK_EMOJIS.length)],score:sc,me:false});
+  }
+  list.sort((a,b)=>b.score-a.score);
+  return list;
+}
+function _buildLeaderboardWithMe(){
+  const list=_generateLeaderboard();
+  const myScore=(typeof weeklyBest==='number'?weeklyBest:0)|0;
+  if(myScore>0){list.push({name:'나',emoji:'🥔',score:myScore,me:true});list.sort((a,b)=>b.score-a.score)}
+  return {list,myScore};
+}
+function _weekDeadlineText(){
+  const {nextSlotAt}=_rankSlotInfo();
+  let ms=nextSlotAt-Date.now();if(ms<0)ms=0;
+  const totalMin=Math.floor(ms/60000);
+  const hours=Math.floor(totalMin/60);
+  const mins=totalMin%60;
+  if(hours>0)return`갱신까지 ${hours}시간 ${mins}분`;
+  return`갱신까지 ${mins}분`;
+}
+let _lastRankSlot=-1;let _rankTickTimer=null;
+function _startRankTick(){
+  if(_rankTickTimer)return;
+  _rankTickTimer=setInterval(()=>{
+    const lobbyOn=document.getElementById('s-lobby')?.classList.contains('active');
+    if(!lobbyOn)return;
+    const {slot}=_rankSlotInfo();
+    if(slot!==_lastRankSlot)renderWeeklyLeaderboard();
+    else{const el=document.getElementById('rank-head-reset');if(el)el.textContent=_weekDeadlineText()}
+  },60*1000);
+}
+function _rankRow(r,pos){
+  let cls='rank-row';
+  if(r.me)cls+=' me';
+  else if(pos===1)cls+=' top1';
+  else if(pos===2)cls+=' top2';
+  else if(pos===3)cls+=' top3';
+  const posTxt=pos===1?'👑':pos;
+  return`<div class="${cls}"><div class="rank-pos">${posTxt}</div><div class="rank-avatar">${r.emoji}</div><div class="rank-name">${r.name}</div><div class="rank-score">${_rankFmt(r.score)}</div></div>`;
+}
+function renderWeeklyLeaderboard(){
+  const listEl=document.getElementById('rank-list');
+  if(!listEl)return;
+  _startRankTick();
+  _lastRankSlot=_rankSlotInfo().slot;
+  const resetEl=document.getElementById('rank-head-reset');
+  if(resetEl)resetEl.textContent=_weekDeadlineText();
+  const {list,myScore}=_buildLeaderboardWithMe();
+  const TOP=10;let myIdx=-1;
+  for(let i=0;i<list.length;i++){if(list[i].me){myIdx=i;break}}
+  let html='';
+  for(let i=0;i<Math.min(TOP,list.length);i++)html+=_rankRow(list[i],i+1);
+  if(myIdx>=TOP){html+='<div class="rank-gap">···</div>';html+=_rankRow(list[myIdx],myIdx+1)}
+  else if(myScore===0){html+='<div class="rank-gap">···</div>';html+='<div class="rank-empty">첫 판을 시작해서 랭킹에 올라가세요!</div>'}
+  listEl.innerHTML=html;
+}
+// updateLobby() 호출 시마다 랭킹 갱신 (weeklyBest 변동 반영)
+(function(){const _orig=updateLobby;updateLobby=function(){_orig.apply(this,arguments);try{renderWeeklyLeaderboard()}catch(e){}};})();
 
 let eventsAttached=false;
 function start(){buildBoard();initBoard();renderBoard();if(!eventsAttached){attachEvents();eventsAttached=true}Storage.get('pw2_muted',val=>{if(val==='1')Sound.setMute(true)});loadCoins(()=>{loadDiamonds(()=>{loadWeekly(()=>{loadAdBoost(()=>{updateLobby();showScreen('s-lobby')})})})})}
