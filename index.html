@@ -783,10 +783,10 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background:linear-gradient(155deg,#FFF5D0 0%,#FFE090 55%,#D09545 100%) !important;
   box-shadow:inset 0 3px 0 rgba(255,255,255,.95),inset 0 -2px 0 rgba(0,0,0,.05),inset 0 0 0 1px rgba(255,225,140,.55) !important;
 }
-/* 빈 셀: 더 밝은 노란 fill (노란 테두리 제거됨) */
+/* 빈 셀: 노란 fill만 — 테두리 제거 */
 .cell.preview-clear:not(.filled){
   background:rgba(255,232,125,.62) !important;
-  box-shadow:inset 0 0 0 1px rgba(255,225,140,.4) !important;
+  box-shadow:none !important;
 }
 .cell.section-alt.preview-clear:not(.filled){
   background:rgba(255,235,135,.66) !important;
@@ -1972,6 +1972,9 @@ body.ls-active .board-area{
 <!-- DRAG GHOST -->
 <div id="ghost"><div class="piece-grid" id="ghost-grid"></div></div>
 
+<!-- FX CANVAS — body 직속 (screen 외부)으로 위치 → 화면 전환에 영향받지 않음 -->
+<canvas id="fxCanvas" style="position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:9999"></canvas>
+
 <script>
 // ═══ Telegram Mini App ═══
 (function(){
@@ -2043,6 +2046,9 @@ function fitBoard(){
   // ── 보드 최대 크기 계산 ──────────────────────────────────────
   // 전략: 가로는 계산, 세로는 실측 (flex:1이 이미 남은 공간 자동 계산)
   // 목표: 어떤 기기에서도 9x9 셀이 잘리지 않음 (절대 명령)
+
+  // 캔버스 fxCanvas 리사이즈 동기화
+  try{ if(typeof _PK!=='undefined' && _PK.ensureCanvas) _PK.ensureCanvas(); }catch(e){}
 
   const phone=document.querySelector('.phone');
   const boardArea=document.querySelector('.board-area');
@@ -2738,6 +2744,7 @@ let trashUsed=false;  // 판당 1회 휴지통 사용 여부 (true면 잠금)
 let boardSpecial=[];
 let _iceGenCounter=0;  // 얼음 생성 주기 카운터
 let _lastSpecialType=null; // 연속 같은 특수 타입 방지 (Issue 4 fix)
+let _specialCooldown=0;    // 특수 블록 쿨다운 (newSet 호출 시 감소, 출현 시 10으로 리셋)
 
 // 특수 블록 얼굴 SVG
 const CROSS_FACE=`<svg viewBox="0 0 28 28"><path d="M16.2 3 L8 16 L13 16 L11 25 L20.5 12 L15.2 12 L17.2 3 Z" fill="#FFE34A" stroke="#FFFFFF" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round"/><path d="M16.2 3 L8 16 L13 16 L11 25 L20.5 12 L15.2 12 L17.2 3 Z" fill="none" stroke="#FFF8C4" stroke-width="0.4" stroke-linejoin="round" opacity=".7"/></svg>`;
@@ -3005,7 +3012,10 @@ function _getCrisisTier(){
   const m=_crisisMinMovesSeen;
   // 점수 구간별 임계값 (고점일수록 더 이른 압박)
   let d,cr,pr;
-  if(score>=15000){      d=13; cr=25; pr=36; }  // 15k+: 64% 차면 pressure
+  if(score>=30000){      d=22; cr=38; pr=55; }  // 30k+: 보드 절반만 비어도 pressure (극압박)
+  else if(score>=25000){ d=19; cr=33; pr=48; }  // 25k+: 매우 강한 압박
+  else if(score>=20000){ d=16; cr=29; pr=42; }  // 20k+: 강한 압박
+  else if(score>=15000){ d=13; cr=25; pr=36; }  // 15k+: 64% 차면 pressure
   else if(score>=10000){ d=11; cr=20; pr=28; }  // 10k~: 65% 차면 pressure
   else{                  d= 9; cr=15; pr=20; }  // 기본
   if(empty<=d||m<=1) return 'death';
@@ -3134,15 +3144,18 @@ function _weightedFromBucket(arr){
 }
 function _pickFromBuckets(buckets,tier){
   const base=_TIER_WEIGHTS[tier];
-  // 고점 구간: dead 가중치 상향, jackpot/recover 하향 (난이도 압박 강화)
-  let dBonus=0,rPenalty=0,jPenalty=0;
-  if(score>=15000){      dBonus=18; rPenalty=10; jPenalty=8; }
-  else if(score>=10000){ dBonus= 9; rPenalty= 5; jPenalty=4; }
+  // 고점 구간: dead 가중치 상향, jackpot/recover/survive 하향 (난이도 압박 강화)
+  let dBonus=0,rPenalty=0,jPenalty=0,sPenalty=0;
+  if(score>=30000){      dBonus=38; rPenalty=20; jPenalty=15; sPenalty=12; }
+  else if(score>=25000){ dBonus=30; rPenalty=15; jPenalty=12; sPenalty=7;  }
+  else if(score>=20000){ dBonus=24; rPenalty=12; jPenalty=10; sPenalty=3;  }
+  else if(score>=15000){ dBonus=18; rPenalty=10; jPenalty= 8; sPenalty=0;  }
+  else if(score>=10000){ dBonus= 9; rPenalty= 5; jPenalty= 4; sPenalty=0;  }
   const w={
-    dead   :Math.min(50, base.dead    + dBonus),
-    survive:base.survive,
-    recover:Math.max( 8, base.recover - rPenalty),
-    jackpot:Math.max( 4, base.jackpot - jPenalty)
+    dead   :Math.min(60, base.dead    + dBonus),
+    survive:Math.max(15, base.survive - sPenalty),
+    recover:Math.max( 5, base.recover - rPenalty),
+    jackpot:Math.max( 2, base.jackpot - jPenalty)
   };
   const eff=[];
   for(const t of ['dead','survive','recover','jackpot']){
@@ -3190,8 +3203,13 @@ function _illusionGenerateSet(){
     buckets[ev.type].push(def);
   }
   // 3개 생성 — death에서는 "완전 랜덤 35%" 혼합 (완전 구제 회피)
-  // normal+고점은 pressure로 격상해서 평가 결과 활용
-  const effectiveTier = (tier==='normal') ? 'pressure' : tier;
+  // normal+고점은 점수 구간별로 격상: 20k+→crisis, 25k+→death (실제 보드 빈 칸과 무관하게 무조건 압박)
+  let effectiveTier = tier;
+  if(tier==='normal'){
+    if(score>=25000) effectiveTier='death';
+    else if(score>=20000) effectiveTier='crisis';
+    else effectiveTier='pressure';
+  }
   const pickOne=()=>{
     if(effectiveTier==='death' && Math.random()<0.35) return randPiece();
     const def=_pickFromBuckets(buckets,effectiveTier);
@@ -3220,6 +3238,28 @@ function _illusionGenerateSet(){
     }
     // safeDefs가 비어있으면 보드 진짜 꽉 참 → 정당한 게임오버
   }
+  // ★ Joe(1칸) 과다 출현 방지 — 15k+에서 한 세트당 최대 1개만 허용
+  // 고득점에서 보드가 빡빡하면 큰 피스가 dead 버킷으로 빠지고 Joe만 survive에 남는 현상 보정
+  // SPAWN_POOL 전체에서 raw placeability로 검사 (dead 버킷 포함, 클리어 안 시켜도 OK)
+  if(score>=15000){
+    const joeIdx=[];
+    for(let i=0;i<out.length;i++) if(out[i].shape.length===1) joeIdx.push(i);
+    if(joeIdx.length>=2){
+      const altDefs=SPAWN_POOL.filter(d=>{
+        if(d.cells.length<=1) return false;
+        const s=normalizeShape(d.cells);
+        for(let r=0;r<9;r++)for(let c=0;c<9;c++)if(canPlace(s,r,c)) return true;
+        return false;
+      });
+      if(altDefs.length>0){
+        // 첫 Joe는 유지, 나머지 Joe들은 강제 교체
+        for(let i=1;i<joeIdx.length;i++){
+          out[joeIdx[i]]=_defToPiece(_weightedFromBucket(altDefs));
+        }
+      }
+      // altDefs 비어있으면 Joe 외 배치 가능 피스 없음 → 그대로 둠 (억까 방지)
+    }
+  }
   _lastSetWasJackpot=_pickedJackpotThisSet;
   return out;
 }
@@ -3236,16 +3276,18 @@ function newSet(){
     pieces=_illusionGenerateSet();             // ILLUSION OF SKILL — 3-tier 후보군 비중 조절
   }
   _crisisMinMovesSeen=99;                      // 소비 후 리셋 — 다음 핸드부터 새로 집계
-  // ★ 특수 블록 치환 — 영향력 반영, 10턴에 약 1번만 (귀한 보상)
-  // 전체 0.10 (트레이 3개 중 1개 나옴 = 10턴에 1번)
+  // ★ 특수 블록 치환 — 영향력 반영, 귀한 보상
+  // 쿨다운: 출현 후 최소 10세트(트레이 교체) 이상 지나야 재출현 가능 (이후 25% 확률 → 평균 약 14세트 간격)
   // 타입: 십자가 20% (영향력 큼) / 폭탄 80% (메인) + anti-streak (연속 방지)
-  if(totalTurns>=4 && Math.random()<0.10){
+  if(_specialCooldown>0) _specialCooldown--;
+  if(totalTurns>=4 && _specialCooldown<=0 && Math.random()<0.25){
     let specialType = Math.random()<0.20 ? 'cross' : 'bomb';
     // 직전과 같은 타입이 또 나오려 하면 70% 확률로 반대 타입 강제 (체감 균등화)
     if(_lastSpecialType===specialType && Math.random()<0.70){
       specialType = specialType==='cross' ? 'bomb' : 'cross';
     }
     _lastSpecialType = specialType;
+    _specialCooldown = 10; // 다음 10세트 동안 특수 블록 차단
     const replaceIdx = Math.floor(Math.random()*3);
     pieces[replaceIdx] = {
       shape:[[0,0]],
@@ -4127,12 +4169,12 @@ function spawnFirework(cx,cy){
   setTimeout(()=>{for(let i=0;i<sparkNodes.length;i++)sparkNodes[i].remove()},540);
   // 3. 트윙클(✦) 제거됨 — 폭탄 = 순수 화염/적색 통일성 유지
 }
-// ─── 라인 클리어 — 은은한 하얀 빛가루 (셀 중심에서 분출, tier별로 풍성도 ↑) ───
-// tier: 1=단줄(기본), 2=2줄 콤보, 3=3줄+ 콤보
-let _lineSparkleBudget=180; // 동시 파티클 상한 (프레임당)
+// ─── 구 라인 클리어 파티클 — v2.5.0에서 캔버스 시스템(_PK)으로 교체됨, no-op ───
+let _lineSparkleBudget=180;
 function spawnLineSparkle(cx,cy,tier){
+  return; // 캔버스 파티클 시스템(_PK.emitBurst)으로 대체
   if(typeof _particleScale!=='function') return;
-  if(_lineSparkleBudget<=0) return; // 상한 초과 시 스킵
+  if(_lineSparkleBudget<=0) return;
   const scale=_particleScale();
   const t=tier||1;
   // tier별 파라미터 — 갯수/퍼짐/상승높이/수명 모두 단계적으로 증가
@@ -4244,18 +4286,442 @@ function triggerSpecialEffect(type,ar,ac,cx,cy){
   });
 }
 
-function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
-  // ═══ 1순위: 셀 dissolve가 방해받지 않도록 보드 진동 + flash만 즉시 ═══
-  // 팝업(콤보 배너/멀티/위기/마일스톤)은 다음 프레임으로 지연 → 같은 프레임에 DOM 폭탄 방지
+// ═══ 새 캔버스 파티클 시스템 (potato_kingdom_particles.html 기반) ═══
+const _PK = (function(){
+  let canvas=null, ctx=null, dpr=1, w=0, h=0;
+  const particles=[];
+  const potatoTypes=[
+    {body:'#E8D4B0',shadow:'#C9B48A',hl:'#F8EBD0'},
+    {body:'#D4B888',shadow:'#A89766',hl:'#E8D4B0'},
+    {body:'#FFE08C',shadow:'#E8B547',hl:'#FFF5C8',golden:true}
+  ];
+  const fwColors=['#FFD84A','#FF8C42','#4ECDC4','#FF6B9D','#A78BFA','#FFFFFF'];
+  const sparkColors=['#FFD84A','#FFFFFF','#FFE8C8','#FFC83A','#FFB347'];
+  function ensureCanvas(){
+    if(!canvas){canvas=document.getElementById('fxCanvas');if(!canvas)return false;ctx=canvas.getContext('2d',{alpha:true,desynchronized:true});}
+    const r=canvas.getBoundingClientRect();
+    // ★ DPR 1로 통일 — 모든 기기에서 GPU 부담 최소화 (파티클은 DPR 차이 거의 안 느낌)
+    const cappedDpr=1;
+    if(Math.abs(r.width-w)>0.5||Math.abs(r.height-h)>0.5||cappedDpr!==dpr){
+      dpr=cappedDpr;w=r.width;h=r.height;
+      canvas.width=w*dpr;canvas.height=h*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+    }
+    return true;
+  }
+  // 부드러운 fade-out — easeInCubic으로 자연스러운 소멸
+  function fadeAlpha(life){
+    if(life>0.55) return 1;
+    const t=life/0.55;
+    return t*t*t; // easeInCubic — 처음엔 천천히, 끝에서 빠르게 사라짐
+  }
+  // 사라질 때 크기 축소 — life 0.45 이하부터만 축소 시작 (대부분 풀사이즈로 비행)
+  function shrinkScale(life){
+    if(life>0.45) return 1;
+    const t=life/0.45;
+    return 0.15+t*t*t*t*0.85; // easeInQuart — 마지막 짧은 구간에서 강하게 축소
+  }
+  function roundRect(c,x,y,wd,hd,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+wd,y,x+wd,y+hd,r);c.arcTo(x+wd,y+hd,x,y+hd,r);c.arcTo(x,y+hd,x,y,r);c.arcTo(x,y,x+wd,y,r);c.closePath();}
+  // ── 성능 티어 ──
+  // _lowPerf: 자동감지 watchdog 결과 / _mobileReduce: iOS·Android 자동
+  // perfTier 0=고사양 / 1=모바일(블러 줄임) / 2=저사양(블러·shadow 0)
+  function perfTier(){
+    if(window._lowPerf) return 2;
+    if(window._mobileReduce) return 1;
+    return 0;
+  }
+  // 파티클 상한 (성능 우선 — 부드러운 60fps 보장)
+  const PARTICLE_CAP=()=>perfTier()===2?25:(perfTier()===1?50:80);
+  function trim(){
+    const cap=PARTICLE_CAP();
+    if(particles.length>cap){
+      // 오래된 것부터 제거 (앞쪽이 오래된 것)
+      particles.splice(0, particles.length-cap);
+    }
+  }
+  function spawnPotato(x,y,opts){
+    opts=opts||{};
+    const typeIdx=opts.golden?2:(Math.random()<0.06?2:Math.floor(Math.random()*2));
+    // ★ 셀에서 떨어져 나가도록 — 아래쪽 반원(좌·우·아래)으로만 발사 (위로 떠 있는 버그 방지)
+    // 황금감자(콤보)는 살짝 위로 튕기는 화려한 무빙 유지
+    const angle=opts.golden
+      ? (-Math.PI/2+(Math.random()-0.5)*0.6)
+      : (Math.PI*0.15+Math.random()*Math.PI*0.7); // 27°~153° (모두 하반구)
+    const speed=opts.speed||(55+Math.random()*45);
+    particles.push({type:'potato',x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
+      rot:(Math.random()-0.5)*0.25,vrot:(Math.random()-0.5)*2.5,
+      size:opts.size||(11+Math.random()*4),sizeMul:1,fallTime:0,
+      life:1,decay:1.65+Math.random()*0.25,typeIdx,
+      hasSprout:Math.random()<0.20,
+      face:['happy','wow','wink','smile','dizzy','sleepy'][Math.floor(Math.random()*6)],
+      bounceT:Math.random()*Math.PI});
+  }
+  function spawnMiniStar(x,y,opts){
+    opts=opts||{};
+    // 하반구로 발사 — 셀 위에 정지하지 않고 곧바로 떨어져 나감
+    const angle=opts.angle!==undefined?opts.angle:(Math.PI*0.1+Math.random()*Math.PI*0.8);
+    const speed=opts.speed||(55+Math.random()*45);
+    particles.push({type:'ministar',x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
+      rot:0,vrot:(Math.random()-0.5)*8,
+      size:opts.size||(6+Math.random()*3),life:1,decay:2.3+Math.random()*0.5,
+      color:opts.color||sparkColors[Math.floor(Math.random()*sparkColors.length)]});
+  }
+  function spawnFlick(x,y,opts){
+    opts=opts||{};
+    // 360도 흩어지지만 살짝 아래쪽으로 편향
+    const angle=opts.angle!==undefined?opts.angle:(Math.random()*Math.PI*2);
+    const speed=opts.speed||(70+Math.random()*60);  // 130→70 줄임
+    particles.push({type:'flick',x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
+      gravity:opts.gravity!==undefined?opts.gravity:280, // 200→280 (더 빨리 떨어짐)
+      tailLength:opts.tail||(12+Math.random()*8),
+      color:opts.color||sparkColors[Math.floor(Math.random()*sparkColors.length)],
+      tipColor:'#FFFFFF',life:1,decay:opts.decay||(2.5+Math.random()*0.5)});
+  }
+  function spawnSparkle(x,y,opts){
+    opts=opts||{};
+    particles.push({type:'sparkle',x,y,
+      size:opts.size||(6+Math.random()*4),
+      life:1,decay:opts.decay||(3.2+Math.random()*0.6),
+      color:opts.color||(Math.random()<0.6?'#FFD84A':'#FFFFFF')});
+  }
+  function spawnFlash(x,y,color,maxR){particles.push({type:'flash',x,y,r:8,maxR:maxR||60,life:1,decay:5.0,color:color||'#FFFFFF'});}
+  function spawnMiniFlash(x,y,color,maxR){particles.push({type:'flash',x,y,r:6,maxR:maxR||30,life:1,decay:6.2,color:color||'#FFE08C'});}
+  function spawnShockwave(x,y,color){particles.push({type:'shock',x,y,r:6,life:1,decay:2.9,color});}
+  function spawnText(x,y,text,color,sub){particles.push({type:'text',x,y,vy:-45,text,sub,color,life:1,decay:1.7,scale:0.2,punchT:0});}
+  function spawnRocket(sx,sy,tx,ty,color,onExplode){
+    particles.push({type:'rocket',sx,sy,x:sx,y:sy,tx,ty,
+      duration:0.42+Math.random()*0.13,elapsed:0,color,onExplode,trail:[],life:1,decay:0});
+  }
+  function spawnStarburst(x,y,color,count){
+    spawnFlash(x,y,color,75);spawnFlash(x,y,'#FFFFFF',40);
+    for(let i=0;i<count;i++){
+      const angle=(i/count)*Math.PI*2+Math.random()*0.2;
+      spawnFlick(x,y,{angle,speed:150+Math.random()*80,tail:20+Math.random()*10,color,gravity:220});
+    }
+  }
+  function drawPotato(p){
+    const t=potatoTypes[p.typeIdx];
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);
+    const sq=1+Math.sin(p.bounceT+(1-p.life)*8)*0.06;
+    const sh=shrinkScale(p.life);
+    ctx.scale(sq,2-sq);ctx.scale(p.sizeMul*sh,p.sizeMul*sh);
+    // 외곽 글로우 제거 — shadowBlur는 모바일에서 GPU 큰 부담 (성능 우선)
+    ctx.globalAlpha=fadeAlpha(p.life);
+    const s=p.size;
+    ctx.fillStyle='rgba(0,0,0,0.3)';roundRect(ctx,-s+1,-s*0.85+3,s*2,s*1.7,s*0.42);ctx.fill();
+    ctx.fillStyle=t.shadow;roundRect(ctx,-s,-s*0.85,s*2,s*1.7,s*0.42);ctx.fill();
+    ctx.fillStyle=t.body;roundRect(ctx,-s,-s*0.85,s*2,s*1.55,s*0.42);ctx.fill();
+    if(t.golden){ctx.strokeStyle='#FFC83A';ctx.lineWidth=1.5;ctx.stroke();}
+    ctx.fillStyle=t.hl;ctx.globalAlpha=fadeAlpha(p.life)*0.85;
+    roundRect(ctx,-s*0.7,-s*0.75,s*1.4,s*0.55,s*0.3);ctx.fill();
+    if(p.hasSprout){
+      ctx.globalAlpha=fadeAlpha(p.life);ctx.strokeStyle='#5A8C4A';ctx.lineWidth=1.5;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(-s*0.05,-s*0.85);ctx.lineTo(-s*0.05,-s*1.05);ctx.stroke();
+      ctx.fillStyle='#7DC470';ctx.beginPath();ctx.ellipse(-s*0.22,-s*1.05,s*0.16,s*0.09,-0.5,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(s*0.16,-s*1.02,s*0.14,s*0.08,0.5,0,Math.PI*2);ctx.fill();
+    }
+    ctx.globalAlpha=fadeAlpha(p.life)*0.5;ctx.fillStyle='#F4A0B8';
+    ctx.beginPath();ctx.arc(-s*0.55,s*0.18,s*0.12,0,Math.PI*2);ctx.arc(s*0.55,s*0.18,s*0.12,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=fadeAlpha(p.life);ctx.fillStyle='#5A3A1F';ctx.strokeStyle='#5A3A1F';ctx.lineCap='round';
+    if(p.face==='wow'){
+      ctx.beginPath();ctx.arc(-s*0.32,-s*0.12,s*0.1,0,Math.PI*2);ctx.arc(s*0.32,-s*0.12,s*0.1,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(0,s*0.25,s*0.11,0,Math.PI*2);ctx.fill();
+    }else if(p.face==='wink'){
+      ctx.beginPath();ctx.arc(-s*0.32,-s*0.12,s*0.09,0,Math.PI*2);ctx.fill();
+      ctx.lineWidth=s*0.07;ctx.beginPath();ctx.arc(s*0.32,-s*0.08,s*0.13,Math.PI*1.15,Math.PI*1.85);ctx.stroke();
+      ctx.beginPath();ctx.arc(0,s*0.18,s*0.14,0.15*Math.PI,0.85*Math.PI);ctx.stroke();
+    }else if(p.face==='happy'){
+      ctx.lineWidth=s*0.08;ctx.beginPath();
+      ctx.arc(-s*0.32,-s*0.08,s*0.13,Math.PI*1.15,Math.PI*1.85);ctx.arc(s*0.32,-s*0.08,s*0.13,Math.PI*1.15,Math.PI*1.85);ctx.stroke();
+      ctx.lineWidth=s*0.07;ctx.beginPath();ctx.arc(0,s*0.2,s*0.15,0.1*Math.PI,0.9*Math.PI);ctx.stroke();
+    }else if(p.face==='dizzy'){
+      ctx.lineWidth=s*0.05;ctx.beginPath();
+      ctx.arc(-s*0.32,-s*0.12,s*0.1,0,Math.PI*1.7);ctx.arc(s*0.32,-s*0.12,s*0.1,0,Math.PI*1.7);ctx.stroke();
+      ctx.lineWidth=s*0.06;ctx.beginPath();ctx.moveTo(-s*0.15,s*0.22);
+      ctx.quadraticCurveTo(-s*0.05,s*0.14,0,s*0.22);ctx.quadraticCurveTo(s*0.05,s*0.3,s*0.15,s*0.22);ctx.stroke();
+    }else if(p.face==='sleepy'){
+      ctx.lineWidth=s*0.08;ctx.beginPath();
+      ctx.moveTo(-s*0.42,-s*0.1);ctx.lineTo(-s*0.22,-s*0.1);
+      ctx.moveTo(s*0.22,-s*0.1);ctx.lineTo(s*0.42,-s*0.1);ctx.stroke();
+      ctx.lineWidth=s*0.06;ctx.beginPath();ctx.arc(0,s*0.2,s*0.08,0,Math.PI*2);ctx.stroke();
+    }else{
+      ctx.beginPath();ctx.arc(-s*0.32,-s*0.12,s*0.085,0,Math.PI*2);ctx.arc(s*0.32,-s*0.12,s*0.085,0,Math.PI*2);ctx.fill();
+      ctx.lineWidth=s*0.07;ctx.beginPath();ctx.arc(0,s*0.2,s*0.13,0.15*Math.PI,0.85*Math.PI);ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function drawMiniStar(p){
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);
+    ctx.globalAlpha=fadeAlpha(p.life);
+    const sz=p.size*shrinkScale(p.life);
+    // shadowBlur 제거 — 색상 자체로 대비 충분
+    ctx.fillStyle=p.color;
+    ctx.beginPath();
+    for(let i=0;i<5;i++){
+      const a=(i*2*Math.PI/5)-Math.PI/2,a2=a+Math.PI/5;
+      ctx.lineTo(Math.cos(a)*sz,Math.sin(a)*sz);
+      ctx.lineTo(Math.cos(a2)*sz*0.45,Math.sin(a2)*sz*0.45);
+    }
+    ctx.closePath();ctx.fill();
+    // 화이트 코어 (반짝이는 핵)
+    ctx.globalAlpha=fadeAlpha(p.life)*0.9;
+    ctx.fillStyle='#FFFFFF';
+    ctx.beginPath();ctx.arc(0,0,sz*0.28,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  function drawSparkle(p){
+    ctx.save();ctx.translate(p.x,p.y);
+    const phase=Math.sin(p.life*14)*0.4+0.6;
+    ctx.globalAlpha=fadeAlpha(p.life)*phase;
+    const s=p.size*(0.5+p.life*0.5)*shrinkScale(p.life);
+    // 단순 4방향 십자 (성능 우선, shadow 제거)
+    ctx.strokeStyle=p.color;ctx.lineWidth=2;ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(-s,0);ctx.lineTo(s,0);ctx.moveTo(0,-s);ctx.lineTo(0,s);
+    ctx.stroke();
+    ctx.fillStyle='#FFFFFF';ctx.beginPath();ctx.arc(0,0,s*0.22,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  function drawRocket(p){
+    ctx.save();
+    if(p.trail.length>1){
+      for(let i=1;i<p.trail.length;i++){
+        const t=i/p.trail.length;
+        ctx.globalAlpha=t*0.7;ctx.strokeStyle=p.color;ctx.lineWidth=1.5+t*1.5;ctx.lineCap='round';
+        ctx.beginPath();ctx.moveTo(p.trail[i-1].x,p.trail[i-1].y);ctx.lineTo(p.trail[i].x,p.trail[i].y);ctx.stroke();
+      }
+    }
+    ctx.globalAlpha=1;
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,7);
+    g.addColorStop(0,'#FFFFFF');g.addColorStop(0.4,p.color);g.addColorStop(1,p.color+'00');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  function drawFlick(p){
+    ctx.save();ctx.globalAlpha=fadeAlpha(p.life);
+    const sh=shrinkScale(p.life);
+    const len=p.tailLength*Math.min(1,p.life*1.4)*sh;
+    const sp=Math.hypot(p.vx,p.vy);
+    if(sp>0.1){
+      const ux=-p.vx/sp,uy=-p.vy/sp,tx=p.x+ux*len,ty=p.y+uy*len;
+      const g=ctx.createLinearGradient(p.x,p.y,tx,ty);
+      g.addColorStop(0,p.color);g.addColorStop(0.5,p.color+'AA');g.addColorStop(1,p.color+'00');
+      // 그라데이션 자체로 글로우 효과 (shadow 제거)
+      ctx.strokeStyle=g;ctx.lineWidth=2.4*sh;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(p.x,p.y);ctx.stroke();
+    }
+    // 화이트 팁 코어
+    ctx.fillStyle=p.tipColor;ctx.beginPath();ctx.arc(p.x,p.y,2.2*sh,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  function drawFlash(p){
+    ctx.save();ctx.globalAlpha=p.life*p.life*0.5;
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+    g.addColorStop(0,p.color);g.addColorStop(0.5,p.color+'88');g.addColorStop(1,p.color+'00');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+  function drawShock(p){
+    ctx.save();ctx.globalAlpha=p.life*0.7;ctx.strokeStyle=p.color;ctx.lineWidth=3.5*p.life;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.stroke();ctx.restore();
+  }
+  function drawText(p){
+    ctx.save();ctx.translate(p.x,p.y);
+    const txSh=shrinkScale(p.life);
+    ctx.scale(p.scale*txSh,p.scale*txSh);
+    ctx.globalAlpha=fadeAlpha(p.life);
+    ctx.font='bold 28px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    // 부드러운 그림자
+    ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillText(p.text,2,3);
+    // 외곽 더블 스트로크 — 깊이감
+    ctx.lineWidth=8;ctx.strokeStyle='#1a2238';ctx.lineJoin='round';ctx.strokeText(p.text,0,0);
+    ctx.lineWidth=4;ctx.strokeStyle='rgba(0,0,0,0.6)';ctx.strokeText(p.text,0,0);
+    // 본 텍스트 (shadow 제거 — 더블 스트로크로 깊이감 확보)
+    ctx.fillStyle=p.color;ctx.fillText(p.text,0,0);
+    if(p.sub){
+      ctx.font='bold 12px sans-serif';
+      ctx.lineWidth=4;ctx.strokeStyle='#1a2238';ctx.strokeText(p.sub,0,20);
+      ctx.fillStyle='#FFFFFF';ctx.fillText(p.sub,0,20);
+    }
+    ctx.restore();
+  }
+  let _last=performance.now(),_running=false,_lastTick=performance.now();
+  // 안전 타임아웃 — 파티클 활성 시에만 동작 (idle 시 0 cost)
+  let _safetyTimer=0;
+  function startSafetyTimer(){
+    if(_safetyTimer) return;
+    _safetyTimer=setInterval(()=>{
+      const now=performance.now();
+      // 1.2초 이상 살아있는 파티클 강제 제거
+      for(let i=particles.length-1;i>=0;i--){
+        const p=particles[i];
+        if(!p._spawnTime) p._spawnTime=now;
+        if(now-p._spawnTime>1200) particles.splice(i,1);
+      }
+      // 파티클 있는데 tick 멈췄으면 재시작
+      if(particles.length>0 && now-_lastTick>200){
+        _running=false;requestAnimationFrame(tick);
+      }
+      // 파티클 0이면 타이머 정지 + 잔상 청소
+      if(particles.length===0){
+        if(ctx&&w>0&&h>0&&!_running)ctx.clearRect(0,0,w,h);
+        clearInterval(_safetyTimer);_safetyTimer=0;
+      }
+    },500);
+  }
+  function tick(now){
+    _running=true;
+    const dt=Math.min(0.05,(now-_last)/1000);_last=now;_lastTick=now;
+    if(!ensureCanvas()||w===0||h===0){
+      // 캔버스가 0 크기면 파티클 모두 강제 제거 (스크린 전환 등으로 hidden된 경우)
+      particles.length=0;_running=false;return;
+    }
+    ctx.clearRect(0,0,w,h);
+    for(let i=particles.length-1;i>=0;i--){
+      const p=particles[i];
+      if(!p._spawnTime) p._spawnTime=now;
+      if(p.type==='potato'){
+        // 강화된 중력 — 더 빨리 떨어짐 (자연스러운 무빙)
+        p.vy+=380*dt;p.vx*=0.96;p.vy*=0.99;p.x+=p.vx*dt;p.y+=p.vy*dt;
+        p.rot+=p.vrot*dt;p.vrot*=0.97;
+        if(p.vy>0){p.fallTime+=dt;p.sizeMul=Math.max(0.2,1-p.fallTime*1.4);}
+        p.life-=p.decay*dt;
+      }else if(p.type==='ministar'){
+        p.vy+=300*dt;p.vx*=0.96;p.x+=p.vx*dt;p.y+=p.vy*dt;p.rot+=p.vrot*dt;p.life-=p.decay*dt;
+      }else if(p.type==='sparkle'){
+        // 스파클도 살짝 아래로 흐르도록
+        p.y+=18*dt;
+        p.life-=p.decay*dt;
+      }else if(p.type==='rocket'){
+        p.elapsed+=dt;const t=Math.min(1,p.elapsed/p.duration);const eased=1-Math.pow(1-t,3);
+        p.x=p.sx+(p.tx-p.sx)*eased;p.y=p.sy+(p.ty-p.sy)*eased;
+        p.trail.push({x:p.x,y:p.y});if(p.trail.length>10)p.trail.shift();
+        if(t>=1){if(p.onExplode)p.onExplode(p.x,p.y,p.color);particles.splice(i,1);continue;}
+      }else if(p.type==='flick'){
+        p.vy+=p.gravity*dt;p.vx*=0.95;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=p.decay*dt;
+      }else if(p.type==='flash'){
+        p.r+=280*dt;p.life-=p.decay*dt;
+      }else if(p.type==='shock'){
+        p.r+=240*dt;p.life-=p.decay*dt;
+      }else if(p.type==='text'){
+        // 텍스트도 살짝 떨어지면서 사라짐 (vy를 양수로 전환)
+        p.y+=p.vy*dt;p.vy=Math.min(p.vy*0.92+30*dt, 80);
+        p.punchT+=dt;
+        if(p.punchT<0.1)p.scale=0.2+(1.2-0.2)*(p.punchT/0.1);
+        else if(p.punchT<0.2)p.scale=1.2-0.2*((p.punchT-0.1)/0.1);
+        else p.scale=1;
+        p.life-=p.decay*dt;
+      }
+      if(p.life<=0){particles.splice(i,1);continue;}
+      if(p.type==='potato')drawPotato(p);
+      else if(p.type==='ministar')drawMiniStar(p);
+      else if(p.type==='sparkle')drawSparkle(p);
+      else if(p.type==='rocket')drawRocket(p);
+      else if(p.type==='flick')drawFlick(p);
+      else if(p.type==='flash')drawFlash(p);
+      else if(p.type==='shock')drawShock(p);
+      else if(p.type==='text')drawText(p);
+    }
+    if(particles.length>0)requestAnimationFrame(tick);
+    else _running=false;
+  }
+  function ensureLoop(){_last=performance.now();_lastTick=_last;startSafetyTimer();if(!_running)requestAnimationFrame(tick);}
+  function emitBurst(x,y,intensity){
+    const tier=perfTier();
+    // 파티클 수 대폭 감량 — 부드러운 60fps 목표
+    const m=tier===2?0.35:(tier===1?0.55:0.75);
+    spawnPotato(x,y);
+    if(intensity===1){
+      const stars=Math.max(1,Math.round(2*m));
+      for(let i=0;i<stars;i++)spawnMiniStar(x,y);
+      const sparks=Math.max(0,Math.round(2*m));
+      for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*22,y+(Math.random()-0.5)*22);
+      const flicks=Math.max(1,Math.round(3*m));
+      for(let i=0;i<flicks;i++){
+        const angle=-Math.PI/2+(i/3-0.5)*Math.PI*1.4+(Math.random()-0.5)*0.3;
+        spawnFlick(x,y,{angle,speed:60+Math.random()*40,tail:12+Math.random()*6});
+      }
+    }else if(intensity===2){
+      const stars=Math.max(1,Math.round(3*m));
+      for(let i=0;i<stars;i++)spawnMiniStar(x,y,{size:7+Math.random()*3});
+      const sparks=Math.max(1,Math.round(2*m));
+      for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*30,y+(Math.random()-0.5)*30);
+      const flicks=Math.max(2,Math.round(4*m));
+      for(let i=0;i<flicks;i++){
+        const angle=(i/flicks)*Math.PI*2+(Math.random()-0.5)*0.3;
+        spawnFlick(x,y,{angle,speed:80+Math.random()*50,tail:14+Math.random()*6});
+      }
+    }else{
+      const stars=Math.max(2,Math.round(3*m));
+      for(let i=0;i<stars;i++)spawnMiniStar(x,y,{size:7+Math.random()*4});
+      const sparks=Math.max(1,Math.round(3*m));
+      for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*35,y+(Math.random()-0.5)*35);
+      const flicks=Math.max(3,Math.round(6*m));
+      for(let i=0;i<flicks;i++){
+        const angle=(i/flicks)*Math.PI*2+(Math.random()-0.5)*0.2;
+        spawnFlick(x,y,{angle,speed:90+Math.random()*60,tail:16+Math.random()*8});
+      }
+    }
+    trim();ensureLoop();
+  }
+  function comboBonus(centerX,centerY,totalCells,cw,ch){
+    const tier=perfTier();
+    // 티어별 로켓·별폭발 수 감량
+    if(totalCells>=20){
+      const rockets=tier===2?2:(tier===1?3:5);
+      for(let i=0;i<rockets;i++){
+        setTimeout(()=>{
+          const sx=cw*(0.15+Math.random()*0.7),sy=ch+20;
+          const tx=cw*(0.1+Math.random()*0.8),ty=ch*(0.12+Math.random()*0.38);
+          const color=fwColors[i%fwColors.length];
+          const burstCount=tier===2?12:(tier===1?16:22);
+          spawnRocket(sx,sy,tx,ty,color,(x,y,c)=>spawnStarburst(x,y,c,burstCount));
+          trim();ensureLoop();
+        },i*110);
+      }
+      setTimeout(()=>{
+        spawnStarburst(centerX,centerY,'#FFD84A',tier===2?14:(tier===1?20:26));
+        if(tier<2)spawnShockwave(centerX,centerY,'#FFD84A');
+        trim();ensureLoop();
+      },100);
+      spawnText(centerX,centerY-30,'TRIPLE!','#FFD84A','AMAZING');
+      const goldenCount=tier===2?1:(tier===1?2:3);
+      for(let i=0;i<goldenCount;i++)setTimeout(()=>{spawnPotato(centerX,centerY,{golden:true,size:18,speed:60});trim();ensureLoop();},i*80);
+    }else if(totalCells>=12){
+      const rockets=tier===2?1:(tier===1?2:3);
+      for(let i=0;i<rockets;i++){
+        setTimeout(()=>{
+          const sx=cw*(0.25+i*0.25),sy=ch+20;
+          const tx=cw*(0.2+i*0.3),ty=ch*(0.2+Math.random()*0.3);
+          const color=fwColors[Math.floor(Math.random()*fwColors.length)];
+          const burstCount=tier===2?10:(tier===1?14:18);
+          spawnRocket(sx,sy,tx,ty,color,(x,y,c)=>spawnStarburst(x,y,c,burstCount));
+          trim();ensureLoop();
+        },i*130);
+      }
+      spawnText(centerX,centerY-20,'COMBO!','#FFD84A');
+    }else if(totalCells>=9){
+      spawnStarburst(centerX,centerY-20,'#FFD84A',tier===2?8:(tier===1?11:14));
+      spawnText(centerX,centerY-10,'NICE!','#4ECDC4');
+    }
+    trim();ensureLoop();
+  }
+  // 탭 비포커스/visibility 변경 시 파티클 클리어 (정지된 채 남는 버그 방지)
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){particles.length=0;_running=false;if(ctx&&w&&h)ctx.clearRect(0,0,w,h);}
+  });
+  return {ensureCanvas,emitBurst,comboBonus,
+    clear:()=>{particles.length=0;if(ctx&&w&&h)ctx.clearRect(0,0,w,h);},
+    _debug:()=>({particleCount:particles.length, running:_running, w, h, hasCanvas:!!canvas})};
+})();
 
-  // v6 토스 스타일 보드 진동 — 3라인 이상 콤보에서만 적용
-  // (1-2라인 진동은 "뒷 셀이 잠시 떨렸다 돌아오는" 이물감 유발 → 제거)
+function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
+  // ═══ 보드 진동 — 3라인 이상 콤보에서만 적용 ═══
   const bf=document.getElementById('board-frame-el')||document.querySelector('.board-frame');
   if(bf && numLines>=3){
     let cls, dur;
     if(numLines>=5){      cls='shaking-epic';   dur=320; }
     else if(numLines>=4){ cls='shaking-heavy';  dur=320; }
-    else {                cls='shaking-medium'; dur=280; }  // numLines===3
+    else {                cls='shaking-medium'; dur=280; }
     bf.classList.remove('shaking','shaking-medium','shaking-heavy','shaking-epic');
     requestAnimationFrame(()=>{
       bf.classList.add(cls);
@@ -4263,21 +4729,10 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
     });
   }
 
-  // 흰빛 flash — 크기 차등 완화
-  const flashSize=numLines>=4?160:numLines>=3?140:120;
-  const flash=document.createElement('div');
-  flash.className='clear-flash';
-  flash.style.cssText=`left:${cx}px;top:${cy}px;width:${flashSize}px;height:${flashSize}px;`;
-  document.body.appendChild(flash);
-  setTimeout(()=>flash.remove(),300);
-
-  // ═══ 2순위: 팝업들은 다음 프레임으로 지연 ═══
-  // 셀 dissolve 애니메이션이 시작된 후에 팝업 DOM 생성 → jank 완화
+  // ═══ 위기 탈출 배너 (게임 로직, 유지) ═══
   if(numLines>=2){
     requestAnimationFrame(()=>{
-      requestAnimationFrame(()=>{  // 2프레임 지연 (약 32ms, 셀 dissolve가 자리잡은 후)
-        if(!isSpecial){showComboBanner(cx, cy, numLines);showComboMultiplier(numLines);}
-        // 위기 탈출 (보드 꽉 찬 상태에서 대량 클리어)
+      requestAnimationFrame(()=>{
         const filledBefore=_boardFilled+(removed?removed.length:0);
         if(filledBefore >= 57){
           showCrisisBanner(numLines);
@@ -4286,66 +4741,27 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
     });
   }
 
-  // ═══ 3순위: 파티클 — 대폭 감량 + 다음 프레임 지연 ═══
-  // 이미 화면에 파티클이 있으면 스킵 (동시 폭발 방지)
-  if(document.querySelectorAll('.star-particle').length>15) return;
+  // ═══ 새 캔버스 파티클 시스템 (potato_kingdom_particles.html) ═══
   if(!removed||!removed.length) return;
+  if(!_PK.ensureCanvas()) return;
 
-  const low=window._lowPerf;
-  // 감량: 저사양 step 8 (6개 내외), 고사양 step 5 (9개 내외). 이전 step 2(25개)에서 대폭 축소
-  const step=low?8:5;
+  const totalCells=removed.length;
+  // intensity: 9+ NICE / 12+ COMBO / 20+ TRIPLE
+  const intensity = totalCells>=20 ? 3 : (totalCells>=12 ? 2 : 1);
 
-  // 파티클 데이터: 클리어된 셀 위치에서 발사
-  const pts=[];
+  // 셀당 emitBurst — 캔버스가 viewport 전체이므로 viewport 좌표 직접 사용
   removed.forEach(([r,c],idx)=>{
-    if(idx%step!==0) return;
     const px=_originLeft+c*_strideW+_strideW/2;
     const py=_originTop +r*_strideH+_strideH/2;
-    const char=STAR_CHARS[idx%STAR_CHARS.length];
-    pts.push({x:px,y:py,char,i:idx});
+    setTimeout(()=>_PK.emitBurst(px, py, intensity), idx*22);
   });
 
-  // 파티클 생성/애니메이션도 다음 프레임으로 지연
-  requestAnimationFrame(()=>{
-    const frag=document.createDocumentFragment();
-    const elems=[];
-    pts.forEach(({x,y,char})=>{
-      const p=document.createElement('div');
-      p.className='star-particle';
-      p.textContent=char;
-      const color=STAR_COLORS[Math.floor(Math.random()*STAR_COLORS.length)];
-      const size=13+Math.random()*5;  // 13~18px (살짝 축소)
-      p.style.cssText=`left:${x}px;top:${y}px;font-size:${size}px;color:${color};text-shadow:0 0 4px ${color}`;  // glow 단순화 (2중→1중)
-      frag.appendChild(p);
-      elems.push(p);
-    });
-    document.body.appendChild(frag);
-
-    // ── 간소화된 파티클 모션 ──
-    requestAnimationFrame(()=>{
-      pts.forEach((_,idx)=>{
-        const el=elems[idx];
-        const ang = -Math.PI/2 + (Math.random()-.5)*Math.PI*0.67;
-        const sp = 40 + Math.random()*30;  // 이동 거리 살짝 감소 (44-80 → 40-70)
-        const tx = Math.cos(ang)*sp;
-        const ty = Math.sin(ang)*sp;
-        const dur = 480+Math.random()*80;  // 480~560ms
-        const kf=[
-          {transform:`translate(-50%,-50%) scale(0.5)`, opacity:0.9, offset:0},
-          {transform:`translate(calc(-50% + ${tx*0.5}px), calc(-50% + ${ty*0.5}px)) scale(1.1)`, opacity:1, offset:0.3},
-          {transform:`translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(0.7)`, opacity:0, offset:1},
-          // 회전 제거 → 렌더링 단순화
-        ];
-        const a=el.animate(kf,{
-          duration: dur,
-          easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-          fill: 'forwards',
-          delay: idx*6  // stagger 단축 (8 → 6)
-        });
-        a.onfinish=()=>el.remove();
-      });
-    });
-  });
+  // 콤보 보너스 (특수 블록은 제외 — 자체 이펙트 있음)
+  if(!isSpecial && totalCells>=9){
+    const centerX=cx, centerY=cy;
+    const vw=window.innerWidth, vh=window.innerHeight;
+    setTimeout(()=>_PK.comboBonus(centerX, centerY, totalCells, vw, vh), 250);
+  }
 }
 
 // 성능 감지 — 초기 + 주기적 재측정
@@ -5468,7 +5884,7 @@ function resetGame(){score=0;streak=0;_boardFilled=0;maxStreak=0;totalClears=0;r
   _scoreDisplay=0;pendingScore=0;if(_scoreRAF){cancelAnimationFrame(_scoreRAF);_scoreRAF=null}
   // ★ 특수 블록 시스템 리셋
   boardSpecial=Array.from({length:GRID},()=>Array(GRID).fill(null));
-  _iceCount=0;_iceGenCounter=0;_lastSpecialType=null;_boardBitmapHash=-1;
+  _iceCount=0;_iceGenCounter=0;_lastSpecialType=null;_specialCooldown=0;_boardBitmapHash=-1;
   _crisisMinMovesSeen=99;                      // ILLUSION 핸드별 최소 이동 수 리셋
   _lastSetWasJackpot=false;crisisEscapes=0;
   // ★ 드래그 잔여 클래스 청소 (새 게임 진입 시 트레이 블록 안 보이는 버그 방지)
