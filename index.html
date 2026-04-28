@@ -73,6 +73,8 @@
         · 락 후 도착마다 판정: arrivedParticles >= expectedParticles 시 30ms 후 통합 임팩트
         · fallback 700ms (도착 누락/저사양 보호)
     - TRIPLE IMPACT FX: 동일 타이밍에 ① flushScore ② .score-bump(scale 1.08) ③ .board-hit(translateY+scale) ④ 클러치(wasInDanger 시)
+    - score-catch 강화: brightness(1.30) + drop-shadow(10px) + scale(1.14) — 도착 순간 강한 골드 펄스
+    - 미니 shockwave: score-el 중심에 단일 골드 링 (#FFD86A, 6→r 확장, ~340ms) — high-perf 한정 GPU 부담 거의 0
     - triggerScoreImpact는 onParticleArrive(barrier 충족) 또는 fallback timer만 호출 — 다른 곳 호출 금지
     - fallback: 파티클 미생성 시에도 700ms 내 flushScore 자동 호출
     - DPR=1 캡 + canvas {alpha:true,desynchronized:true}
@@ -102,7 +104,11 @@
     - viewport: width=device-width, viewport-fit=cover, user-scalable=no
     - safe-area: env(safe-area-inset-*) + Telegram contentSafeAreaInset 통합 (--safe-top/bottom/left/right)
     - 캔버스 DPR cap=1 (모든 기기 GPU 부담 최소화, 파티클은 DPR 차이 거의 안 보임)
-    - perfTier: 0=고사양 / 1=mobile-reduce (iOS·Android 항상 ON) / 2=low-perf (CPU≤4 또는 메모리<4GB)
+    - perfTier: 0=고사양 (iOS 기본) / 1=mobile-reduce (Android 보수 기본) / 2=low-perf (CPU≤2 또는 메모리<2GB)
+        · iOS는 기본 tier 0 (iPhone 16 Pro 등 고사양 풀 효과 보장)
+        · Android는 기본 tier 1, watchdog이 측정 후 필요시 tier 2로 승격
+        · watchdog: SLOW_THRESHOLD 50ms (20fps 이하), 연속 2회 SLOW 시에만 승격, 첫 측정은 warm-up 무시
+        · 실기기 디버그: window.perfStatus() 로 tier/avgFrameTime/estimatedFps 즉시 확인
     - 4초 간격 fps 실측 watchdog → low-perf 자동 전환 (background tab 정지)
     - resize/orientationchange/visualViewport: rAF 디바운스 (iOS Safari URL바, Android 키보드 시 폭주 방지)
     - eventsAttached 가드로 슬롯/보드 리스너 중복 등록 차단 (장시간 플레이 누수 방지)
@@ -384,11 +390,12 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .cur-score.bump,.cur-score.bump-big,.cur-score.bump-mega{will-change:transform}
 /* ★ 파티클 흡인 도착 시 1회 glow (clearFX당 1번만) */
 .cur-score.score-catch,#score-el.score-catch{
-  filter:brightness(1.16);
-  transform:scale(1.08);
-  transition:transform 120ms cubic-bezier(0.4,0,0.2,1),filter 120ms cubic-bezier(0.4,0,0.2,1);
+  filter:brightness(1.30) drop-shadow(0 0 10px rgba(255,210,100,.55));
+  transform:scale(1.14);
+  transition:transform 130ms cubic-bezier(0.4,0,0.2,1),filter 130ms cubic-bezier(0.4,0,0.2,1);
 }
-.low-perf #score-el.score-catch{filter:none;transform:scale(1.04)}
+/* low-perf은 drop-shadow 제외 (GPU 부담), brightness만 강화 */
+.low-perf #score-el.score-catch{filter:brightness(1.18);transform:scale(1.06)}
 /* TRIPLE IMPACT FX — 점수 도착 순간 통합 펄스 (transform only, 저사양에서도 유지) */
 .cur-score.score-bump,#score-el.score-bump{
   transform:scale(1.08);
@@ -1532,7 +1539,7 @@ body.ls-active .board-area{
    - opacity 0~83% 유지 → 마지막 50ms(17%)만 급감 → 정적 구간 제거 */
 .cell.clearing .block-inner{
   transform-origin:center center;
-  animation: blockPopClear 300ms cubic-bezier(0.4,0,0.2,1) forwards;
+  animation: blockPopClear 220ms cubic-bezier(0.4,0,0.2,1) forwards;
   animation-delay: var(--clear-delay, 0ms);
   will-change: transform, opacity, filter;
   contain: paint;
@@ -1709,7 +1716,7 @@ body.ls-active .board-area{
    기존 어떤 transition/opacity/fade 규칙보다 뒤에 와서 최종 승리
    ════════════════════════════════════════════════════════════════════ */
 .cell.clearing .block-inner{
-  animation: blockPopClear 300ms cubic-bezier(0.4,0,0.2,1) forwards !important;
+  animation: blockPopClear 220ms cubic-bezier(0.4,0,0.2,1) forwards !important;
   animation-delay: var(--clear-delay, 0ms) !important;
   transform-origin: center center;
   will-change: transform, opacity, filter;
@@ -3831,7 +3838,7 @@ function clearLines(extraCells){
                   '| cells=', _ordered.length);
     }
   }
-  const CLEAR_DUR=window._lowPerf?240:300;  // v7 Dopamine Pop: 기본 300ms, 저사양 240ms
+  const CLEAR_DUR=window._lowPerf?180:220;  // v9 더 빠른 페이드: 기본 220ms, 저사양 180ms
   const totalWait=CLEAR_DUR+maxDelay+30;
   const _timerId=setTimeout(()=>{
     _activeClearTimers.delete(_timerId);
@@ -4022,6 +4029,12 @@ function triggerScoreImpact(numLines){
   if(board){
     board.classList.add('board-hit');
     setTimeout(()=>board.classList.remove('board-hit'), 140);
+  }
+  // ★ [TRIPLE IMPACT C] 미니 shockwave — score 위치에 골드 링 1개 (10→60px expand, 180ms)
+  // 저사양은 GPU 비용 절감 차원에서 skip
+  if(scoreEl && !window._lowPerf && _PK && _PK.spawnShockwave && _PK.ensureCanvas()){
+    const sr=scoreEl.getBoundingClientRect();
+    _PK.spawnShockwave(sr.left+sr.width/2, sr.top+sr.height/2, '#FFD86A');
   }
   // 4. 클러치 (위기 상태였다면) — 큐/중복 방지는 triggerClutchFX 내부가 처리
   if(typeof wasInDanger!=='undefined' && wasInDanger){
@@ -4578,7 +4591,7 @@ const _PK = (function(){
     return 0;
   }
   // 파티클 상한 (성능 우선 — 부드러운 60fps 보장)
-  const PARTICLE_CAP=()=>perfTier()===2?25:(perfTier()===1?50:80);
+  const PARTICLE_CAP=()=>perfTier()===2?25:(perfTier()===1?50:200);
   function trim(){
     const cap=PARTICLE_CAP();
     if(particles.length>cap){
@@ -4590,18 +4603,18 @@ const _PK = (function(){
     opts=opts||{};
     // 흡인(target) 모드 — 황금감자 70% 비중 (은은한 황금빛)
     const typeIdx=opts.golden?2:(opts.target?(Math.random()<0.7?2:Math.floor(Math.random()*2)):(Math.random()<0.06?2:Math.floor(Math.random()*2)));
-    // 짧은 외부 폭발 후 점수쪽으로 빨려들어감
+    // 짧은 외부 폭발 후 점수쪽으로 빨려들어감 (200~280ms — cell burst 더 오래 보임)
     const angle=Math.random()*Math.PI*2; // 360도 흩어짐
     const speed=opts.speed||(60+Math.random()*60);
     particles.push({type:'potato',x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       rot:(Math.random()-0.5)*0.25,vrot:(Math.random()-0.5)*2.5,
-      size:opts.size||(4+Math.random()*2),sizeMul:1,fallTime:0,
+      size:opts.size||(7+Math.random()*3),sizeMul:1,fallTime:0, // 4-6 → 7-10 (시각 풍성함)
       life:1,decay:1.0+Math.random()*0.15,typeIdx,
       hasSprout:Math.random()<0.20,
       face:['happy','wow','wink','smile','dizzy','sleepy'][Math.floor(Math.random()*6)],
       bounceT:Math.random()*Math.PI,
       target:opts.target,           // 점수 위치 — 빨려들어갈 목표
-      attractDelay:0.08+Math.random()*0.04}); // 80~120ms 후 흡인 시작 (짧은 외부 퍼짐)
+      attractDelay:0.24+Math.random()*0.08}); // 240~320ms — cell burst 후 흡인 (한층 더 빠르게)
   }
   function spawnMiniStar(x,y,opts){
     opts=opts||{};
@@ -4609,10 +4622,10 @@ const _PK = (function(){
     const speed=opts.speed||(70+Math.random()*60);
     particles.push({type:'ministar',x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       rot:0,vrot:(Math.random()-0.5)*8,
-      size:opts.size||(2.5+Math.random()*1.5),life:1,decay:1.5+Math.random()*0.3,
-      color:opts.color||'#FFE08C', // 황금빛 (white→gold)
+      size:opts.size||(4+Math.random()*2),life:1,decay:1.4+Math.random()*0.35,
+      color:opts.color||'#FFE08C',
       target:opts.target,
-      attractDelay:0.08+Math.random()*0.04}); // 80~120ms 외부 퍼짐 후 흡인
+      attractDelay:0.24+Math.random()*0.08}); // 240~320ms 외부 퍼짐 후 흡인
   }
   function spawnFlick(x,y,opts){
     opts=opts||{};
@@ -4628,9 +4641,9 @@ const _PK = (function(){
   function spawnSparkle(x,y,opts){
     opts=opts||{};
     particles.push({type:'sparkle',x,y,
-      size:opts.size||(2+Math.random()*1.5),
-      life:1,decay:opts.decay||(2.7+Math.random()*0.5),
-      color:opts.color||'#FFD84A'}); // 황금색
+      size:opts.size||(3.5+Math.random()*2),
+      life:1,decay:opts.decay||(1.5+Math.random()*0.4), // 2.7-3.2 → 1.5-1.9 (셀 위치에서 더 오래 보임)
+      color:opts.color||'#FFD84A'});
   }
   function spawnFlash(x,y,color,maxR){particles.push({type:'flash',x,y,r:8,maxR:maxR||60,life:1,decay:5.0,color:color||'#FFFFFF'});}
   function spawnMiniFlash(x,y,color,maxR){particles.push({type:'flash',x,y,r:6,maxR:maxR||30,life:1,decay:6.2,color:color||'#FFE08C'});}
@@ -4713,16 +4726,19 @@ const _PK = (function(){
     ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);
     const fa=fadeAlpha(p.life);
     const sz=p.size*shrinkScale(p.life);
-    // ★ 황금빛 글로우 베이스
+    // ★ 'lighter' 합성으로 mix-blend-mode:screen 효과 (되돌리기 파티클과 동등한 발광)
+    ctx.globalCompositeOperation='lighter';
+    // ★ 황금빛 글로우 베이스 (헤일로 확장 sz*3.0 → sz*4.2)
     if(perfTier()<2){
-      ctx.globalAlpha=fa*0.75;
-      const g=ctx.createRadialGradient(0,0,0,0,0,sz*3.0);
-      g.addColorStop(0,'rgba(255,250,210,0.95)');    // 밝은 노란 코어
-      g.addColorStop(0.35,'rgba(255,216,74,0.6)');   // 황금
-      g.addColorStop(0.75,'rgba(255,170,30,0.18)');  // 짙은 황금
+      ctx.globalAlpha=fa*0.85;
+      const haloR=sz*4.2;
+      const g=ctx.createRadialGradient(0,0,0,0,0,haloR);
+      g.addColorStop(0,'rgba(255,250,210,1)');       // 밝은 노란 코어
+      g.addColorStop(0.30,'rgba(255,216,74,0.75)');  // 황금
+      g.addColorStop(0.70,'rgba(255,170,30,0.25)');  // 짙은 황금
       g.addColorStop(1,'rgba(255,150,20,0)');
       ctx.fillStyle=g;
-      ctx.beginPath();ctx.arc(0,0,sz*3.0,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(0,0,haloR,0,Math.PI*2);ctx.fill();
     }
     // 별 모양 (밝은 황금 코어 + 흰 중심)
     ctx.globalAlpha=fa;
@@ -4742,15 +4758,25 @@ const _PK = (function(){
   }
   function drawSparkle(p){
     ctx.save();ctx.translate(p.x,p.y);
-    const phase=Math.sin(p.life*14)*0.4+0.6;
+    const phase=Math.sin(p.life*14)*0.3+0.7;
     ctx.globalAlpha=fadeAlpha(p.life)*phase;
     const s=p.size*(0.5+p.life*0.5)*shrinkScale(p.life);
-    // 단순 4방향 십자 (성능 우선, shadow 제거)
-    ctx.strokeStyle=p.color;ctx.lineWidth=2;ctx.lineCap='round';
+    // ★ 발광 — 'lighter' 합성으로 mix-blend-mode:screen 효과 (되돌리기 파티클과 동일한 광택)
+    ctx.globalCompositeOperation='lighter';
+    // 부드러운 황금 헤일로 (radial gradient)
+    const haloR=s*2.4;
+    const halo=ctx.createRadialGradient(0,0,0,0,0,haloR);
+    halo.addColorStop(0,'rgba(255,248,220,1)');
+    halo.addColorStop(0.4,p.color);
+    halo.addColorStop(1,p.color+'00');
+    ctx.fillStyle=halo;ctx.beginPath();ctx.arc(0,0,haloR,0,Math.PI*2);ctx.fill();
+    // 4방향 십자 (살짝)
+    ctx.strokeStyle=p.color;ctx.lineWidth=1.6;ctx.lineCap='round';
     ctx.beginPath();
     ctx.moveTo(-s,0);ctx.lineTo(s,0);ctx.moveTo(0,-s);ctx.lineTo(0,s);
     ctx.stroke();
-    ctx.fillStyle='#FFFFFF';ctx.beginPath();ctx.arc(0,0,s*0.22,0,Math.PI*2);ctx.fill();
+    // 화이트 코어
+    ctx.fillStyle='#FFFFFF';ctx.beginPath();ctx.arc(0,0,s*0.32,0,Math.PI*2);ctx.fill();
     ctx.restore();
   }
   function drawRocket(p){
@@ -4853,7 +4879,7 @@ const _PK = (function(){
       if(!p._spawnTime) p._spawnTime=now;
       if(p.type==='potato'){
         if(p.target){
-          // ★ tween 기반 흡인 — 0.55s 안에 점수에 정확히 도달 (물리 대신 lerp)
+          // ★ tween 기반 흡인 — 0.36s 안에 점수에 정확히 도달
           p.attractDelay-=dt;
           if(p.attractDelay>0){
             p.vx*=0.85;p.vy*=0.85;
@@ -4861,7 +4887,7 @@ const _PK = (function(){
           }else{
             if(!p.attractStart){p.attractStart={x:p.x,y:p.y};p.attractTime=0;}
             p.attractTime+=dt;
-            const t=Math.min(1,p.attractTime/0.55);
+            const t=Math.min(1,p.attractTime/0.36);
             const eased=t*t*t; // easeInCubic — 처음 천천히, 끝에서 빠르게 (슈류룩)
             p.x=p.attractStart.x+(p.target.x-p.attractStart.x)*eased;
             p.y=p.attractStart.y+(p.target.y-p.attractStart.y)*eased;
@@ -4886,7 +4912,7 @@ const _PK = (function(){
           else{
             if(!p.attractStart){p.attractStart={x:p.x,y:p.y};p.attractTime=0;}
             p.attractTime+=dt;
-            const t=Math.min(1,p.attractTime/0.5); // 별이 살짝 더 빠름
+            const t=Math.min(1,p.attractTime/0.32); // 별이 살짝 더 빠름
             const eased=t*t*t;
             p.x=p.attractStart.x+(p.target.x-p.attractStart.x)*eased;
             p.y=p.attractStart.y+(p.target.y-p.attractStart.y)*eased;
@@ -4948,13 +4974,18 @@ const _PK = (function(){
     let targetCount=0;
     // ★ [3] target 모드면 0.85배 추가 감량 (방향성 강해서 적은 파티클로 충분)
     const mBase=tier===2?0.3:(tier===1?0.5:0.7);
-    // ★ [DENSITY BOOST] target 모드에서만 +15~20% (low-perf은 1.0 유지)
-    const mBoost=tier===0?1.20:(tier===1?1.15:1.0);
+    // ★ [DENSITY BOOST] target 모드 부스트 — high-perf은 되돌리기 수준의 풍성함 (cap 120 여유)
+    const mBoost=tier===0?1.85:(tier===1?1.15:1.0);
     const m=suckMode?mBase*0.85*mBoost:mBase;
     // ★ low-perf + suckMode: 별/스파클 거의 제거, potato 1개만 (절대 보호)
     const minimalLow=tier===2&&suckMode;
     spawnPotato(x,y,{target,speed:30+Math.random()*30});
     if(suckMode) targetCount++;
+    // ★ high-perf: 감자 1개 추가 (모든 intensity, 시각 풍성함)
+    if(tier===0 && suckMode){
+      spawnPotato(x,y,{target,speed:35+Math.random()*30});
+      targetCount++;
+    }
     if(minimalLow){
       // 저사양 흡인 — 감자 1 + 별 최대 1 (증가 금지)
       if(intensity>=2){spawnMiniStar(x,y,{target,speed:40+Math.random()*30}); targetCount++;}
@@ -4962,21 +4993,21 @@ const _PK = (function(){
     }else if(intensity===1){
       let stars=Math.max(1,Math.round(2*m));
       let sparks=Math.max(0,Math.round(1*m));
-      if(tier===0&&suckMode){stars+=1;sparks+=1;}
+      if(tier===0&&suckMode){stars+=3;sparks+=5;} // sparkle 추가 (셀 부근 풍성함)
       for(let i=0;i<stars;i++){spawnMiniStar(x,y,{target,speed:40+Math.random()*30}); if(suckMode) targetCount++;}
-      for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*16,y+(Math.random()-0.5)*16);
+      for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*22,y+(Math.random()-0.5)*22);
     }else if(intensity===2){
       let stars=Math.max(2,Math.round(3*m));
       let sparks=Math.max(1,Math.round(2*m));
-      if(tier===0&&suckMode){stars+=1;sparks+=1;}
-      for(let i=0;i<stars;i++){spawnMiniStar(x,y,{size:4+Math.random()*2,target,speed:50+Math.random()*30}); if(suckMode) targetCount++;}
-      for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*22,y+(Math.random()-0.5)*22);
+      if(tier===0&&suckMode){stars+=3;sparks+=5;}
+      for(let i=0;i<stars;i++){spawnMiniStar(x,y,{size:5+Math.random()*2,target,speed:50+Math.random()*30}); if(suckMode) targetCount++;}
+      for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*28,y+(Math.random()-0.5)*28);
     }else{
       let stars=Math.max(3,Math.round(4*m));
       let sparks=Math.max(2,Math.round(3*m));
-      if(tier===0&&suckMode){stars+=1;sparks+=1;}
-      for(let i=0;i<stars;i++){spawnMiniStar(x,y,{size:4+Math.random()*2.5,target,speed:55+Math.random()*40}); if(suckMode) targetCount++;}
-      for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*28,y+(Math.random()-0.5)*28);
+      if(tier===0&&suckMode){stars+=3;sparks+=5;}
+      for(let i=0;i<stars;i++){spawnMiniStar(x,y,{size:5.5+Math.random()*2.5,target,speed:55+Math.random()*40}); if(suckMode) targetCount++;}
+      for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*32,y+(Math.random()-0.5)*32);
     }
     trim();ensureLoop();
     return targetCount;
@@ -5030,6 +5061,8 @@ const _PK = (function(){
     if(document.hidden){particles.length=0;_running=false;if(ctx&&w&&h)ctx.clearRect(0,0,w,h);}
   });
   return {ensureCanvas,emitBurst,comboBonus,
+    // 외부 호출용 — 호출 즉시 tick loop 보장 (다른 파티클 없을 때도 단독 렌더)
+    spawnShockwave:(x,y,color)=>{spawnShockwave(x,y,color); ensureLoop();},
     clear:()=>{particles.length=0;if(ctx&&w&&h)ctx.clearRect(0,0,w,h);},
     _debug:()=>({particleCount:particles.length, running:_running, w, h, hasCanvas:!!canvas})};
 })();
@@ -5112,7 +5145,7 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
 
   // ★ [1] emit source 제한 — 티어별 최대 개수로 샘플링
   const tier=window._lowPerf?2:(window._mobileReduce?1:0);
-  const maxSources=tier===2?3:(tier===1?5:7);
+  const maxSources=tier===2?3:(tier===1?5:9);
   const sampled=[];
   const step=Math.max(1,Math.ceil(removed.length/maxSources));
   removed.forEach((cell,idx)=>{
@@ -5180,7 +5213,7 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
       setTimeout(()=>{
         const n = _PK.emitBurst(px, py, intensity, target);
         expectedParticles += (n||0);
-      }, idx*12);
+      }, idx*6); // 12→6ms (더 burst-like, 동시성 강화)
     }
   });
   // 84ms (12ms × 7 max stagger) + 안전 마진 16ms = 100ms 후 expected 확정 → 락 + 재평가
@@ -5202,21 +5235,25 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
 // P1-A fix: 하드웨어 힌트 + 실측 2단계 (첫 ~100ms 동안 저사양도 경량 경로 적용)
 (function detectPerf(){
   // P1-A: 하드웨어 힌트로 즉시 추정 — 첫 6프레임 실측 전에도 저사양 경로 적용됨
-  // deviceMemory: Chrome/Edge에서만 제공 (Safari 미지원 — undefined로 건너뜀)
-  // hardwareConcurrency: 대부분 브라우저 지원, 코어 수 반환
-  const mem=navigator.deviceMemory;     // GB 단위 (없으면 undefined)
-  const cpu=navigator.hardwareConcurrency; // 논리 코어 (없으면 undefined)
-  const hwLowPerf=(typeof mem==='number'&&mem<4)||(typeof cpu==='number'&&cpu<=4);
+  // deviceMemory: Chromium 한정 (Safari 미지원 — undefined로 건너뜀)
+  // hardwareConcurrency: Safari fingerprint 방어로 낮게 보고할 수 있음 → 임계값 보수적 (cpu<=2)
+  const mem=navigator.deviceMemory;
+  const cpu=navigator.hardwareConcurrency;
+  // ★ 진짜 저사양만 hwLowPerf — iPhone 16 Pro 같은 고사양이 잘못 잡히지 않도록
+  const hwLowPerf=(typeof mem==='number'&&mem<2)||(typeof cpu==='number'&&cpu<=2);
   window._lowPerf=!!hwLowPerf;
   document.body.classList.toggle('low-perf',window._lowPerf);
-  // ★ 모바일 감쇠 티어 — iOS Safari의 mix-blend/filter blur 부담 차단 (low-perf보다 가벼움)
-  //    iOS/Android 기기는 항상 mobile-reduce ON (고성능 기기도 blend cost 동일)
+  // ★ 모바일 감쇠 — iOS는 GPU/JIT 우수해서 기본 OFF (고사양 iPhone에서 풀 효과 보장)
+  //    Android만 보수적으로 ON (저사양 Android는 watchdog이 추가로 _lowPerf로 승격)
   const ua=navigator.userAgent||'';
-  const isMobile=/iPhone|iPad|iPod|Android/i.test(ua);
-  window._mobileReduce=isMobile;
-  document.body.classList.toggle('mobile-reduce',isMobile);
-  const SAMPLES=6,INTERVAL=4000;
-  let samples=[],rafId=0,timer=0;
+  const isAndroid=/Android/i.test(ua);
+  window._mobileReduce=isAndroid;
+  document.body.classList.toggle('mobile-reduce',isAndroid);
+  const SAMPLES=8,INTERVAL=4000;
+  // ★ 임계값 완화 (33→50ms): 진짜 끊김(20fps 이하)만 저사양으로 판정
+  //   Telegram WebView 초기 로딩 jank로 인한 오판 방지
+  const SLOW_THRESHOLD=50;
+  let samples=[],rafId=0,timer=0,measureCount=0,slowStreak=0;
   function measure(){
     // 백그라운드 탭에서는 측정 정지 (배터리/CPU 절약)
     if(document.hidden){timer=setTimeout(measure,INTERVAL);return;}
@@ -5226,9 +5263,15 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
       samples.push(dt); if(samples.length>SAMPLES*2)samples.shift();
       if(++count<SAMPLES)rafId=requestAnimationFrame(tick);
       else{
+        measureCount++;
+        // 첫 측정은 warm-up bias 무시 (Telegram WebView 초기 jank 방지)
+        if(measureCount<=1){timer=setTimeout(measure,INTERVAL);return;}
         const avg=samples.reduce((a,b)=>a+b,0)/samples.length;
-        // 하드웨어 힌트로 저사양 판정된 기기는 실측이 잠깐 빨라도 유지
-        window._lowPerf=avg>33||hwLowPerf;
+        // 연속 2회 SLOW 시에만 _lowPerf 승격 (일시적 jank 방어)
+        if(avg>SLOW_THRESHOLD) slowStreak++; else slowStreak=0;
+        const measuredSlow=slowStreak>=2;
+        // 하드웨어 힌트로 저사양 판정된 기기는 실측 좋아도 유지
+        window._lowPerf=measuredSlow||hwLowPerf;
         document.body.classList.toggle('low-perf',window._lowPerf);
         timer=setTimeout(measure,INTERVAL);
       }
@@ -5236,6 +5279,18 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
     rafId=requestAnimationFrame(tick);
   }
   measure();
+  // ★ 실기기 디버그 — Telegram WebView에서 console.log(window.perfStatus()) 로 즉시 확인
+  window.perfStatus=()=>({
+    tier: window._lowPerf?2:(window._mobileReduce?1:0),
+    _lowPerf: window._lowPerf,
+    _mobileReduce: window._mobileReduce,
+    hwLowPerf,
+    cpu, mem,
+    measureCount, slowStreak,
+    avgFrameTime: samples.length?Math.round(samples.reduce((a,b)=>a+b,0)/samples.length*10)/10:null,
+    estimatedFps: samples.length?Math.round(1000/(samples.reduce((a,b)=>a+b,0)/samples.length)):null,
+    SLOW_THRESHOLD
+  });
 })();
 
 
