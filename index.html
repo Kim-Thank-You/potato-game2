@@ -1,28 +1,37 @@
 <!DOCTYPE html>
 <!--
-  Potato POP v6 — 2026-04-22
+  Potato POP v7 — 2026-04-29
 
-  [v6 최종 상태 — Dopamine Patch 적용 완료]
+  [v7 최종 상태 — Dopamine Patch + P0 Logic QA + P1 Release QA 적용 완료]
 
   · 블록 착지
     - 80ms 단순 페이드인 (scale 0.92 → 1, 회전/overshoot 없음)
 
-  · 라인 클리어 (v9 FORCE OVERRIDE)
-    - 300ms blockPopClear + radial stagger(20ms 간격, max 80ms)
-    - pre-bloom   : scale 1 → 1.05, brightness 1 → 1.18
-    - main clear  : scale 1.05 → 0.82, opacity 1 → 0.35
-    - finish      : scale 0.45 → 0, opacity 0
-    - sparkle     : 셀당 1개 (.block-inner::after), 90ms, delay(--clear-delay + 220ms)
-    - potato-wrap : potatoPopClear 300ms 동기
-    - !important + transition:none 로 어떤 기존 fade 규칙보다 우선 강제 적용
-    - low-perf Lite 분기(Blue/Potato PopClearLite) 완전 제거 — 단일 애니메이션 통일
-    - 디버그: doPlace 내 console.log('CLEAR CHECK:', animationName, delay, cells)
+  · 라인 클리어 (v13 ELEGANT DISSOLVE — 위로 떠오르며 증발)
+    - 160ms blockPopClear + radial stagger(14ms 간격, max 56ms), 저사양 130ms
+    - 0%   : translateY 0  / scale 1.00 / opacity 1.00
+    - 18%  : translateY -1 / scale 1.02 / opacity 0.95  (미세 exhale)
+    - 50%  : translateY -3 / scale 0.92 / opacity 0.55  (떠오르며 페이드)
+    - 78%  : translateY -5 / scale 0.84 / opacity 0.18
+    - 100% : translateY -7 / scale 0.78 / opacity 0     (이슬 증발 종료)
+    - sparkle     : 셀당 1개 (.block-inner::after), 130ms, delay(--clear-delay + 30ms)
+    - line-sparkle DOM: 1줄 280ms / 2줄 320ms / 3줄+ 360ms (저사양 200~240ms)
+    - potato-wrap : potatoPopClear 160ms 동기 (translateY -7 / scale 0.72)
+    - ease curve  : cubic-bezier(0.32,0.72,0.4,1) 통일 — 부드러운 deceleration
+    - low-perf 단일 애니메이션 통일 (Lite 분기 제거)
 
-  · 점수 시스템 (v9.5 pendingScore → flushScore 단일 경로)
+  · 점수 시스템 (v9.5+P0/P1 단일 경로 — pendingScore → flushScore)
     - calculateClearScore(baseScore, combo) = floor(baseScore × max(1,combo)^1.4)
     - addScore(amount): pendingScore 누적만 (즉시 반영 X)
     - flushScore(numLines): 클리어 종료 후 단 한 번 호출 → 누적분 한꺼번에 반영
-    - 클리어 발생 시 addScore()는 pendingScore만 누적
+    - 라인 변수 분리 (P1):
+        · realLines        — 실제 라인/박스 클리어 (totalClears/streak 통계 기준)
+        · fxLines          — 연출/사운드/햅틱/라벨/bump (특수블록 가상 라인 포함)
+        · scoreComboLines  — 점수 콤보 multiplier (Math.max(1, fxLines))
+    - baseScore = removedCount(실제 제거된 셀 수) × PTS_PER_CLEAR
+        · 빈칸 extraCells는 점수 대상에서 제외 (특수블록 빈칸 폭증 방지)
+    - 얼음 보상은 clearLines 반환 → doPlace turnGain 합산 → addScore 단일 경로
+    - clearLines 내부에서 score 직접 변경 / animateScoreTo 직접 호출 절대 금지
     - 점수 반영은 PARTICLE BARRIER 충족 후 triggerScoreImpact()에서 flushScore()로 단 1회 실행
     - 파티클 도착 누락/미생성 시 fallback 700ms 내 flushScore 보장
     - 캔버스 생성 실패/removed 비어있는 조기 return 시에도 즉시 triggerScoreImpact 발사 (pendingScore 미반영 방지)
@@ -53,10 +62,10 @@
 
   · Particles
     - Canvas 기반 score-suck 흡인 FX (DOM 파티클 폐기)
-    - removed 셀 전체 emit 금지, 성능 tier별 최대 source 샘플링
-        · low-perf 최대 3개
-        · reduced/mobile 최대 5개
-        · high-perf 최대 7개
+    - removed 셀 전체 emit 금지, 성능 tier별 최대 source 샘플링 (maxSources)
+        · low-perf 최대 3
+        · reduced/mobile 최대 5
+        · high-perf 최대 7
     - target 모드에서는 파티클 수 추가 0.85배 감량
     - target 모드 밀도 부스트: high-perf ×1.20, mobile ×1.15, low-perf ×1.0 (보호)
     - high-perf + suckMode: ministar/sparkle 각각 +1 추가 (밀도 +15~25%)
@@ -112,7 +121,7 @@
     - 4초 간격 fps 실측 watchdog → low-perf 자동 전환 (background tab 정지)
     - resize/orientationchange/visualViewport: rAF 디바운스 (iOS Safari URL바, Android 키보드 시 폭주 방지)
     - eventsAttached 가드로 슬롯/보드 리스너 중복 등록 차단 (장시간 플레이 누수 방지)
-    - 파티클 PARTICLE_CAP 25/50/80 + 1.2s 강제 제거 + visibility 클리어
+    - 파티클 PARTICLE_CAP 25/50/120 + 1.2s 강제 제거 + visibility 클리어
     - touch-action:none on body+board, preventDefault on touchstart으로 300ms tap delay 제거
     - clamp() 기반 반응형 크기: HUD/트레이/버튼/결과창 모두 폭에 맞춰 자동 축소
     - safe-area-inset-bottom 패딩으로 홈 인디케이터 침범 방지
@@ -815,13 +824,13 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   70%{transform:translate(calc(-50% + var(--sx,0px)*.75),calc(-50% + var(--sy,-14px)*.85)) scale(.75);opacity:.55}
   100%{transform:translate(calc(-50% + var(--sx,0px)),calc(-50% + var(--sy,-18px))) scale(.2);opacity:0}
 }
-.line-sparkle{position:fixed;pointer-events:none;z-index:903;width:5px;height:5px;border-radius:50%;background:rgba(255,253,240,.98);box-shadow:0 0 3px 1px rgba(255,250,225,.85),0 0 7px 2px rgba(255,245,210,.45);animation:lineSparkleFloat 720ms ease-out forwards;will-change:transform,opacity;mix-blend-mode:screen}
+.line-sparkle{position:fixed;pointer-events:none;z-index:903;width:4px;height:4px;border-radius:50%;background:rgba(255,253,240,.95);box-shadow:0 0 2px 0 rgba(255,250,225,.7),0 0 4px 1px rgba(255,245,210,.25);animation:lineSparkleFloat 280ms cubic-bezier(0.33,0,0.67,1) forwards;will-change:transform,opacity;mix-blend-mode:screen}
 /* 2줄 동시 — 크기 ↑, 살짝 금빛 */
-.line-sparkle.t2{width:6px;height:6px;background:rgba(255,248,220,.98);box-shadow:0 0 4px 1px rgba(255,235,170,.9),0 0 10px 3px rgba(255,210,130,.5);animation-duration:860ms}
-/* 3줄+ 동시 — 더 풍성하고 따뜻한 금빛, 긴 부유 */
-.line-sparkle.t3{width:7px;height:7px;background:rgba(255,245,200,1);box-shadow:0 0 5px 1px rgba(255,220,140,.95),0 0 12px 3px rgba(255,190,90,.5);animation-duration:1000ms;mix-blend-mode:normal}
-.low-perf .line-sparkle{animation-duration:420ms !important;box-shadow:0 0 2px 0 rgba(255,250,225,.8) !important;mix-blend-mode:normal}
-.low-perf .line-sparkle.t2,.low-perf .line-sparkle.t3{animation-duration:520ms !important;box-shadow:0 0 3px 0 rgba(255,225,160,.9) !important}
+.line-sparkle.t2{width:5px;height:5px;background:rgba(255,248,220,.95);box-shadow:0 0 3px 0 rgba(255,235,170,.75),0 0 5px 1px rgba(255,210,130,.3);animation-duration:320ms}
+/* 3줄+ 동시 — 따뜻한 금빛 */
+.line-sparkle.t3{width:6px;height:6px;background:rgba(255,245,200,1);box-shadow:0 0 3px 0 rgba(255,220,140,.85),0 0 6px 1px rgba(255,190,90,.35);animation-duration:360ms;mix-blend-mode:normal}
+.low-perf .line-sparkle{animation-duration:200ms !important;box-shadow:0 0 1px 0 rgba(255,250,225,.7) !important;mix-blend-mode:normal}
+.low-perf .line-sparkle.t2,.low-perf .line-sparkle.t3{animation-duration:240ms !important;box-shadow:0 0 2px 0 rgba(255,225,160,.8) !important}
 @media (prefers-reduced-motion:reduce){.line-sparkle{animation:none !important;opacity:0 !important}}
 /* 보드 쉐이크 (bomb) */
 @keyframes boardPangShake{
@@ -1539,33 +1548,37 @@ body.ls-active .board-area{
    - opacity 0~83% 유지 → 마지막 50ms(17%)만 급감 → 정적 구간 제거 */
 .cell.clearing .block-inner{
   transform-origin:center center;
-  animation: blockPopClear 220ms cubic-bezier(0.4,0,0.2,1) forwards;
+  animation: blockPopClear 160ms cubic-bezier(0.32,0.72,0.4,1) forwards;
   animation-delay: var(--clear-delay, 0ms);
-  will-change: transform, opacity, filter;
+  will-change: transform, opacity;
   contain: paint;
   backface-visibility: hidden;
 }
-/* ══ v9 FINAL DOPAMINE: 단순 pop → compress → vanish + sparkle ══
-   총 300ms, 5-stop, filter는 brightness만 (drop-shadow 제거 → paint 비용↓) */
+/* ══ v13 ELEGANT DISSOLVE: 살짝 위로 떠오르며 사라지는 고급스러운 모션 ══
+   1) 미세한 exhale (scale 1.02, 위로 1px) — 호흡하듯 부드러운 시작
+   2) 위로 떠오르며 페이드 (translateY -6px, scale 0.78) — 이슬 증발 느낌
+   3) 모든 단계에 부드러운 opacity 감쇠 (cliff drop 없음) */
 @keyframes blockPopClear{
-  0%   { transform: scale(1);    opacity: 1;    filter: brightness(1); }
-  25%  { transform: scale(1.05);                filter: brightness(1.18); }
-  70%  { transform: scale(0.82); opacity: 0.35; filter: brightness(1.05); }
-  100% { transform: scale(0.45); opacity: 0;    filter: brightness(0.95); }
+  0%   { transform: translate3d(0,0,0)    scale(1.00); opacity: 1.00; }
+  18%  { transform: translate3d(0,-1px,0) scale(1.02); opacity: 0.95; }
+  50%  { transform: translate3d(0,-3px,0) scale(0.92); opacity: 0.55; }
+  78%  { transform: translate3d(0,-5px,0) scale(0.84); opacity: 0.18; }
+  100% { transform: translate3d(0,-7px,0) scale(0.78); opacity: 0; }
 }
-/* ── 감자(얼굴): 블록과 동기화, peak만 살짝 덜 ── */
+/* ── 감자(얼굴): 블록과 동기화 ── */
 .cell.clearing .potato-wrap{
   transform-origin:center center;
-  animation: potatoPopClear 300ms cubic-bezier(0.4,0,0.2,1) forwards;
+  animation: potatoPopClear 160ms cubic-bezier(0.32,0.72,0.4,1) forwards;
   animation-delay: var(--clear-delay, 0ms);
   will-change: transform, opacity;
   backface-visibility: hidden;
 }
 @keyframes potatoPopClear{
-  0%   { transform: scale(1);    opacity: 1; }
-  25%  { transform: scale(1.04); }
-  70%  { transform: scale(0.78); opacity: 0.3; }
-  100% { transform: scale(0.42); opacity: 0; }
+  0%   { transform: translate3d(0,0,0)    scale(1.00); opacity: 1.00; }
+  18%  { transform: translate3d(0,-1px,0) scale(1.01); opacity: 0.92; }
+  50%  { transform: translate3d(0,-3px,0) scale(0.88); opacity: 0.48; }
+  78%  { transform: translate3d(0,-5px,0) scale(0.78); opacity: 0.12; }
+  100% { transform: translate3d(0,-7px,0) scale(0.72); opacity: 0; }
 }
 /* ── sparkle: 셀당 1개 micro sparkle (pseudo, DOM 추가 없음) ── */
 .cell.clearing .block-inner::after{
@@ -1580,17 +1593,18 @@ body.ls-active .board-area{
               transparent 100%);
   transform: translate(-50%,-50%) scale(0);
   opacity:0;
-  animation: sparkle 90ms ease-out forwards;
-  animation-delay: calc(var(--clear-delay, 0ms) + 220ms);
+  animation: sparkle 130ms cubic-bezier(0.32,0.72,0.4,1) forwards;
+  animation-delay: calc(var(--clear-delay, 0ms) + 30ms);
   pointer-events:none;
   mix-blend-mode: screen;
   will-change: transform, opacity;
   z-index: 3;
 }
 @keyframes sparkle{
-  0%   { transform: translate(-50%,-50%) scale(0);   opacity:0; }
-  50%  { transform: translate(-50%,-50%) scale(1.1); opacity:1; }
-  100% { transform: translate(-50%,-50%) scale(0.3); opacity:0; }
+  0%   { transform: translate(-50%,calc(-50% + 0px)) scale(0.4);  opacity:0; }
+  35%  { transform: translate(-50%,calc(-50% - 1px)) scale(1.15); opacity:0.95; }
+  70%  { transform: translate(-50%,calc(-50% - 3px)) scale(0.85); opacity:0.5; }
+  100% { transform: translate(-50%,calc(-50% - 5px)) scale(0.4);  opacity:0; }
 }
 /* ── ❌ flash 레이어 제거됨 ──
    과거: .cell.clearing::before 가 셀 전체에 inset:0 으로 흰색 radial-gradient
@@ -1716,7 +1730,7 @@ body.ls-active .board-area{
    기존 어떤 transition/opacity/fade 규칙보다 뒤에 와서 최종 승리
    ════════════════════════════════════════════════════════════════════ */
 .cell.clearing .block-inner{
-  animation: blockPopClear 220ms cubic-bezier(0.4,0,0.2,1) forwards !important;
+  animation: blockPopClear 160ms cubic-bezier(0.32,0.72,0.4,1) forwards !important;
   animation-delay: var(--clear-delay, 0ms) !important;
   transform-origin: center center;
   will-change: transform, opacity, filter;
@@ -1737,9 +1751,9 @@ body.ls-active .board-area{
 /* keyframes 재선언 — 상단 규칙이 어떤 이유로 유실돼도 최종본으로 덮어씀 */
 @keyframes blockPopClear{
   0%   { transform: scale(1);    opacity: 1;    filter: brightness(1); }
-  25%  { transform: scale(1.05);                filter: brightness(1.18); }
-  70%  { transform: scale(0.82); opacity: 0.35; filter: brightness(1.05); }
-  100% { transform: scale(0.45); opacity: 0;    filter: brightness(0.95); }
+  30%  { transform: scale(1.04);                filter: brightness(1.16); }
+  55%  { transform: scale(0.78); opacity: 0.22; filter: brightness(1.0); }
+  100% { transform: scale(0.40); opacity: 0;    filter: brightness(0.92); }
 }
 @keyframes potatoPopClear{
   0%   { transform: scale(1);    opacity: 1; }
@@ -2638,7 +2652,15 @@ function updateLobby(){
   // 버프 카운터 UI 동기화 (loadAdBoost 이후 반영)
   if(_scoreMultiplier===1)resetAdDouble();
 }
-function startNewGame(){Sound.sfx.uiClick();Sound.resumeCtx();window._tgSafeMode?.();showScreen('s-play');resetGame()}
+function startNewGame(){
+  // P0 광고 2배 버프 보존: adDoubleScore()로 _scoreMultiplier=2가 된 상태에서
+  // resetGame() 내부 _scoreMultiplier=1 초기화로 보상이 사라지는 버그 방지
+  Sound.sfx.uiClick();Sound.resumeCtx();window._tgSafeMode?.();
+  const armedMultiplier=_scoreMultiplier;
+  showScreen('s-play');
+  resetGame();
+  _scoreMultiplier=armedMultiplier; // 광고 2배 버프는 이번 판 결과 화면까지 유지
+}
 function confirmQuit(){Sound.sfx.uiClick();const m=Sound.isMuted();const icon=document.getElementById('mute-icon');if(icon)icon.textContent=m?'🔇':'🔊';const lbl=document.getElementById('mute-label');if(lbl)lbl.textContent=m?'사운드 OFF':'사운드 ON';document.getElementById('quit-overlay').classList.add('on')}
 function cancelQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay').classList.remove('on')}
 function doQuit(){Sound.sfx.uiClick();document.getElementById('quit-overlay').classList.remove('on');endGameToResult()}
@@ -2648,6 +2670,15 @@ function goToLobby(){Sound.sfx.uiClick();cancelExtendAd();resetAdDouble();if(_co
 // ═══ window._g 네임스페이스 (감자팡팡과 호환) ═══
 // 감자팡팡은 onclick="window._g.startGame()" 등으로 호출. 우도쿠도 동일 인터페이스 노출하여 양쪽 호환.
 // 기존 직접 호출(onclick="startNewGame()" 등)도 그대로 작동.
+// ★★★ DEV_BUILD: 출시본은 false 고정 — 치트 함수(setTest/spawn/forceEnd) 및 URL 강제 스폰 비활성
+//     주간 랭킹/코인/광고 보상이 있는 게임이므로 출시본에서는 절대 true로 두지 마라
+const DEV_BUILD = false;
+// ★ 게임오버 연장 플로우 검증 헬퍼 — 콘솔 치트 차단용
+//   gameover-overlay가 active이고 gameActive=false인 정상 플로우에서만 true
+function isGameOverExtendOpen(){
+  const ov = document.getElementById('gameover-overlay');
+  return !!(ov && ov.classList.contains('on') && !gameActive);
+}
 window._g = {
   // 이름 매핑: 감자팡팡 표준 → 우도쿠 실함수
   startGame: () => startNewGame(),
@@ -2658,44 +2689,57 @@ window._g = {
   showQuitConfirm: () => confirmQuit(),
   cancelQuit: () => cancelQuit(),
   confirmQuit: () => doQuit(),
+  // ★ 보상 함수는 정상 게임오버 연장 플로우에서만 동작 (extendAd/extendDiamond 자체에 가드 있음)
   extendDiamond: () => extendDiamond(),
   extendAd: () => extendAd(),
   cancelLineSelect: () => cancelLineSelect(),
   confirmLineSelect: () => confirmLineSelect(),
-  // 우도쿠 고유 (감자팡팡에 없음)
-  forceEnd: () => endGameToResult?.(),
-  undo: () => undoPlace?.(),
+  // ★ undo: 게임 활성 + s-play 화면 active 상태에서만 동작 (콘솔 치트 차단)
+  undo: () => {
+    if(!gameActive) return;
+    if(!document.getElementById('s-play')?.classList.contains('active')) return;
+    return undoPlace?.();
+  },
   openGuide: () => openGuide(),
   closeGuide: () => closeGuide()
 };
-// ★ 테스트 모드 토글 — setTest(false)로 OFF, setTest(true) 또는 setTest()로 ON
-window.setTest = function(on){
-  on = on !== false;  // 인자 없거나 true면 ON
-  try{
-    localStorage.setItem('pw2_testMode', on ? '1' : '0');
-    return on ? '✓ 테스트 모드 ON — 매 세트 slot0=cross, slot1=bomb 자동 스폰 (새 세트부터 적용)' : '✓ 테스트 모드 OFF — 정상 랜덤 스폰 복구 (새 세트부터 적용)';
-  }catch(e){return '⚠️ localStorage 접근 불가'}
-};
-// ★ 테스트용 전역 함수 — 콘솔에서 spawn('cross') / spawn('bomb') 호출
-window.spawn = function(type, idx){
-  type = type || 'cross';
-  idx = (typeof idx === 'number') ? idx : 0;
-  if(type!=='cross' && type!=='bomb') return '⚠️ Usage: spawn("cross"|"bomb", 0~2)';
-  if(typeof pieces === 'undefined' || !pieces[idx]) return '⚠️ 게임 시작 후 호출하세요';
-  pieces[idx] = {
-    shape:[[0,0]],
-    face:Math.floor(Math.random()*(typeof POTATOES!=='undefined'?POTATOES.length:1)),
-    special:type,
-    used:false,
-    size:1,
-    id:'Special_'+type
+// ★ forceEnd는 출시본에서 노출 금지 (DEV_BUILD 한정)
+if(DEV_BUILD){
+  window._g.forceEnd = () => endGameToResult?.();
+}
+// ★ 테스트 모드 토글 — setTest(false)로 OFF, setTest(true) 또는 setTest()로 ON (DEV_BUILD 한정)
+if(DEV_BUILD){
+  window.setTest = function(on){
+    on = on !== false;  // 인자 없거나 true면 ON
+    try{
+      localStorage.setItem('pw2_testMode', on ? '1' : '0');
+      return on ? '✓ 테스트 모드 ON — 매 세트 slot0=cross, slot1=bomb 자동 스폰 (새 세트부터 적용)' : '✓ 테스트 모드 OFF — 정상 랜덤 스폰 복구 (새 세트부터 적용)';
+    }catch(e){return '⚠️ localStorage 접근 불가'}
   };
-  if(typeof renderTray==='function') renderTray();
-  return '✓ spawned '+type+' at slot '+idx+' — 드래그해서 테스트';
-};
-// 게임 로드 시 콘솔 안내
+  // ★ 테스트용 전역 함수 — 콘솔에서 spawn('cross') / spawn('bomb') 호출 (DEV_BUILD 한정)
+  window.spawn = function(type, idx){
+    type = type || 'cross';
+    idx = (typeof idx === 'number') ? idx : 0;
+    if(type!=='cross' && type!=='bomb') return '⚠️ Usage: spawn("cross"|"bomb", 0~2)';
+    if(typeof pieces === 'undefined' || !pieces[idx]) return '⚠️ 게임 시작 후 호출하세요';
+    pieces[idx] = {
+      shape:[[0,0]],
+      face:Math.floor(Math.random()*(typeof POTATOES!=='undefined'?POTATOES.length:1)),
+      special:type,
+      used:false,
+      size:1,
+      id:'Special_'+type
+    };
+    if(typeof renderTray==='function') renderTray();
+    return '✓ spawned '+type+' at slot '+idx+' — 드래그해서 테스트';
+  };
+}
+// 게임 로드 시 콘솔 안내 — DEBUG 플래그 ON일 때만 출력 (출시본은 콘솔 청결)
+// 활성화: localStorage.setItem('pp_debug','1') 또는 window._ppDebug=true
 setTimeout(()=>{
   try{
+    const _dbg = window._ppDebug || (typeof localStorage!=='undefined' && localStorage.getItem('pp_debug')==='1');
+    if(!_dbg) return;
     console.log('%c🎲 정상 랜덤 스폰 모드','color:#66D18F;font-weight:bold;font-size:14px','— 특수 블록은 원래 확률로 자동 등장');
     console.log('%c💡 테스트 조작:','color:#FF70B8;font-weight:bold;font-size:13px');
     console.log('  • 강제 스폰 ON: %csetTest(true)','color:#66D18F;font-weight:bold','(매 세트 slot0=cross, slot1=bomb)');
@@ -2808,8 +2852,13 @@ function loadAdBoost(cb){
   });
 }
 function saveAdBoost(){Storage.set(getAdBoostKey(),_adBoostLeft)}
+// ★ 광고 2배 로딩 락 + 타이머 핸들 — setTimeout 중복/잔존 콜백 차단
+let _adBoostLoading=false;
+let _adBoostTimer=null;
 function adDoubleScore(){
+  if(_adBoostLoading)return;
   if(_scoreMultiplier>1||_adBoostLeft<=0)return;
+  _adBoostLoading=true;
   const card=document.getElementById('ad-double-btn');
   const tgl=document.getElementById('ad-tgl');
   const sub=document.getElementById('ad-double-sub');
@@ -2817,7 +2866,11 @@ function adDoubleScore(){
   card.querySelector('.ad-title').textContent='광고 로딩 중...';
   sub.textContent='잠시만 기다려주세요';
   // 광고 시뮬레이션 (실제 광고 SDK 연동 시 /api/ad/verify 로 교체)
-  setTimeout(()=>{
+  _adBoostTimer=setTimeout(()=>{
+    _adBoostTimer=null;
+    _adBoostLoading=false;
+    // 콜백 시점 재검증 — 로딩 도중 다른 경로로 상태가 바뀌었을 수 있음
+    if(_scoreMultiplier>1||_adBoostLeft<=0)return;
     _scoreMultiplier=2;
     _adBoostLeft--;
     saveAdBoost();
@@ -2830,6 +2883,9 @@ function adDoubleScore(){
 }
 function resetAdDouble(){
   _scoreMultiplier=1;
+  _adBoostLoading=false; // 로비 복귀/재시작 시 광고 로딩 락도 정리
+  // ★ 진행 중인 광고 타이머 취소 — 콜백이 뒤늦게 _scoreMultiplier=2/_adBoostLeft-- 적용하는 것 차단
+  if(_adBoostTimer){clearTimeout(_adBoostTimer);_adBoostTimer=null;}
   const card=document.getElementById('ad-double-btn');
   if(!card)return;
   const tgl=document.getElementById('ad-tgl');
@@ -3439,17 +3495,19 @@ function newSet(){
       id:'Special_'+specialType
     };
   }
-  // ★ 개발용 강제 스폰 — URL ?spawn=cross|bomb|both 로만 활성화 (localStorage 무시)
-  try{
-    const _urlSpawn = new URLSearchParams(location.search).get('spawn');
-    const _mkSpec = (t)=>({shape:[[0,0]],face:Math.floor(Math.random()*POTATOES.length),special:t,used:false,size:1,id:'Special_'+t});
-    if(_urlSpawn==='cross'||_urlSpawn==='bomb'){
-      pieces[0] = _mkSpec(_urlSpawn);
-    }else if(_urlSpawn==='both'){
-      pieces[0] = _mkSpec('cross');
-      pieces[1] = _mkSpec('bomb');
-    }
-  }catch(e){}
+  // ★ 개발용 강제 스폰 — URL ?spawn=cross|bomb|both (DEV_BUILD 한정 — 출시본 비활성)
+  if(DEV_BUILD){
+    try{
+      const _urlSpawn = new URLSearchParams(location.search).get('spawn');
+      const _mkSpec = (t)=>({shape:[[0,0]],face:Math.floor(Math.random()*POTATOES.length),special:t,used:false,size:1,id:'Special_'+t});
+      if(_urlSpawn==='cross'||_urlSpawn==='bomb'){
+        pieces[0] = _mkSpec(_urlSpawn);
+      }else if(_urlSpawn==='both'){
+        pieces[0] = _mkSpec('cross');
+        pieces[1] = _mkSpec('bomb');
+      }
+    }catch(e){}
+  }
   _ensurePlaceable(); // ★ 적어도 1개 배치 가능 보장
   selIdx=null;renderTray();
   // ★ 얼음 셀 생성 (초반 스킵 + 8턴마다)
@@ -3619,24 +3677,20 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
     // 특수블록 햅틱
     setTimeout(()=>haptic('medium'),30);
   }
-  const cleared=clearLines(specialExtraCells),numLines=cleared.lines,numCells=cleared.cells;
-  const effectiveLines=numLines+specialBonusLines;
-  if(effectiveLines>0){
-    streak++;maxStreak=Math.max(maxStreak,streak);totalClears+=effectiveLines;
+  const cleared=clearLines(specialExtraCells),removedCount=cleared.removedCount||0;
+  // ★ P1 라인 변수 분리:
+  //   realLines        — 실제 라인/박스 클리어 수 (통계/totalClears/streak 기준, 특수블록 가상 라인 제외)
+  //   fxLines          — 연출/사운드/햅틱/라벨 크기 (특수블록 가상 라인 포함, 도파민 유지)
+  //   scoreComboLines  — 점수 콤보 multiplier 기준 (1 이상 보장)
+  const realLines      = cleared.lines;
+  const fxLines        = realLines + specialBonusLines;
+  const scoreComboLines= Math.max(1, fxLines);
+  // ★ 얼음 보상은 단일 경로로 turnGain에 합산 (clearLines 내부에서 score 직접 변경 금지)
+  if(cleared.iceBonus>0) turnGain += cleared.iceBonus;
+  // ★ 통계: 실제 라인 클리어 기준 — realLines === 0이면 특수블록 단독 발동이라도 streak 끊김
+  if(realLines>0){
+    streak++;maxStreak=Math.max(maxStreak,streak);totalClears+=realLines;
     recentClearTurns=0;
-    // v9.5: 단일 경로 — calculateClearScore(baseScore, combo) 만 사용
-    const baseScore = numCells * PTS_PER_CLEAR;
-    const gained = calculateClearScore(baseScore, effectiveLines);
-    turnGain += gained;  // 이번 턴 획득 점수 (addScore + '+XX' 라벨 공용)
-    if(effectiveLines>=2)Sound.sfx.multiClear(effectiveLines);else Sound.sfx.clear();
-    if(streak>=2)Sound.sfx.streak(streak);
-    setTimeout(()=>{
-      if(streak>=3)haptic('heavy');
-      else if(effectiveLines>=2)haptic('medium');
-      else haptic('light');
-    },55);
-    if(streak>=3||effectiveLines>=3)setTimeout(()=>haptic('medium'),180);
-    if(effectiveLines>=4)setTimeout(()=>haptic('heavy'),300);
   }else{
     const hadStreak=streak>=2;
     streak=0;recentClearTurns=Math.min(3,recentClearTurns+1);
@@ -3646,12 +3700,30 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
       bar.classList.remove('show');
     }
   }
+  // ★ 점수: 실제 제거 셀(removedCount) × PTS_PER_CLEAR × scoreComboLines^1.4
+  if(fxLines>0){
+    const baseScore = removedCount * PTS_PER_CLEAR;
+    const gained = calculateClearScore(baseScore, scoreComboLines);
+    turnGain += gained;
+    // 연출/사운드/햅틱: fxLines 기준 (특수블록 도파민 유지)
+    if(fxLines>=2)Sound.sfx.multiClear(fxLines);else Sound.sfx.clear();
+    // streak 사운드는 실제 라인 클리어 기준 (특수블록 단독 턴에서는 울리지 않음)
+    if(realLines>0&&streak>=2)Sound.sfx.streak(streak);
+    setTimeout(()=>{
+      if(streak>=3)haptic('heavy');
+      else if(fxLines>=2)haptic('medium');
+      else haptic('light');
+    },55);
+    if(streak>=3||fxLines>=3)setTimeout(()=>haptic('medium'),180);
+    if(fxLines>=4)setTimeout(()=>haptic('heavy'),300);
+  }
   // v9.5+: 누적 → 점수 흡인 도착 시점에 flush (도착 → score-catch → 점수 상승 인과)
   addScore(turnGain);
-  if(effectiveLines>0){
+  if(fxLines>0){
     // triggerClearFX 내부에서 흡인 도착 시 콜백으로 flushScore 호출
     // 여기서는 호출하지 않음 — clearFX의 onArrive가 담당
-    window._pendingClearFlush = effectiveLines;
+    // bump 강도는 fxLines 기준 (특수블록 시각 임팩트 유지)
+    window._pendingClearFlush = fxLines;
   }else{
     flushScore(0);
   }
@@ -3660,14 +3732,14 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
   if(sr2>=0&&sr2<GRID&&sc2>=0&&sc2<GRID){
     const rect=cellEls[sr2][sc2].getBoundingClientRect();
     const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
-    const labelSize=effectiveLines>=4?48:effectiveLines>=3?40:effectiveLines>=2?34:effectiveLines>=1?28:22;
-    const labelColor=effectiveLines>=3?'#FFD700':effectiveLines>=1?'#F5C842':'rgba(247,250,252,0.7)';
-    spawnLabel('+'+turnGain,cx,cy,labelColor,labelSize,effectiveLines>=3);
-    if(effectiveLines>0)triggerClearFX(cx,cy,effectiveLines,cleared.removed,!!p.special);
+    const labelSize=fxLines>=4?48:fxLines>=3?40:fxLines>=2?34:fxLines>=1?28:22;
+    const labelColor=fxLines>=3?'#FFD700':fxLines>=1?'#F5C842':'rgba(247,250,252,0.7)';
+    spawnLabel('+'+turnGain,cx,cy,labelColor,labelSize,fxLines>=3);
+    if(fxLines>0)triggerClearFX(cx,cy,fxLines,cleared.removed,!!p.special);
   }
-  if(effectiveLines>=2)haptic('success');
+  if(fxLines>=2)haptic('success');
   // P1 FINAL: 3줄+ HUD 미세 강조 (단발 220ms)
-  if(effectiveLines>=3){
+  if(fxLines>=3){
     const hudEl=document.querySelector('.hud');
     if(hudEl){
       hudEl.classList.remove('hud-highlight');
@@ -3713,7 +3785,7 @@ function clearLines(extraCells){
   if(extraCells&&extraCells.length){
     extraCells.forEach(([r,c])=>mark(r,c));
   }
-  if(!toRemove.length)return{lines:0,cells:0,removed:[]};
+  if(!toRemove.length)return{lines:0,cells:0,removed:[],removedCount:0,iceBonus:0,iceCrackCount:0,iceBreakCount:0};
   // ★ 얼음 셀 hits 처리: hitsLeft 감소, 1이면 완전 제거
   const actuallyRemoved=[];
   const iceShake=[];
@@ -3750,13 +3822,10 @@ function clearLines(extraCells){
       actuallyRemoved.push([r,c]);
     }
   }
-  // ★ 얼음 점수 + 피드백 (사운드/라벨/햅틱)
+  // ★ 얼음 피드백 (사운드/라벨/햅틱) — 점수는 doPlace의 turnGain → addScore 단일 경로로 들어감
   if(iceBonus>0){
-    score+=iceBonus;
     const sv=document.getElementById('score-el');
     if(sv){
-      // 카운트업 애니메이션으로 부드럽게
-      animateScoreTo(score, iceBreakCount>0?2:1);
       // 얼음 보상 강조: bump 애니메이션 (큰 제거 시 bump-big)
       const bumpCls=iceBreakCount>0?'bump-big':'bump';
       sv.classList.remove('bump','bump-big','bump-mega');
@@ -3803,7 +3872,7 @@ function clearLines(extraCells){
   });
   if(!actuallyRemoved.length){
     // 얼음만 금 간 경우: 애니메이션 없이 바로 리턴 (라인 카운트는 유지 — 장식 피드백에 필요)
-    return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:[]};
+    return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:[],removedCount:0,iceBonus,iceCrackCount,iceBreakCount};
   }
   _boardFilled-=actuallyRemoved.filter(([r,c])=>board[r][c]!==null).length;
   for(const[r,c]of actuallyRemoved){board[r][c]=null}
@@ -3819,7 +3888,7 @@ function clearLines(extraCells){
   const _sparkleTier = (rowCount+colCount+boxCount)>=3 ? 3 : ((rowCount+colCount+boxCount)>=2 ? 2 : 1);
   _ordered.forEach(({r,c},i)=>{
     const el=cellEls[r][c];
-    const delay=Math.min(i*20,80);
+    const delay=Math.min(i*14,56);  // v13 stagger 우아한 wave: 셀당 14ms, max 56ms (라인이 흐르듯 부드럽게 사라짐)
     if(delay>maxDelay)maxDelay=delay;
     el.style.setProperty('--clear-delay',delay+'ms');
     el.classList.add('clearing');
@@ -3828,17 +3897,7 @@ function clearLines(extraCells){
     const sx=rect.left+rect.width/2, sy=rect.top+rect.height/2;
     setTimeout(()=>spawnLineSparkle(sx,sy,_sparkleTier),delay+40);
   });
-  // v9 FORCE DEBUG: 첫 셀의 실제 animationName을 콘솔로 찍어 적용 여부 확인
-  if(_ordered.length>0){
-    const _dbgEl=cellEls[_ordered[0].r][_ordered[0].c];
-    const _dbgInner=_dbgEl.querySelector('.block-inner');
-    if(_dbgInner){
-      console.log('CLEAR CHECK:', getComputedStyle(_dbgInner).animationName,
-                  '| delay=', _dbgEl.style.getPropertyValue('--clear-delay'),
-                  '| cells=', _ordered.length);
-    }
-  }
-  const CLEAR_DUR=window._lowPerf?180:220;  // v9 더 빠른 페이드: 기본 220ms, 저사양 180ms
+  const CLEAR_DUR=window._lowPerf?130:160;  // v13 ELEGANT DISSOLVE: 기본 160ms, 저사양 130ms (위로 떠오르며 페이드)
   const totalWait=CLEAR_DUR+maxDelay+30;
   const _timerId=setTimeout(()=>{
     _activeClearTimers.delete(_timerId);
@@ -3850,7 +3909,7 @@ function clearLines(extraCells){
     }
   },totalWait);
   _activeClearTimers.add(_timerId);
-  return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:actuallyRemoved};
+  return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:actuallyRemoved,removedCount:actuallyRemoved.length,iceBonus,iceCrackCount,iceBreakCount};
 }
 // ═══════════════════════════════════════════════════════════════════
 // v9.5 SCORE SYSTEM — 단일 경로:
@@ -4320,7 +4379,11 @@ function _particleScale(){return _isLowPerf()?0.45:(_isMobileReduce()?0.65:1)}
       if(avg>AVG_BAD_MS||slow>=SLOW_COUNT_TRIGGER){
         triggered=true;
         document.documentElement.classList.add('low-perf');
-        try{console.info('[perf] low-perf 자동 활성 — avg:'+avg.toFixed(1)+'ms, slow:'+slow);}catch(e){}
+        // DEBUG 플래그(window._ppDebug 또는 localStorage.pp_debug=='1')일 때만 진단 로그 출력
+        try{
+          const _dbg = window._ppDebug || (typeof localStorage!=='undefined' && localStorage.getItem('pp_debug')==='1');
+          if(_dbg) console.info('[perf] low-perf 자동 활성 — avg:'+avg.toFixed(1)+'ms, slow:'+slow);
+        }catch(e){}
         return;
       }
     }
@@ -4591,7 +4654,7 @@ const _PK = (function(){
     return 0;
   }
   // 파티클 상한 (성능 우선 — 부드러운 60fps 보장)
-  const PARTICLE_CAP=()=>perfTier()===2?25:(perfTier()===1?50:200);
+  const PARTICLE_CAP=()=>perfTier()===2?25:(perfTier()===1?50:120);
   function trim(){
     const cap=PARTICLE_CAP();
     if(particles.length>cap){
@@ -4614,7 +4677,7 @@ const _PK = (function(){
       face:['happy','wow','wink','smile','dizzy','sleepy'][Math.floor(Math.random()*6)],
       bounceT:Math.random()*Math.PI,
       target:opts.target,           // 점수 위치 — 빨려들어갈 목표
-      attractDelay:0.24+Math.random()*0.08}); // 240~320ms — cell burst 후 흡인 (한층 더 빠르게)
+      attractDelay:0.10+Math.random()*0.06}); // 100~160ms — cell에서 잠깐 부드럽게 머물고 부드럽게 흡인 시작
   }
   function spawnMiniStar(x,y,opts){
     opts=opts||{};
@@ -4625,7 +4688,7 @@ const _PK = (function(){
       size:opts.size||(4+Math.random()*2),life:1,decay:1.4+Math.random()*0.35,
       color:opts.color||'#FFE08C',
       target:opts.target,
-      attractDelay:0.24+Math.random()*0.08}); // 240~320ms 외부 퍼짐 후 흡인
+      attractDelay:0.10+Math.random()*0.06}); // 100~160ms 외부 퍼짐 후 부드러운 흡인
   }
   function spawnFlick(x,y,opts){
     opts=opts||{};
@@ -5145,7 +5208,7 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
 
   // ★ [1] emit source 제한 — 티어별 최대 개수로 샘플링
   const tier=window._lowPerf?2:(window._mobileReduce?1:0);
-  const maxSources=tier===2?3:(tier===1?5:9);
+  const maxSources=tier===2?3:(tier===1?5:7);
   const sampled=[];
   const step=Math.max(1,Math.ceil(removed.length/maxSources));
   removed.forEach((cell,idx)=>{
@@ -6118,14 +6181,20 @@ function skipExtend(){Sound.sfx.uiClick();document.getElementById('gameover-over
 // ═══ EXTEND ═══
 // ═══ 2줄 클리어: 유저가 가로/세로 자유 선택 ═══
 let _lsSelection=[]; // [{type:'row'|'col', idx:number}, ...] max 2
+// ★ 라인 선택 모드 진입 권한 — extendDiamond() 정상 호출시에만 true (콘솔 직접 호출 차단)
+let _lineSelectAuthorized=false;
 function extendDiamond(){
+  if(!isGameOverExtendOpen())return;
   if(extendDiamondUsed)return;
   if(diamondBalance<2){showToast('다이아가 부족합니다!');return}
   Sound.sfx.uiClick();
   document.getElementById('gameover-overlay').classList.remove('on');
+  _lineSelectAuthorized=true;
   enterLineSelectMode();
 }
 function enterLineSelectMode(){
+  if(!_lineSelectAuthorized)return;
+  if(gameActive)return;
   _lsSelection=[];
   // 버튼 동적 생성 (한 번만 생성되면 재사용)
   const rowsEl=document.getElementById('ls-rows');
@@ -6164,6 +6233,8 @@ function enterLineSelectMode(){
   });
 }
 function toggleLineSelect(type,idx){
+  if(!_lineSelectAuthorized)return;
+  if(gameActive)return;
   const existingIdx=_lsSelection.findIndex(s=>s.type===type&&s.idx===idx);
   if(existingIdx>=0){
     _lsSelection.splice(existingIdx,1);
@@ -6206,14 +6277,19 @@ function closeLineSelectUI(){
   document.documentElement.style.removeProperty('--ls-shift');
 }
 function cancelLineSelect(){
+  if(!_lineSelectAuthorized)return;  // 권한 없으면 무시 (콘솔 치트 차단)
   Sound.sfx.uiClick();
   closeLineSelectUI();
+  _lineSelectAuthorized=false;
   // 게임오버 오버레이 재표시 (취소 → 선택 전 상태)
   document.getElementById('gameover-overlay').classList.add('on');
 }
 function confirmLineSelect(){
+  if(!_lineSelectAuthorized)return;
+  if(gameActive)return;
   if(_lsSelection.length!==2)return;
   if(!spendDiamonds(2)){showToast('다이아가 부족합니다!');cancelLineSelect();return}
+  _lineSelectAuthorized=false;  // ★ 1회용 권한 즉시 해제 (중복 호출 차단)
   extendDiamondUsed=true;Sound.sfx.extend();haptic('success');
   const selection=_lsSelection.slice();
   closeLineSelectUI();
@@ -6295,7 +6371,7 @@ function cancelExtendAd(){
   // 광고 카운트다운 중이었다면 extendAdUsed를 복구 (아직 보상 미지급)
   if(extendAdUsed&&!gameActive)extendAdUsed=false;
 }
-function extendAd(){if(extendAdUsed)return;extendAdUsed=true;Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');const adOv=document.getElementById('ad-overlay'),adTimer=document.getElementById('ad-timer');adOv.classList.add('on');let count=3;adTimer.textContent=count;_extendAdTimer=setInterval(()=>{count--;if(count<=0){clearInterval(_extendAdTimer);_extendAdTimer=null;adOv.classList.remove('on');Sound.sfx.extend();haptic('success');
+function extendAd(){if(!isGameOverExtendOpen())return;if(extendAdUsed)return;extendAdUsed=true;Sound.sfx.uiClick();document.getElementById('gameover-overlay').classList.remove('on');const adOv=document.getElementById('ad-overlay'),adTimer=document.getElementById('ad-timer');adOv.classList.add('on');let count=3;adTimer.textContent=count;_extendAdTimer=setInterval(()=>{count--;if(count<=0){clearInterval(_extendAdTimer);_extendAdTimer=null;adOv.classList.remove('on');Sound.sfx.extend();haptic('success');
   // ═══ 광고 보상: 6×6 구역 클리어 + 새 블록 3개 ═══
   // 1) 새 블록 3개 지급
   pieces=[randSmallPiece(),randSmallPiece(),randSmallPiece()];selIdx=null;
@@ -6561,10 +6637,8 @@ window.addEventListener('keydown',e=>{
   if(blockedKeys.includes(e.key))e.preventDefault();
 },{passive:false});
 
-// ═══ 스크롤 강제 0 고정 (혹시 스크롤이 발생한 경우 즉시 복원) ═══
-window.addEventListener('scroll',()=>{
-  if(window.scrollY!==0||window.scrollX!==0)window.scrollTo(0,0);
-},{passive:true});
+// ═══ Telegram 1px 스크롤 버퍼 전략 유지 — 0 위치 강제 복원 리스너 제거 (충돌 방지) ═══
+// 위쪽의 1px 버퍼 전략과 충돌하던 0 위치 강제 복원 리스너는 P0 패치로 삭제됨
 
 document.addEventListener('touchstart',function unlock(){Sound.resumeCtx();document.removeEventListener('touchstart',unlock)},{once:true});
 document.addEventListener('DOMContentLoaded',start);
