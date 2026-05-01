@@ -1,24 +1,97 @@
 <!DOCTYPE html>
 <!--
-  Potato POP v7 — 2026-04-29
+  Potato POP v7.1.5 — 2026-05-01 (Score Suck 도착 펄스 정밀 보정)
+
+  [v7.1.5 PATCH NOTE — 최종 프리미엄 마감]
+  · score-suck 도착 판정 hybrid 보정 (potato + ministar 둘 다)
+    · 이전: t≥0.92 (easeInQuad에서 실제 진행률 0.846 → 시각보다 빠른 펄스)
+    · 변경: 실제 거리 ≤10px 또는 t≥0.98 fallback
+    · "착 붙는 순간"에 score-catch glow가 정확히 동기화됨
+  · line-sparkle DOM 주석 정리 (현재 미사용 명시, CSS만 보존)
+  · __monitorClearPerf 측정 범위 명확화 (동기 clearLines 비용 only)
+    · 실기기 QA는 perfStatus().avgFrameTime / estimatedFps 함께 확인 필요 명시
+
+  [v7.1.4 PATCH NOTE — Luxe Clear 프리미엄 폴리시]
+  · iOS Telegram(mobile-reduce) sparkle: 90ms → 170ms
+    · 90ms는 "번쩍" 느낌이라 다시 촐싹거림 → 170ms 은은한 "찍히고 사라짐"
+    · 전용 keyframe sparkleMobileReduce (peak opacity 0.65)
+  · low-perf CSS animation-duration을 JS CLEAR_DUR(200ms)에 정확히 일치
+    · CSS 260/280ms vs JS 200ms 불일치로 인한 잘림 방지
+  · score-suck 곡선 흡인 (quadratic bezier)
+    · 직선 lerp → 시작/타깃 중점에서 수직 6~14px offset
+    · potato 6~14px / ministar 5~12px (별이 살짝 더 직선)
+    · 좌우 랜덤 → 미사일 같은 기계적 직선 느낌 제거
+    · easeInQuad 흡입감 유지 (초반 머물고 후반 가속)
+  · spawnLineSparkle 미사용 호출 제거 (clearLines 내부 setTimeout 정리)
+  · _lineSparkleBudget 변수는 함수와 함께 보존 (차후 재활성 대비)
+  · 클리어 모션 주석 정리 (v7 Dopamine Pop / v13 ELEGANT / v15 ELEGANT FLOW 잔재 → Luxe로 통일)
+
+  [v7.1.3 PATCH NOTE — 클리어 모션 고급화]
+  · blockLuxeClear / potatoLuxeClear 신규 keyframe (블록 본체 제자리 dissolve)
+    · block: 260ms / translateY 최대 -3px / scale 0.74 / 60%까지 opacity 0.82 유지
+    · potato: 280ms / translateY 최대 -3px / scale 0.76 (잔향감)
+    · ease: cubic-bezier(0.22,0.8,0.24,1) — 묵직한 deceleration
+    · transform + opacity만 사용 (filter/brightness/box-shadow 제거)
+  · 구 v9 FORCE OVERRIDE 39줄 제거 — scale(0.40~0.42) 급격 축소 모션 폐기
+  · 중복 @keyframes blockPopClear / potatoPopClear 통합 → blockLuxeClear / potatoLuxeClear 단일화
+  · sparkle 보조 처리: 130→200ms, translateY 최대 -5→-2px, peak opacity 0.95→0.72
+  · CLEAR_DUR: 160ms→280ms (potato 기준), tier 2: 130ms→200ms
+  · Score-suck canvas particle은 그대로 유지 (블록 본체와 분리)
+    · attractDelay: 50~90ms → 70~110ms (clear 시작 후 약간 머물다 발사)
+    · travel: potato 0.42s→0.46s / ministar 0.38s→0.44s (사용자 spec 420~520ms)
+    · easing: easeOutQuad → easeInQuad (초반 머물고 후반 score로 빨려감)
+    · pendingScore → barrier → triggerScoreImpact → flushScore 단일 경로 그대로
+
+  [v7.1.2 PATCH NOTE — Perf Tier 단일 경로 통합]
+  · 구형 autoPerfWatchdog() IIFE 제거 — sessionDowngraded/forcedPerfTier 우회 차단
+  · window.getEffectivePerfTier() 단일 소스 함수 신설
+    (모든 perf 분기는 반드시 이 함수만 사용 — window._lowPerf/_mobileReduce 직접 검사 금지)
+  · 13개 결정 분기 일괄 교체 (CLEAR_DUR / shockwave / triggerBoardKick / triggerClutchFX /
+    clearLines maxSources / 콤보 timer / newRecord 팝업 / ghost LERP / preview LERP /
+    ghost dropping / coef 6:12 / coef 5:9)
+  · _isLowPerf / _isMobileReduce / _particleScale 내부 단일 소스 위임
+  · _PK 모듈 perfTier() 및 _PARTICLE_CAP_FN 단일 소스 위임
+  · documentElement.classList 사용 금지 — 모든 tier 클래스는 applyBodyClasses()만 관리
+  · 헤더 구버전 정책 주석 정리 (50ms / 25/50/120 / iOS 기본 0 → 32ms / 22/36/120 / iOS Telegram tier 1)
+
+  [v7.1.1 PATCH NOTE — 최종 검수 보완]
+  · sessionDowngraded latch: watchdog이 한 번 tier 2 판정하면 세션 끝까지 유지
+    (localStorage 미사용 → 새로고침 시 다시 tier 1부터 판정)
+  · URL ?perf=0|1|2 강제 모드 (QA 전용, 자동 판정/watchdog보다 우선)
+  · perfStatus()에 effectiveTier / forcedPerfTier / sessionDowngraded / naturalTier 추가
+  · __testClearPerf 제거 → __monitorClearPerf 신설 (실제 클리어 발생 시 monitor)
+    하위 호환성 위해 __testClearPerf는 monitor에 alias
+
+  [v7.1 PATCH NOTE — iOS Telegram WebView 60fps 최적화]
+  · iOS Telegram 감지 추가 → mobile-reduce 자동 적용 (perfTier 1)
+  · watchdog SLOW_THRESHOLD 50ms → 32ms (드래그 끊김 조기 감지)
+  · onMove rAF throttle: 120Hz touchmove → 화면 프레임당 1회만 처리
+  · PARTICLE_CAP tier 1: 50 → 36, maxSources tier 1: 5 → 4
+  · 드래그 중 무거운 filter/box-shadow 제거 (body.dragging 게이트)
+  · Telegram iOS 별 SVG 배경 비활성 (gameplay 중 합성 비용 제거)
+  · canPlace 중복 호출 제거: showPreview에 precomputed valid 전달
 
   [v7 최종 상태 — Dopamine Patch + P0 Logic QA + P1 Release QA 적용 완료]
 
   · 블록 착지
     - 80ms 단순 페이드인 (scale 0.92 → 1, 회전/overshoot 없음)
 
-  · 라인 클리어 (v13 ELEGANT DISSOLVE — 위로 떠오르며 증발)
-    - 160ms blockPopClear + radial stagger(14ms 간격, max 56ms), 저사양 130ms
-    - 0%   : translateY 0  / scale 1.00 / opacity 1.00
-    - 18%  : translateY -1 / scale 1.02 / opacity 0.95  (미세 exhale)
-    - 50%  : translateY -3 / scale 0.92 / opacity 0.55  (떠오르며 페이드)
-    - 78%  : translateY -5 / scale 0.84 / opacity 0.18
-    - 100% : translateY -7 / scale 0.78 / opacity 0     (이슬 증발 종료)
-    - sparkle     : 셀당 1개 (.block-inner::after), 130ms, delay(--clear-delay + 30ms)
-    - line-sparkle DOM: 1줄 280ms / 2줄 320ms / 3줄+ 360ms (저사양 200~240ms)
-    - potato-wrap : potatoPopClear 160ms 동기 (translateY -7 / scale 0.72)
-    - ease curve  : cubic-bezier(0.32,0.72,0.4,1) 통일 — 부드러운 deceleration
-    - low-perf 단일 애니메이션 통일 (Lite 분기 제거)
+  · 라인 클리어 (v7.1.3 LUXE DISSOLVE — 제자리에서 묵직하게 녹아듦)
+    - 260ms blockLuxeClear + radial stagger(14ms 간격, max 56ms), 저사양 200ms
+    - 0%   : translateY 0   / scale 1.000 / opacity 1.00
+    - 18%  : translateY -1  / scale 1.015 / opacity 1.00  (미세 exhale)
+    - 55%  : translateY -2  / scale 0.940 / opacity 0.82  (충실한 발광 구간)
+    - 82%  : translateY -2  / scale 0.820 / opacity 0.28
+    - 100% : translateY -3  / scale 0.740 / opacity 0     (제자리 dissolve 종료)
+    - sparkle     : 셀당 1개 (.block-inner::after), 200ms, delay(--clear-delay + 30ms), Y 최대 -2px
+    - line-sparkle DOM: ⚠️ 현재 미사용 (v7.1.4부터 호출 제거) — CSS만 보존, score-suck canvas particle이 빛가루 역할 담당
+    - potato-wrap : potatoLuxeClear 280ms 동기 (translateY -3 / scale 0.76)
+    - ease curve  : cubic-bezier(0.22,0.8,0.24,1) 통일 — 묵직한 deceleration
+    - 블록 본체는 위로 날아가지 않음 (Y 최대 -3px, 이전 -7px 대비 절반 이하)
+    - score-suck canvas particle만 상단 점수로 흡인 (블록 본체와 명확히 구분)
+        · 출발 delay 70~110ms (clear 시작 후 약간 머물다가 발사)
+        · 이동 460ms (potato) / 440ms (ministar) — easeInQuad (초반 머물고 후반 가속)
+        · 도착 시 score-catch glow 1회 + score-bump pulse
 
   · 점수 시스템 (v9.5+P0/P1 단일 경로 — pendingScore → flushScore)
     - calculateClearScore(baseScore, combo) = floor(baseScore × max(1,combo)^1.4)
@@ -109,19 +182,24 @@
         · window.__testClutchFX(n)       — n회 호출 후 노드 증가 0 검증
         · window.__testFxStress()        — 50회 연속 호출 후 maxDt 측정
 
-  · Mobile Performance / Responsive (v6.6 QA PASS)
+  · Mobile Performance / Responsive (v7.1.2 — iOS Telegram WebView 정책 통합)
     - viewport: width=device-width, viewport-fit=cover, user-scalable=no
     - safe-area: env(safe-area-inset-*) + Telegram contentSafeAreaInset 통합 (--safe-top/bottom/left/right)
     - 캔버스 DPR cap=1 (모든 기기 GPU 부담 최소화, 파티클은 DPR 차이 거의 안 보임)
-    - perfTier: 0=고사양 (iOS 기본) / 1=mobile-reduce (Android 보수 기본) / 2=low-perf (CPU≤2 또는 메모리<2GB)
-        · iOS는 기본 tier 0 (iPhone 16 Pro 등 고사양 풀 효과 보장)
-        · Android는 기본 tier 1, watchdog이 측정 후 필요시 tier 2로 승격
-        · watchdog: SLOW_THRESHOLD 50ms (20fps 이하), 연속 2회 SLOW 시에만 승격, 첫 측정은 warm-up 무시
-        · 실기기 디버그: window.perfStatus() 로 tier/avgFrameTime/estimatedFps 즉시 확인
-    - 4초 간격 fps 실측 watchdog → low-perf 자동 전환 (background tab 정지)
+    - perfTier: 0=고사양 / 1=mobile-reduce / 2=low-perf
+        · 일반 iOS Safari      → tier 0 (iPhone 16 Pro 등 풀 효과)
+        · iOS Telegram WebView → tier 1 (mobile-reduce 자동 적용) ★ v7.1
+        · Android (브라우저/Telegram) → tier 1
+        · 저사양 hw (cpu<=2 / mem<2GB) → tier 2
+        · ?perf=0|1|2 URL 강제 모드 (QA 전용, localStorage 저장 안 함) ★ v7.1.1
+        · watchdog: SLOW_THRESHOLD 32ms (≈ 31fps 미만), 연속 2회 SLOW 시 tier 2 latch
+        · sessionDowngraded: 한 번 tier 2 판정되면 세션 끝까지 유지, 새로고침 시 리셋 ★ v7.1.1
+        · 단일 tier 결정 함수: window.getEffectivePerfTier() — 모든 perf 분기는 이것만 사용 ★ v7.1.2
+        · 실기기 디버그: window.perfStatus() / __testDragPerf() / __monitorClearPerf()
+    - 4초 간격 fps 실측 watchdog → tier 2 자동 latch (background tab 정지)
     - resize/orientationchange/visualViewport: rAF 디바운스 (iOS Safari URL바, Android 키보드 시 폭주 방지)
     - eventsAttached 가드로 슬롯/보드 리스너 중복 등록 차단 (장시간 플레이 누수 방지)
-    - 파티클 PARTICLE_CAP 25/50/120 + 1.2s 강제 제거 + visibility 클리어
+    - 파티클 PARTICLE_CAP 22/36/120 (tier 2/1/0) + 1.2s 강제 제거 + visibility 클리어 ★ v7.1
     - touch-action:none on body+board, preventDefault on touchstart으로 300ms tap delay 제거
     - clamp() 기반 반응형 크기: HUD/트레이/버튼/결과창 모두 폭에 맞춰 자동 축소
     - safe-area-inset-bottom 패딩으로 홈 인디케이터 침범 방지
@@ -251,6 +329,14 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
   background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 1200'><g fill='%23ffffff'><circle cx='129' cy='662' r='0.6' opacity='0.66'/><circle cx='113' cy='465' r='1.2' opacity='0.77'/><circle cx='594' cy='1129' r='0.9' opacity='0.68'/><circle cx='608' cy='911' r='0.6' opacity='0.49'/><circle cx='108' cy='928' r='0.7' opacity='0.61'/><circle cx='329' cy='438' r='0.5' opacity='0.65'/><circle cx='373' cy='778' r='1.6' opacity='0.84'/><circle cx='356' cy='191' r='0.5' opacity='0.54'/><circle cx='668' cy='1190' r='0.7' opacity='0.59'/><circle cx='480' cy='872' r='0.7' opacity='0.63'/><circle cx='127' cy='879' r='0.6' opacity='0.6'/><circle cx='510' cy='823' r='1.1' opacity='0.74'/><circle cx='498' cy='1058' r='0.4' opacity='0.45'/><circle cx='140' cy='108' r='1.2' opacity='0.83'/><circle cx='742' cy='887' r='0.5' opacity='0.49'/><circle cx='132' cy='943' r='0.9' opacity='0.79'/><circle cx='566' cy='522' r='0.6' opacity='0.54'/><circle cx='670' cy='1035' r='0.9' opacity='0.66'/><circle cx='215' cy='610' r='0.7' opacity='0.54'/><circle cx='619' cy='946' r='1.0' opacity='0.69'/><circle cx='212' cy='540' r='0.8' opacity='0.71'/><circle cx='517' cy='897' r='0.7' opacity='0.69'/><circle cx='332' cy='945' r='1.0' opacity='0.76'/><circle cx='535' cy='538' r='0.7' opacity='0.72'/><circle cx='753' cy='989' r='1.3' opacity='0.91'/><circle cx='387' cy='205' r='0.7' opacity='0.54'/><circle cx='22' cy='196' r='0.6' opacity='0.68'/><circle cx='93' cy='415' r='0.6' opacity='0.64'/><circle cx='282' cy='739' r='0.5' opacity='0.56'/><circle cx='511' cy='284' r='0.5' opacity='0.46'/><circle cx='620' cy='1041' r='0.5' opacity='0.47'/><circle cx='146' cy='634' r='0.5' opacity='0.47'/><circle cx='209' cy='778' r='0.4' opacity='0.6'/><circle cx='60' cy='718' r='1.0' opacity='0.82'/><circle cx='34' cy='1053' r='0.6' opacity='0.57'/><circle cx='132' cy='1027' r='1.2' opacity='0.86'/><circle cx='165' cy='1072' r='0.6' opacity='0.57'/><circle cx='246' cy='150' r='0.4' opacity='0.54'/><circle cx='185' cy='100' r='1.0' opacity='0.62'/><circle cx='780' cy='394' r='0.6' opacity='0.47'/><circle cx='669' cy='1093' r='0.7' opacity='0.7'/><circle cx='149' cy='336' r='0.8' opacity='0.6'/><circle cx='553' cy='856' r='0.8' opacity='0.58'/><circle cx='186' cy='547' r='0.7' opacity='0.68'/><circle cx='302' cy='965' r='0.6' opacity='0.57'/><circle cx='547' cy='1082' r='0.9' opacity='0.76'/><circle cx='244' cy='18' r='1.4' opacity='0.89'/><circle cx='425' cy='1124' r='1.0' opacity='0.76'/><circle cx='35' cy='728' r='0.8' opacity='0.69'/><circle cx='559' cy='451' r='0.6' opacity='0.59'/><circle cx='589' cy='447' r='0.6' opacity='0.62'/><circle cx='143' cy='215' r='0.7' opacity='0.6'/><circle cx='116' cy='131' r='0.9' opacity='0.62'/><circle cx='653' cy='225' r='0.5' opacity='0.62'/><circle cx='306' cy='652' r='0.5' opacity='0.44'/><circle cx='271' cy='856' r='1.0' opacity='0.66'/><circle cx='325' cy='259' r='0.6' opacity='0.69'/><circle cx='366' cy='653' r='0.9' opacity='0.72'/><circle cx='637' cy='85' r='1.1' opacity='0.69'/><circle cx='481' cy='880' r='1.4' opacity='0.9'/><circle cx='521' cy='523' r='0.7' opacity='0.58'/><circle cx='761' cy='902' r='0.8' opacity='0.61'/><circle cx='752' cy='258' r='0.5' opacity='0.56'/><circle cx='28' cy='1118' r='1.1' opacity='0.66'/><circle cx='123' cy='340' r='0.7' opacity='0.53'/><circle cx='370' cy='626' r='0.6' opacity='0.55'/><circle cx='401' cy='780' r='0.5' opacity='0.48'/><circle cx='136' cy='383' r='0.6' opacity='0.68'/><circle cx='708' cy='1144' r='0.5' opacity='0.47'/><circle cx='31' cy='41' r='0.5' opacity='0.49'/><circle cx='330' cy='291' r='1.2' opacity='0.86'/><circle cx='574' cy='85' r='1.0' opacity='0.72'/><circle cx='279' cy='705' r='0.9' opacity='0.64'/><circle cx='681' cy='31' r='0.8' opacity='0.55'/><circle cx='235' cy='1049' r='1.0' opacity='0.81'/><circle cx='416' cy='745' r='1.1' opacity='0.83'/><circle cx='359' cy='419' r='0.5' opacity='0.54'/><circle cx='493' cy='647' r='0.6' opacity='0.5'/><circle cx='13' cy='733' r='1.0' opacity='0.76'/><circle cx='46' cy='361' r='0.5' opacity='0.6'/><circle cx='149' cy='214' r='1.4' opacity='0.8'/><circle cx='720' cy='636' r='0.7' opacity='0.59'/><circle cx='536' cy='331' r='1.0' opacity='0.64'/><circle cx='406' cy='691' r='0.5' opacity='0.6'/><circle cx='686' cy='396' r='0.5' opacity='0.55'/><circle cx='373' cy='282' r='1.1' opacity='0.81'/><circle cx='17' cy='991' r='1.1' opacity='0.81'/><circle cx='558' cy='357' r='0.7' opacity='0.57'/><circle cx='156' cy='343' r='0.4' opacity='0.55'/><circle cx='729' cy='12' r='0.7' opacity='0.57'/><circle cx='552' cy='323' r='0.5' opacity='0.46'/><circle cx='342' cy='1000' r='0.7' opacity='0.52'/><circle cx='276' cy='625' r='0.8' opacity='0.74'/><circle cx='131' cy='1145' r='0.6' opacity='0.62'/><circle cx='474' cy='714' r='0.6' opacity='0.49'/><circle cx='514' cy='647' r='0.6' opacity='0.51'/><circle cx='450' cy='1044' r='0.5' opacity='0.63'/><circle cx='680' cy='1018' r='0.5' opacity='0.61'/><circle cx='233' cy='721' r='0.8' opacity='0.72'/><circle cx='612' cy='789' r='0.5' opacity='0.56'/><circle cx='761' cy='269' r='0.5' opacity='0.46'/><circle cx='280' cy='918' r='0.6' opacity='0.53'/><circle cx='347' cy='301' r='0.4' opacity='0.46'/><circle cx='477' cy='829' r='0.6' opacity='0.54'/><circle cx='427' cy='697' r='0.6' opacity='0.58'/><circle cx='702' cy='1127' r='0.5' opacity='0.58'/><circle cx='69' cy='826' r='0.7' opacity='0.63'/><circle cx='266' cy='275' r='0.6' opacity='0.56'/><circle cx='495' cy='997' r='0.4' opacity='0.45'/><circle cx='131' cy='558' r='0.6' opacity='0.64'/><circle cx='535' cy='575' r='0.8' opacity='0.66'/><circle cx='200' cy='1111' r='1.0' opacity='0.64'/><circle cx='232' cy='957' r='0.6' opacity='0.63'/><circle cx='94' cy='1170' r='0.6' opacity='0.6'/><circle cx='144' cy='229' r='0.7' opacity='0.51'/><circle cx='571' cy='1059' r='1.8' opacity='1.0'/><circle cx='681' cy='706' r='0.5' opacity='0.54'/><circle cx='508' cy='677' r='0.7' opacity='0.61'/><circle cx='30' cy='992' r='0.8' opacity='0.71'/><circle cx='211' cy='760' r='0.7' opacity='0.59'/><circle cx='231' cy='118' r='1.0' opacity='0.77'/><circle cx='668' cy='1050' r='0.9' opacity='0.64'/><circle cx='502' cy='193' r='1.0' opacity='0.74'/><circle cx='508' cy='659' r='0.8' opacity='0.56'/><circle cx='583' cy='365' r='1.0' opacity='0.82'/><circle cx='548' cy='1074' r='0.9' opacity='0.78'/><circle cx='227' cy='67' r='0.5' opacity='0.55'/><circle cx='547' cy='267' r='0.6' opacity='0.53'/><circle cx='741' cy='1008' r='0.6' opacity='0.66'/><circle cx='380' cy='810' r='0.6' opacity='0.51'/><circle cx='629' cy='1137' r='0.7' opacity='0.54'/><circle cx='680' cy='1181' r='0.6' opacity='0.48'/><circle cx='314' cy='374' r='0.7' opacity='0.66'/><circle cx='139' cy='944' r='0.6' opacity='0.64'/><circle cx='704' cy='323' r='0.6' opacity='0.67'/><circle cx='37' cy='623' r='0.5' opacity='0.55'/><circle cx='484' cy='841' r='0.5' opacity='0.59'/><circle cx='49' cy='972' r='0.4' opacity='0.53'/><circle cx='729' cy='534' r='0.4' opacity='0.51'/><circle cx='100' cy='873' r='0.8' opacity='0.73'/><circle cx='254' cy='468' r='0.8' opacity='0.62'/><circle cx='556' cy='872' r='0.8' opacity='0.62'/><circle cx='222' cy='640' r='0.8' opacity='0.75'/><circle cx='629' cy='994' r='0.7' opacity='0.67'/><circle cx='126' cy='169' r='0.6' opacity='0.62'/><circle cx='125' cy='360' r='0.5' opacity='0.63'/><circle cx='446' cy='70' r='0.4' opacity='0.6'/><circle cx='657' cy='558' r='0.5' opacity='0.44'/><circle cx='541' cy='950' r='1.3' opacity='0.82'/><circle cx='149' cy='228' r='0.9' opacity='0.79'/><circle cx='474' cy='780' r='0.9' opacity='0.78'/><circle cx='694' cy='1155' r='0.5' opacity='0.59'/><circle cx='480' cy='967' r='0.6' opacity='0.59'/><circle cx='551' cy='209' r='0.8' opacity='0.56'/><circle cx='50' cy='151' r='0.5' opacity='0.46'/><circle cx='668' cy='1185' r='1.2' opacity='0.8'/><circle cx='164' cy='660' r='0.4' opacity='0.42'/><circle cx='555' cy='530' r='0.4' opacity='0.61'/><circle cx='778' cy='1074' r='0.7' opacity='0.7'/><circle cx='742' cy='321' r='0.5' opacity='0.51'/><circle cx='487' cy='504' r='0.6' opacity='0.66'/><circle cx='436' cy='92' r='0.6' opacity='0.57'/><circle cx='124' cy='983' r='0.5' opacity='0.44'/><circle cx='231' cy='795' r='0.9' opacity='0.75'/><circle cx='309' cy='501' r='0.8' opacity='0.71'/><circle cx='760' cy='61' r='0.7' opacity='0.54'/><circle cx='551' cy='258' r='0.6' opacity='0.6'/><circle cx='575' cy='356' r='0.6' opacity='0.65'/><circle cx='433' cy='829' r='1.1' opacity='0.66'/><circle cx='777' cy='354' r='0.7' opacity='0.52'/><circle cx='179' cy='82' r='0.7' opacity='0.68'/><circle cx='583' cy='244' r='1.2' opacity='0.69'/><circle cx='718' cy='964' r='0.9' opacity='0.78'/><circle cx='202' cy='994' r='0.4' opacity='0.54'/><circle cx='293' cy='427' r='0.6' opacity='0.48'/><circle cx='273' cy='154' r='1.3' opacity='0.75'/><circle cx='658' cy='1066' r='0.5' opacity='0.62'/><circle cx='562' cy='728' r='0.5' opacity='0.45'/><circle cx='40' cy='38' r='0.6' opacity='0.57'/><circle cx='645' cy='373' r='0.4' opacity='0.44'/><circle cx='782' cy='698' r='0.7' opacity='0.65'/><circle cx='487' cy='197' r='0.4' opacity='0.57'/><circle cx='588' cy='1066' r='0.9' opacity='0.68'/><circle cx='718' cy='313' r='0.8' opacity='0.65'/><circle cx='126' cy='292' r='0.5' opacity='0.65'/><circle cx='517' cy='865' r='0.8' opacity='0.75'/><circle cx='93' cy='51' r='0.8' opacity='0.62'/><circle cx='258' cy='630' r='0.6' opacity='0.69'/><circle cx='191' cy='636' r='0.7' opacity='0.51'/><circle cx='761' cy='367' r='0.9' opacity='0.63'/><circle cx='490' cy='333' r='0.9' opacity='0.72'/><circle cx='123' cy='146' r='0.6' opacity='0.54'/><circle cx='425' cy='524' r='0.6' opacity='0.68'/><circle cx='398' cy='18' r='0.4' opacity='0.45'/><circle cx='340' cy='916' r='1.0' opacity='0.82'/><circle cx='457' cy='917' r='0.9' opacity='0.63'/><circle cx='765' cy='848' r='0.7' opacity='0.68'/><circle cx='112' cy='1130' r='0.5' opacity='0.59'/><circle cx='737' cy='834' r='0.6' opacity='0.54'/><circle cx='111' cy='478' r='0.6' opacity='0.61'/><circle cx='412' cy='433' r='0.8' opacity='0.66'/><circle cx='395' cy='547' r='0.7' opacity='0.56'/><circle cx='528' cy='626' r='0.6' opacity='0.51'/><circle cx='181' cy='889' r='0.7' opacity='0.72'/><circle cx='659' cy='1025' r='0.9' opacity='0.74'/><circle cx='618' cy='1060' r='0.5' opacity='0.53'/><circle cx='715' cy='1103' r='1.4' opacity='0.86'/><circle cx='688' cy='1044' r='0.7' opacity='0.67'/><circle cx='546' cy='459' r='0.6' opacity='0.56'/><circle cx='380' cy='507' r='0.5' opacity='0.62'/><circle cx='37' cy='227' r='0.5' opacity='0.57'/><circle cx='492' cy='330' r='0.5' opacity='0.44'/><circle cx='94' cy='215' r='0.5' opacity='0.54'/><circle cx='363' cy='1064' r='1.7' opacity='0.95'/><circle cx='336' cy='644' r='1.0' opacity='0.62'/><circle cx='357' cy='316' r='0.5' opacity='0.58'/><circle cx='203' cy='1143' r='0.8' opacity='0.58'/><circle cx='96' cy='717' r='0.5' opacity='0.64'/><circle cx='109' cy='1135' r='0.8' opacity='0.75'/><circle cx='101' cy='50' r='0.8' opacity='0.76'/><circle cx='460' cy='1027' r='0.5' opacity='0.6'/><circle cx='56' cy='842' r='0.6' opacity='0.53'/><circle cx='566' cy='1081' r='0.4' opacity='0.61'/><circle cx='19' cy='298' r='0.9' opacity='0.63'/><circle cx='453' cy='217' r='0.8' opacity='0.71'/><circle cx='428' cy='177' r='0.6' opacity='0.54'/><circle cx='637' cy='1192' r='0.6' opacity='0.6'/><circle cx='193' cy='1088' r='0.4' opacity='0.53'/><circle cx='547' cy='950' r='0.6' opacity='0.66'/><circle cx='220' cy='912' r='0.6' opacity='0.54'/><circle cx='279' cy='645' r='0.6' opacity='0.47'/><circle cx='210' cy='699' r='0.9' opacity='0.79'/><circle cx='133' cy='697' r='0.5' opacity='0.54'/><circle cx='393' cy='226' r='1.3' opacity='0.93'/><circle cx='781' cy='935' r='0.6' opacity='0.55'/><circle cx='786' cy='737' r='0.5' opacity='0.49'/><circle cx='499' cy='28' r='0.5' opacity='0.57'/><circle cx='734' cy='610' r='0.6' opacity='0.48'/><circle cx='346' cy='892' r='0.5' opacity='0.63'/><circle cx='734' cy='535' r='0.5' opacity='0.45'/><circle cx='188' cy='109' r='1.0' opacity='0.82'/><circle cx='560' cy='942' r='0.6' opacity='0.58'/><circle cx='640' cy='119' r='0.4' opacity='0.49'/><circle cx='127' cy='144' r='1.3' opacity='0.73'/><circle cx='611' cy='802' r='0.5' opacity='0.62'/><circle cx='761' cy='57' r='1.0' opacity='0.7'/><circle cx='387' cy='1148' r='0.9' opacity='0.62'/><circle cx='60' cy='857' r='0.5' opacity='0.64'/><circle cx='557' cy='345' r='0.9' opacity='0.59'/><circle cx='595' cy='852' r='0.8' opacity='0.68'/><circle cx='8' cy='596' r='0.7' opacity='0.53'/><circle cx='204' cy='560' r='1.2' opacity='0.82'/><circle cx='218' cy='666' r='0.6' opacity='0.53'/><circle cx='113' cy='403' r='0.4' opacity='0.49'/><circle cx='84' cy='28' r='0.6' opacity='0.53'/><circle cx='232' cy='406' r='0.4' opacity='0.52'/><circle cx='121' cy='1121' r='0.5' opacity='0.56'/><circle cx='148' cy='357' r='0.6' opacity='0.62'/><circle cx='407' cy='522' r='0.5' opacity='0.48'/><circle cx='786' cy='372' r='1.2' opacity='0.88'/><circle cx='617' cy='285' r='0.8' opacity='0.76'/><circle cx='555' cy='108' r='1.5' opacity='0.99'/><circle cx='744' cy='573' r='0.7' opacity='0.71'/><circle cx='163' cy='557' r='0.7' opacity='0.71'/><circle cx='738' cy='219' r='0.4' opacity='0.61'/><circle cx='432' cy='155' r='0.5' opacity='0.46'/><circle cx='726' cy='104' r='1.1' opacity='0.74'/><circle cx='214' cy='422' r='1.0' opacity='0.83'/><circle cx='214' cy='64' r='0.8' opacity='0.6'/><circle cx='541' cy='851' r='0.9' opacity='0.71'/><circle cx='51' cy='740' r='0.9' opacity='0.68'/><circle cx='709' cy='1008' r='0.7' opacity='0.65'/><circle cx='379' cy='421' r='0.5' opacity='0.57'/><circle cx='360' cy='832' r='0.6' opacity='0.61'/><circle cx='784' cy='50' r='0.7' opacity='0.52'/><circle cx='620' cy='88' r='0.7' opacity='0.61'/><circle cx='131' cy='736' r='1.1' opacity='0.7'/><circle cx='238' cy='433' r='0.5' opacity='0.65'/><circle cx='17' cy='256' r='0.7' opacity='0.61'/><circle cx='184' cy='814' r='1.4' opacity='0.78'/><circle cx='211' cy='625' r='0.6' opacity='0.53'/><circle cx='454' cy='1147' r='0.4' opacity='0.48'/><circle cx='384' cy='448' r='0.9' opacity='0.7'/><circle cx='729' cy='1010' r='0.5' opacity='0.59'/><circle cx='757' cy='685' r='0.7' opacity='0.67'/><circle cx='199' cy='170' r='0.5' opacity='0.61'/><circle cx='324' cy='840' r='0.5' opacity='0.64'/><circle cx='745' cy='602' r='0.9' opacity='0.64'/><circle cx='483' cy='696' r='0.7' opacity='0.59'/><circle cx='545' cy='1054' r='0.5' opacity='0.46'/><circle cx='723' cy='581' r='0.4' opacity='0.59'/><circle cx='261' cy='674' r='1.0' opacity='0.82'/><circle cx='279' cy='561' r='0.5' opacity='0.47'/><circle cx='288' cy='993' r='0.7' opacity='0.67'/><circle cx='767' cy='160' r='0.7' opacity='0.68'/><circle cx='415' cy='24' r='0.7' opacity='0.64'/><circle cx='421' cy='1152' r='0.9' opacity='0.58'/><circle cx='64' cy='40' r='1.4' opacity='0.82'/><circle cx='142' cy='46' r='0.4' opacity='0.4'/><circle cx='118' cy='916' r='0.8' opacity='0.72'/><circle cx='167' cy='1017' r='0.5' opacity='0.52'/><circle cx='41' cy='416' r='0.6' opacity='0.58'/><circle cx='467' cy='1091' r='0.7' opacity='0.6'/><circle cx='735' cy='826' r='1.0' opacity='0.68'/><circle cx='252' cy='736' r='0.4' opacity='0.41'/><circle cx='531' cy='500' r='1.0' opacity='0.68'/><circle cx='652' cy='430' r='0.4' opacity='0.44'/><circle cx='209' cy='915' r='1.4' opacity='0.86'/><circle cx='353' cy='727' r='0.6' opacity='0.67'/><circle cx='91' cy='291' r='0.4' opacity='0.55'/><circle cx='161' cy='928' r='0.7' opacity='0.68'/><circle cx='626' cy='362' r='0.6' opacity='0.51'/><circle cx='528' cy='146' r='1.0' opacity='0.65'/><circle cx='70' cy='271' r='1.7' opacity='0.88'/><circle cx='437' cy='259' r='0.7' opacity='0.53'/><circle cx='605' cy='225' r='1.4' opacity='0.95'/><circle cx='689' cy='832' r='0.5' opacity='0.49'/><circle cx='329' cy='123' r='0.7' opacity='0.56'/><circle cx='345' cy='205' r='0.5' opacity='0.62'/><circle cx='158' cy='656' r='0.5' opacity='0.56'/><circle cx='101' cy='290' r='0.5' opacity='0.65'/><circle cx='708' cy='337' r='0.5' opacity='0.65'/><circle cx='424' cy='818' r='0.9' opacity='0.61'/><circle cx='33' cy='364' r='0.6' opacity='0.63'/><circle cx='145' cy='643' r='0.4' opacity='0.56'/><circle cx='147' cy='834' r='0.5' opacity='0.54'/><circle cx='33' cy='755' r='0.4' opacity='0.62'/><circle cx='130' cy='1118' r='1.6' opacity='0.94'/><circle cx='19' cy='619' r='0.4' opacity='0.6'/><circle cx='63' cy='223' r='0.6' opacity='0.5'/><circle cx='190' cy='794' r='0.7' opacity='0.6'/><circle cx='207' cy='971' r='0.6' opacity='0.5'/><circle cx='487' cy='818' r='0.9' opacity='0.6'/><circle cx='712' cy='832' r='0.8' opacity='0.58'/><circle cx='361' cy='830' r='0.4' opacity='0.44'/><circle cx='226' cy='1121' r='0.6' opacity='0.6'/><circle cx='623' cy='692' r='0.5' opacity='0.54'/><circle cx='412' cy='660' r='0.7' opacity='0.55'/><circle cx='772' cy='749' r='0.6' opacity='0.69'/><circle cx='62' cy='900' r='0.7' opacity='0.61'/><circle cx='80' cy='979' r='0.6' opacity='0.51'/><circle cx='284' cy='471' r='0.5' opacity='0.53'/><circle cx='575' cy='759' r='0.7' opacity='0.65'/><circle cx='566' cy='40' r='0.8' opacity='0.59'/><circle cx='404' cy='164' r='0.7' opacity='0.71'/><circle cx='156' cy='370' r='0.4' opacity='0.48'/><circle cx='170' cy='11' r='0.6' opacity='0.49'/><circle cx='552' cy='288' r='0.8' opacity='0.57'/><circle cx='530' cy='440' r='0.6' opacity='0.66'/><circle cx='144' cy='446' r='1.6' opacity='0.96'/><circle cx='240' cy='775' r='0.9' opacity='0.77'/><circle cx='141' cy='386' r='0.5' opacity='0.61'/><circle cx='542' cy='781' r='0.6' opacity='0.68'/><circle cx='553' cy='958' r='0.4' opacity='0.56'/><circle cx='376' cy='632' r='1.1' opacity='0.73'/><circle cx='712' cy='673' r='0.4' opacity='0.43'/><circle cx='465' cy='889' r='0.7' opacity='0.64'/><circle cx='168' cy='1011' r='0.6' opacity='0.57'/><circle cx='418' cy='88' r='0.7' opacity='0.67'/><circle cx='98' cy='466' r='0.8' opacity='0.55'/><circle cx='378' cy='705' r='0.6' opacity='0.55'/><circle cx='472' cy='30' r='0.4' opacity='0.49'/><circle cx='720' cy='458' r='0.6' opacity='0.67'/><circle cx='697' cy='349' r='0.7' opacity='0.61'/><circle cx='18' cy='829' r='0.5' opacity='0.62'/><circle cx='320' cy='99' r='0.8' opacity='0.55'/><circle cx='435' cy='1112' r='0.7' opacity='0.53'/><circle cx='438' cy='804' r='1.8' opacity='1.0'/><circle cx='406' cy='1039' r='0.5' opacity='0.45'/><circle cx='752' cy='626' r='0.5' opacity='0.55'/><circle cx='53' cy='517' r='0.5' opacity='0.47'/><circle cx='602' cy='1099' r='1.2' opacity='0.75'/><circle cx='751' cy='1027' r='0.4' opacity='0.57'/><circle cx='538' cy='1031' r='0.4' opacity='0.44'/><circle cx='529' cy='269' r='0.4' opacity='0.51'/><circle cx='97' cy='877' r='1.1' opacity='0.78'/><circle cx='275' cy='647' r='0.5' opacity='0.47'/><circle cx='726' cy='784' r='0.9' opacity='0.64'/><circle cx='280' cy='453' r='0.5' opacity='0.53'/><circle cx='443' cy='796' r='0.4' opacity='0.45'/><circle cx='450' cy='979' r='1.2' opacity='0.71'/><circle cx='301' cy='195' r='1.0' opacity='0.66'/><circle cx='785' cy='601' r='0.6' opacity='0.6'/><circle cx='681' cy='815' r='0.6' opacity='0.66'/><circle cx='72' cy='1097' r='1.2' opacity='0.86'/><circle cx='229' cy='352' r='0.6' opacity='0.63'/><circle cx='530' cy='861' r='1.1' opacity='0.84'/><circle cx='484' cy='191' r='0.5' opacity='0.6'/><circle cx='184' cy='1165' r='0.7' opacity='0.52'/><circle cx='688' cy='64' r='1.3' opacity='0.86'/><circle cx='642' cy='773' r='0.5' opacity='0.54'/><circle cx='183' cy='696' r='0.5' opacity='0.56'/><circle cx='201' cy='969' r='0.6' opacity='0.52'/><circle cx='342' cy='316' r='0.6' opacity='0.63'/><circle cx='744' cy='537' r='0.7' opacity='0.52'/><circle cx='307' cy='775' r='0.9' opacity='0.67'/><circle cx='594' cy='888' r='1.3' opacity='0.83'/><circle cx='345' cy='102' r='0.6' opacity='0.63'/><circle cx='339' cy='244' r='1.2' opacity='0.89'/><circle cx='122' cy='432' r='0.7' opacity='0.68'/></g></svg>");
   background-size:100% 100%;
   background-repeat:no-repeat;
+  /* v7.1: 합성 레이어 격리 (gameplay 중 repaint 방지) */
+  transform:translateZ(0);
+  contain:layout paint;
+  will-change:transform;
+}
+/* v7.1 PATCH: iOS Telegram WebView에서는 별 배경 SVG 합성 비용 제거 (검정 단색만) */
+body.tg-ios::before{
+  background-image:none !important;
 }
 .phone{position:fixed;inset:0;width:100%;height:100dvh;height:var(--tg-viewport-stable-height,100dvh);background:transparent;display:flex;flex-direction:column;overflow:hidden;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);padding-left:var(--safe-left);padding-right:var(--safe-right);z-index:1}
 @media(min-width:600px){body{background:#000000}.phone{position:relative;inset:auto;width:390px;height:min(820px,95dvh);border-radius:40px;border:1px solid var(--border2);box-shadow:0 0 0 1px rgba(0,0,0,.5),0 32px 80px rgba(0,0,0,.8);background:transparent}}
@@ -441,6 +527,68 @@ body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;
 .streak-badge.s5{font-size:16px;padding:5px 18px;background:rgba(249,168,212,.15);border-color:rgba(249,168,212,.35);color:#F9A8D4}
 .streak-badge.streak-pop{animation:streakPop 250ms var(--ease-out) both}
 @keyframes streakPop{0%{transform:scale(.7)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+
+/* ════════════════════════════════════════════════════════════
+ * v7.1 PATCH — 드래그 중 합성 비용 절감 (mobile-reduce / low-perf 한정)
+ * 일반 데스크톱/고사양은 영향 없음, Telegram WebView에서만 동작
+ * ════════════════════════════════════════════════════════════ */
+/* preview filter brightness 제거: 드래그 중에는 수치만 보이면 됨 */
+body.dragging.mobile-reduce .cell.filled.preview-clear.preview-strong .block-inner,
+body.dragging.mobile-reduce .cell.filled.preview-clear.preview-mega   .block-inner,
+body.dragging.low-perf       .cell.filled.preview-clear.preview-strong .block-inner,
+body.dragging.low-perf       .cell.filled.preview-clear.preview-mega   .block-inner{
+  filter:none !important;
+}
+/* board-frame box-shadow 단순화 (drop-shadow 28px → 12px, inset 제거) */
+body.dragging.mobile-reduce .board-frame,
+body.dragging.low-perf       .board-frame{
+  box-shadow:0 6px 12px rgba(0,0,0,.40) !important;
+}
+/* 점수 drop-shadow / text-shadow 단순화 */
+body.dragging.mobile-reduce .cur-score,
+body.dragging.low-perf       .cur-score{
+  text-shadow:0 1px 2px rgba(0,0,0,.5) !important;
+  filter:none !important;
+}
+/* HUD filter 제거 */
+body.dragging.mobile-reduce .hud,
+body.dragging.low-perf       .hud{
+  filter:none !important;
+}
+
+/* tier 1 (mobile-reduce): sparkle 은은하게 — 170ms 유지 (90ms는 너무 짧아 "번쩍" 느낌) */
+/* v7.1.4: 90ms → 170ms (iOS Telegram에서도 sparkle은 "찍히고 사라짐" 모션) */
+.mobile-reduce .cell.clearing .block-inner::after{
+  animation-duration:170ms !important;
+  mix-blend-mode:normal !important;
+}
+/* mobile-reduce sparkle peak opacity 살짝 낮춤 (0.72 → 0.65) */
+@keyframes sparkleMobileReduce{
+  0%   { transform: translate(-50%,calc(-50% + 0px)) scale(0.35); opacity:0; }
+  40%  { transform: translate(-50%,calc(-50% - 1px)) scale(1.00); opacity:0.65; }
+  100% { transform: translate(-50%,calc(-50% - 2px)) scale(0.55); opacity:0; }
+}
+.mobile-reduce .cell.clearing .block-inner::after{
+  animation-name:sparkleMobileReduce !important;
+}
+.mobile-reduce .line-sparkle{
+  animation-duration:200ms !important;
+  box-shadow:0 0 1px 0 rgba(255,250,225,.7) !important;
+  mix-blend-mode:normal !important;
+}
+.mobile-reduce .line-sparkle.t2,
+.mobile-reduce .line-sparkle.t3{
+  animation-duration:240ms !important;
+  box-shadow:0 0 2px 0 rgba(255,225,160,.8) !important;
+}
+/* tier 1: score-catch drop-shadow 제거, brightness만 유지 */
+.mobile-reduce #score-el.score-catch,
+.mobile-reduce .cur-score.score-catch{
+  filter:brightness(1.22) !important;
+  transform:scale(1.10) !important;
+}
+/* v7.1 끝 ──────────────────────────────────────────────── */
+
 /* goal-hint: 근접 마일스톤 상시 노출 (빈 문자열이면 :empty로 접힘) */
 .goal-hint{font-size:11px;font-weight:600;color:rgba(200,210,230,.72);letter-spacing:0;margin-top:6px;height:16px;opacity:1;overflow:hidden;transition:color .3s var(--ease-snap),transform .3s var(--ease-snap),opacity .4s var(--ease-snap),height .4s var(--ease-snap);transform-origin:left center}
 .goal-hint:empty{height:0;opacity:0}
@@ -1530,57 +1678,69 @@ body.ls-active .board-area{
   100%{opacity:0;transform:translate(-50%,-50%) scale(1)}
 }
 
-/* ── 클리어 소멸: 3단계 graceful dissolve ──────────────────────
-   1) pre-clear (0~15%): 짧게 밝아짐 — 정리되는 느낌
-   2) dissolve  (15~70%): 블록이 서서히 옅어짐
-   3) finish    (70~100%): 깨끗하게 소멸, 잔상 없음
-   모든 변화는 opacity 중심 — transform/filter 없음 ───────────── */
+/* ── 클리어 소멸: v7.1.3 LUXE DISSOLVE 적용 ──────────────────────
+   · 블록 본체는 제자리 dissolve (translateY 최대 -3px, scale 0.74까지)
+   · 점수 에너지(canvas particles)만 상단 점수로 흡인
+   · transform + opacity 만 사용 — filter/blur/box-shadow 없음
+   · 60% 지점까지 opacity 0.82 유지 → 충실한 발광 구간 ──────────── */
 .cell.clearing{
   pointer-events:none;
   z-index:5;
   overflow:visible;
 }
-/* ══ 도파민 팝 클리어 (v7 Dopamine Pop) ══
-   설계: pop peak(1.06) → squash(0.92) → snap vanish(0)
-   - duration 300ms (기존 700ms → 절반 이하로 타격감 강화)
-   - ease-out(팝 오름) → ease-in(쪼그라들며 소멸)
-   - brightness 플래시 1→1.25→1 (0~40ms) 즉시 제거
-   - opacity 0~83% 유지 → 마지막 50ms(17%)만 급감 → 정적 구간 제거 */
+/* ══ v7.1.3 LUXE CLEAR (이전 v7 Dopamine Pop / v13 ELEGANT 폐기) ══
+   설계 원칙:
+   · block: 260ms / potato: 280ms — luxe deceleration
+   · 스냅 vanish 금지: 마지막 25%까지 부드러운 opacity 감쇠
+   · 위로 날아가는 느낌 금지 (translateY ≤ -3px)
+   · scale 급격 축소 금지 (최종 ≥ 0.74)
+   · iOS Telegram(mobile-reduce)도 동일 타이밍 적용
+   · low-perf만 200ms로 단축 (CSS와 JS CLEAR_DUR 일치) */
 .cell.clearing .block-inner{
   transform-origin:center center;
-  animation: blockPopClear 160ms cubic-bezier(0.32,0.72,0.4,1) forwards;
-  animation-delay: var(--clear-delay, 0ms);
+  /* v7.1.3 LUXE DISSOLVE: 260ms, translateY 최대 -3px, 최종 scale 0.74 */
+  animation: blockLuxeClear 260ms cubic-bezier(0.22,0.8,0.24,1) forwards !important;
+  animation-delay: var(--clear-delay, 0ms) !important;
   will-change: transform, opacity;
   contain: paint;
   backface-visibility: hidden;
+  transition: none !important;
 }
-/* ══ v13 ELEGANT DISSOLVE: 살짝 위로 떠오르며 사라지는 고급스러운 모션 ══
-   1) 미세한 exhale (scale 1.02, 위로 1px) — 호흡하듯 부드러운 시작
-   2) 위로 떠오르며 페이드 (translateY -6px, scale 0.78) — 이슬 증발 느낌
-   3) 모든 단계에 부드러운 opacity 감쇠 (cliff drop 없음) */
-@keyframes blockPopClear{
-  0%   { transform: translate3d(0,0,0)    scale(1.00); opacity: 1.00; }
-  18%  { transform: translate3d(0,-1px,0) scale(1.02); opacity: 0.95; }
-  50%  { transform: translate3d(0,-3px,0) scale(0.92); opacity: 0.55; }
-  78%  { transform: translate3d(0,-5px,0) scale(0.84); opacity: 0.18; }
-  100% { transform: translate3d(0,-7px,0) scale(0.78); opacity: 0; }
+/* ══ v7.1.3 LUXE DISSOLVE — 제자리에서 묵직하게 녹아드는 모션 ══
+   1) 미세한 exhale (scale 1.015, 위로 1px) — 호흡하듯 부드러운 시작
+   2) 60% 지점까지 opacity 0.82 유지 (이전 0.55 → 더 충실한 발광 구간)
+   3) 마지막 18% 구간에서 부드럽게 소멸 (cliff drop 없음)
+   4) translateY 최대 -3px (이전 -7px → 위로 날아가는 느낌 제거) */
+@keyframes blockLuxeClear{
+  0%   { transform: translate3d(0,0,0)    scale(1.000); opacity: 1.00; }
+  18%  { transform: translate3d(0,-1px,0) scale(1.015); opacity: 1.00; }
+  55%  { transform: translate3d(0,-2px,0) scale(0.940); opacity: 0.82; }
+  82%  { transform: translate3d(0,-2px,0) scale(0.820); opacity: 0.28; }
+  100% { transform: translate3d(0,-3px,0) scale(0.740); opacity: 0; }
 }
-/* ── 감자(얼굴): 블록과 동기화 ── */
+/* ── 감자(얼굴): 블록보다 살짝 길게 (280ms) — 잔향감 연출 ── */
 .cell.clearing .potato-wrap{
   transform-origin:center center;
-  animation: potatoPopClear 160ms cubic-bezier(0.32,0.72,0.4,1) forwards;
-  animation-delay: var(--clear-delay, 0ms);
+  /* v7.1.3 LUXE: 280ms, translateY 최대 -3px, 최종 scale 0.76 */
+  animation: potatoLuxeClear 280ms cubic-bezier(0.22,0.8,0.24,1) forwards !important;
+  animation-delay: var(--clear-delay, 0ms) !important;
   will-change: transform, opacity;
   backface-visibility: hidden;
+  transition: none !important;
 }
-@keyframes potatoPopClear{
-  0%   { transform: translate3d(0,0,0)    scale(1.00); opacity: 1.00; }
-  18%  { transform: translate3d(0,-1px,0) scale(1.01); opacity: 0.92; }
-  50%  { transform: translate3d(0,-3px,0) scale(0.88); opacity: 0.48; }
-  78%  { transform: translate3d(0,-5px,0) scale(0.78); opacity: 0.12; }
-  100% { transform: translate3d(0,-7px,0) scale(0.72); opacity: 0; }
+@keyframes potatoLuxeClear{
+  0%   { transform: translate3d(0,0,0)    scale(1.000); opacity: 1.00; }
+  22%  { transform: translate3d(0,-1px,0) scale(1.010); opacity: 0.98; }
+  60%  { transform: translate3d(0,-2px,0) scale(0.920); opacity: 0.72; }
+  100% { transform: translate3d(0,-3px,0) scale(0.760); opacity: 0; }
 }
-/* ── sparkle: 셀당 1개 micro sparkle (pseudo, DOM 추가 없음) ── */
+/* block-inner 내부 요소(face/icon 등) 동기화 — potato-wrap과 동일 모션 */
+.cell.clearing .block-inner *{
+  animation: potatoLuxeClear 280ms cubic-bezier(0.22,0.8,0.24,1) forwards !important;
+  animation-delay: var(--clear-delay, 0ms) !important;
+}
+/* ── sparkle: 보조 micro pulse (pseudo, DOM 추가 없음) ── */
+/* v7.1.3: 200ms로 늘리고 translateY 최대 -2px로 제한, peak opacity 0.95 → 0.72 */
 .cell.clearing .block-inner::after{
   content:"";
   position:absolute;
@@ -1593,7 +1753,7 @@ body.ls-active .board-area{
               transparent 100%);
   transform: translate(-50%,-50%) scale(0);
   opacity:0;
-  animation: sparkle 130ms cubic-bezier(0.32,0.72,0.4,1) forwards;
+  animation: sparkle 200ms cubic-bezier(0.22,0.8,0.24,1) forwards;
   animation-delay: calc(var(--clear-delay, 0ms) + 30ms);
   pointer-events:none;
   mix-blend-mode: screen;
@@ -1601,10 +1761,9 @@ body.ls-active .board-area{
   z-index: 3;
 }
 @keyframes sparkle{
-  0%   { transform: translate(-50%,calc(-50% + 0px)) scale(0.4);  opacity:0; }
-  35%  { transform: translate(-50%,calc(-50% - 1px)) scale(1.15); opacity:0.95; }
-  70%  { transform: translate(-50%,calc(-50% - 3px)) scale(0.85); opacity:0.5; }
-  100% { transform: translate(-50%,calc(-50% - 5px)) scale(0.4);  opacity:0; }
+  0%   { transform: translate(-50%,calc(-50% + 0px)) scale(0.35); opacity:0; }
+  40%  { transform: translate(-50%,calc(-50% - 1px)) scale(1.05); opacity:0.72; }
+  100% { transform: translate(-50%,calc(-50% - 2px)) scale(0.55); opacity:0; }
 }
 /* ── ❌ flash 레이어 제거됨 ──
    과거: .cell.clearing::before 가 셀 전체에 inset:0 으로 흰색 radial-gradient
@@ -1628,10 +1787,22 @@ body.ls-active .board-area{
   .combo-banner { animation: none; opacity: 1 }
   .board-frame.shaking, .board-frame.shaking-medium, .board-frame.shaking-heavy, .board-frame.shaking-epic { animation: none }
 }
-/* v9 FORCE: low-perf Lite clear override 제거 — blockPopClear 강제 통일
-   (landing/preview-clear의 low-perf 분기는 아래에 유지) */
+/* v7.1.4: low-perf 클리어 지속시간을 JS CLEAR_DUR(200ms)와 정확히 일치시킴 */
+/* 사유: CSS 260/280ms vs JS 200ms 불일치 시 DOM이 애니 끝나기 전 제거되어 잘림 */
 .low-perf .cell.clearing::before{display:none !important}
-.low-perf .cell.clearing .block-inner::after{ animation: none !important; } /* sparkle만 저사양에서 비활성 (sparkle 생략 허용) */
+.low-perf .cell.clearing .block-inner::after{
+  animation: none !important;          /* sparkle low-perf에서 완전 비활성 */
+  opacity: 0 !important;
+}
+.low-perf .cell.clearing .block-inner{
+  animation-duration: 200ms !important; /* JS CLEAR_DUR과 동기 */
+}
+.low-perf .cell.clearing .potato-wrap{
+  animation-duration: 200ms !important; /* JS CLEAR_DUR과 동기 */
+}
+.low-perf .cell.clearing .block-inner *{
+  animation-duration: 200ms !important; /* potato-wrap과 동기 */
+}
 /* 저사양에서 착지 애니메이션: 미세 스프링만, 100ms로 짧게 */
 .low-perf .cell.landing .block-inner{
   animation: blockLandLite 100ms cubic-bezier(0.34, 1.1, 0.64, 1) both !important;
@@ -1726,47 +1897,16 @@ body.ls-active .board-area{
 @keyframes goLineIn{0%{transform:scaleX(0)}to{transform:scaleX(1)}}
 
 /* ═════════════════════════════════════════════════════════════════════
-   v9 FORCE OVERRIDE — CLEAR FX 강제 적용 (우선순위 보장)
-   기존 어떤 transition/opacity/fade 규칙보다 뒤에 와서 최종 승리
+   v7.1.3 PATCH — 구 v9 FORCE OVERRIDE 블록 제거
+   사유:
+     · 중복된 @keyframes blockPopClear / potatoPopClear 선언이 충돌 야기
+     · 최종 적용 scale(0.40~0.42)로 너무 급격히 줄어드는 "촐싹" 모션
+     · filter:brightness 추가로 transform+opacity 중심 원칙 위반
+   대체:
+     · 위 1655 / 1670의 단일 @keyframes blockLuxeClear / potatoLuxeClear 사용
+     · 우선순위는 .cell.clearing 규칙이 already !important로 충분히 보장
    ════════════════════════════════════════════════════════════════════ */
-.cell.clearing .block-inner{
-  animation: blockPopClear 160ms cubic-bezier(0.32,0.72,0.4,1) forwards !important;
-  animation-delay: var(--clear-delay, 0ms) !important;
-  transform-origin: center center;
-  will-change: transform, opacity, filter;
-  transition: none !important;
-}
-.cell.clearing .potato-wrap{
-  animation: potatoPopClear 300ms cubic-bezier(0.4,0,0.2,1) forwards !important;
-  animation-delay: var(--clear-delay, 0ms) !important;
-  transform-origin: center center;
-  will-change: transform, opacity;
-  transition: none !important;
-}
-/* 내부 요소 (face/icon 등 block-inner 하위) 혹시 존재 시 동기화 */
-.cell.clearing .block-inner *{
-  animation: potatoPopClear 300ms cubic-bezier(0.4,0,0.2,1) forwards !important;
-  animation-delay: var(--clear-delay, 0ms) !important;
-}
-/* keyframes 재선언 — 상단 규칙이 어떤 이유로 유실돼도 최종본으로 덮어씀 */
-@keyframes blockPopClear{
-  0%   { transform: scale(1);    opacity: 1;    filter: brightness(1); }
-  30%  { transform: scale(1.04);                filter: brightness(1.16); }
-  55%  { transform: scale(0.78); opacity: 0.22; filter: brightness(1.0); }
-  100% { transform: scale(0.40); opacity: 0;    filter: brightness(0.92); }
-}
-@keyframes potatoPopClear{
-  0%   { transform: scale(1);    opacity: 1; }
-  25%  { transform: scale(1.04); }
-  70%  { transform: scale(0.78); opacity: 0.3; }
-  100% { transform: scale(0.42); opacity: 0; }
-}
-/* 저사양 예외: reduced-motion 유지 (접근성) */
-@media (prefers-reduced-motion: reduce){
-  .cell.clearing .block-inner,
-  .cell.clearing .potato-wrap,
-  .cell.clearing .block-inner *{ animation: none !important; opacity: 0 !important; }
-}
+/* (구 v9 FORCE OVERRIDE 블록 39줄 제거됨) */
 
 /* Weekly Leaderboard (포팅: potato_Family) */
 .rank-card { background: linear-gradient(165deg, rgba(14,18,32,.72), rgba(8,12,22,.82));
@@ -2120,6 +2260,29 @@ body.ls-active .board-area{
 <canvas id="fxCanvas" style="position:fixed;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:9999"></canvas>
 
 <script>
+// ════════════════════════════════════════════════════════════
+// v7.1.2 PATCH — 성능 tier 단일 소스 (getEffectivePerfTier)
+// ════════════════════════════════════════════════════════════
+//   모든 perf 분기는 반드시 이 함수만 사용해야 한다.
+//   직접 window._lowPerf / window._mobileReduce 검사 금지.
+//
+//   우선순위:
+//     1) window._forcedPerfTier ∈ {0,1,2}  → 즉시 반환 (URL ?perf=N)
+//     2) window._lowPerf == true           → 2 (sessionDowngraded latch 또는 hwLowPerf)
+//     3) window._mobileReduce == true      → 1 (Android / iOS Telegram)
+//     4) 그 외                              → 0 (desktop / 일반 iOS Safari)
+//
+//   주의: 입력 변수 (_forcedPerfTier/_lowPerf/_mobileReduce)는 detectPerf IIFE에서
+//         설정. 그 이전 시점에 호출되면 모두 undefined → 0 반환 (안전한 기본값).
+// ────────────────────────────────────────────────────────────
+window.getEffectivePerfTier = function(){
+  const f = window._forcedPerfTier;
+  if(f===0||f===1||f===2) return f;
+  if(window._lowPerf) return 2;
+  if(window._mobileReduce) return 1;
+  return 0;
+};
+
 // ═══ Telegram Mini App ═══
 (function(){
   if(!window.Telegram?.WebApp)return;
@@ -3761,6 +3924,9 @@ function doPlace(idx,sr,sc){const p=pieces[idx];if(!p||p.used)return false;if(!c
 let _iceCount=0;
 
 function clearLines(extraCells){
+  // v7.1 PATCH: 클리어 FX 동기 비용 측정 (perfStatus.lastClearFxCost)
+  const __t0_clearFx = performance.now();
+  const __report_clearFx = ()=>{ window._lastClearFxCost = +(performance.now()-__t0_clearFx).toFixed(2); };
   const toRemove=[],seen=new Uint8Array(GRID*GRID);
   function mark(r,c){if(r<0||r>=GRID||c<0||c>=GRID)return;const idx=r*GRID+c;if(!seen[idx]){seen[idx]=1;toRemove.push([r,c])}}
   // ★ 얼음 셀도 "채워진 것"으로 카운트 (장애물이지만 라인 완성 기여)
@@ -3872,6 +4038,7 @@ function clearLines(extraCells){
   });
   if(!actuallyRemoved.length){
     // 얼음만 금 간 경우: 애니메이션 없이 바로 리턴 (라인 카운트는 유지 — 장식 피드백에 필요)
+    __report_clearFx();
     return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:[],removedCount:0,iceBonus,iceCrackCount,iceBreakCount};
   }
   _boardFilled-=actuallyRemoved.filter(([r,c])=>board[r][c]!==null).length;
@@ -3884,20 +4051,17 @@ function clearLines(extraCells){
     r,c,d:Math.sqrt((r-centerR)**2+(c-centerC)**2)
   })).sort((a,b)=>a.d-b.d);
   let maxDelay=0;
-  // 콤보 강도: 2줄+이면 파티클 풍성 + 금빛 — 단줄은 그대로 은은
-  const _sparkleTier = (rowCount+colCount+boxCount)>=3 ? 3 : ((rowCount+colCount+boxCount)>=2 ? 2 : 1);
+  // v7.1.4: spawnLineSparkle 호출 제거 (함수 자체가 return으로 비활성, 불필요한 setTimeout만 발생)
+  //         라인 클리어의 빛가루 효과는 score-suck canvas particle이 담당
   _ordered.forEach(({r,c},i)=>{
     const el=cellEls[r][c];
-    const delay=Math.min(i*14,56);  // v13 stagger 우아한 wave: 셀당 14ms, max 56ms (라인이 흐르듯 부드럽게 사라짐)
+    const delay=Math.min(i*14,56);  // radial wave: 셀당 14ms, max 56ms
     if(delay>maxDelay)maxDelay=delay;
     el.style.setProperty('--clear-delay',delay+'ms');
     el.classList.add('clearing');
-    // 라인 클리어 빛가루 — 셀 중심에서 분출 (stagger delay와 함께, 콤보 티어 반영)
-    const rect=el.getBoundingClientRect();
-    const sx=rect.left+rect.width/2, sy=rect.top+rect.height/2;
-    setTimeout(()=>spawnLineSparkle(sx,sy,_sparkleTier),delay+40);
   });
-  const CLEAR_DUR=window._lowPerf?130:160;  // v13 ELEGANT DISSOLVE: 기본 160ms, 저사양 130ms (위로 떠오르며 페이드)
+  // v7.1.3 LUXE: block 260ms / potato 280ms 커버 — tier 2는 200ms (190~210ms 범위)
+  const CLEAR_DUR=window.getEffectivePerfTier()>=2?200:280;  // potato가 더 길어 280 기준
   const totalWait=CLEAR_DUR+maxDelay+30;
   const _timerId=setTimeout(()=>{
     _activeClearTimers.delete(_timerId);
@@ -3909,6 +4073,7 @@ function clearLines(extraCells){
     }
   },totalWait);
   _activeClearTimers.add(_timerId);
+  __report_clearFx();
   return{lines:rowCount+colCount+boxCount,cells:toRemove.length,removed:actuallyRemoved,removedCount:actuallyRemoved.length,iceBonus,iceCrackCount,iceBreakCount};
 }
 // ═══════════════════════════════════════════════════════════════════
@@ -4091,7 +4256,7 @@ function triggerScoreImpact(numLines){
   }
   // ★ [TRIPLE IMPACT C] 미니 shockwave — score 위치에 골드 링 1개 (10→60px expand, 180ms)
   // 저사양은 GPU 비용 절감 차원에서 skip
-  if(scoreEl && !window._lowPerf && _PK && _PK.spawnShockwave && _PK.ensureCanvas()){
+  if(scoreEl && window.getEffectivePerfTier()<2 && _PK && _PK.spawnShockwave && _PK.ensureCanvas()){
     const sr=scoreEl.getBoundingClientRect();
     _PK.spawnShockwave(sr.left+sr.width/2, sr.top+sr.height/2, '#FFD86A');
   }
@@ -4107,7 +4272,7 @@ let clutchFxQueued=false;
 let clutchFxTimer=null;
 const CLUTCH_FX_DURATION=620;
 function triggerClutchFX(){
-  if(window._lowPerf) return;
+  if(window.getEffectivePerfTier()>=2) return;
   if(clutchFxPlaying){
     // 재생 중 호출 → 1슬롯 큐에 보관 (연속 클러치 상황에서 두 번째 피크 보존)
     clutchFxQueued=true;
@@ -4347,50 +4512,21 @@ function spawnCrossFlashRing(cx,cy){
   setTimeout(()=>el.remove(),400);
 }
 const _CONFETTI_COLORS=['#FF70B8','#FFB6DB','#FFFFFF','#FFD700','#7CC8FF','#A8E6CF','#FFA07A'];
-function _isLowPerf(){return document.documentElement.classList.contains('low-perf')||document.body.classList.contains('low-perf')}
-function _isMobileReduce(){return document.body.classList.contains('mobile-reduce')}
-// 파티클 개수 스케일: low-perf(45%) < mobile-reduce(65%) < desktop(100%)
-function _particleScale(){return _isLowPerf()?0.45:(_isMobileReduce()?0.65:1)}
-// 🔥 자동 성능 감지: 2초 윈도우 동안 평균 프레임시간이 28ms 초과 or 33ms 초과 프레임이 15개 이상이면 low-perf 자동 부여
-(function autoPerfWatchdog(){
-  if(_isLowPerf()) return; // 이미 수동으로 켜져있으면 종료
-  const WINDOW_MS=2000;
-  const SLOW_FRAME_MS=33;
-  const AVG_BAD_MS=28;
-  const SLOW_COUNT_TRIGGER=15;
-  const buf=[]; // {t:time, d:delta}
-  let last=performance.now();
-  let triggered=false;
-  function loop(t){
-    if(triggered) return;
-    if(document.visibilityState!=='visible'||!document.hasFocus()){
-      // 백그라운드·비포커스 상태는 측정 스킵(throttle 왜곡 방지)
-      last=t; buf.length=0;
-      return requestAnimationFrame(loop);
-    }
-    const d=t-last; last=t;
-    buf.push({t,d});
-    // 윈도우 정리
-    while(buf.length&&t-buf[0].t>WINDOW_MS) buf.shift();
-    if(buf.length>=60){ // 최소 샘플 확보 후 판정
-      let sum=0,slow=0;
-      for(let i=0;i<buf.length;i++){sum+=buf[i].d;if(buf[i].d>SLOW_FRAME_MS)slow++;}
-      const avg=sum/buf.length;
-      if(avg>AVG_BAD_MS||slow>=SLOW_COUNT_TRIGGER){
-        triggered=true;
-        document.documentElement.classList.add('low-perf');
-        // DEBUG 플래그(window._ppDebug 또는 localStorage.pp_debug=='1')일 때만 진단 로그 출력
-        try{
-          const _dbg = window._ppDebug || (typeof localStorage!=='undefined' && localStorage.getItem('pp_debug')==='1');
-          if(_dbg) console.info('[perf] low-perf 자동 활성 — avg:'+avg.toFixed(1)+'ms, slow:'+slow);
-        }catch(e){}
-        return;
-      }
-    }
-    requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
-})();
+// v7.1.2 PATCH: 단일 소스 위임 — getEffectivePerfTier만 본다.
+//   document.documentElement.classList 검사는 구형 watchdog 잔재였음 (제거).
+function _isLowPerf(){ return window.getEffectivePerfTier() >= 2; }
+function _isMobileReduce(){ return window.getEffectivePerfTier() >= 1; }
+// 파티클 개수 스케일: tier 2 (45%) < tier 1 (65%) < tier 0 (100%)
+function _particleScale(){ const t=window.getEffectivePerfTier(); return t>=2?0.45:(t>=1?0.65:1); }
+
+// ────────────────────────────────────────────────────────────
+// v7.1.2 PATCH: 구형 autoPerfWatchdog IIFE 제거 (4438~4476번 라인)
+//   사유: 새 detectPerf() watchdog과 중복 + sessionDowngraded/forcedPerfTier
+//         정책 우회. document.documentElement.classList.add('low-perf')로
+//         tier 시스템 밖에서 클래스를 붙여 perfStatus()와 불일치 발생.
+//   대체: detectPerf() 내부 watchdog (SLOW_THRESHOLD=32ms, 세션 latch)이
+//         applyBodyClasses()로 단일 경로 관리.
+// ────────────────────────────────────────────────────────────
 function spawnConfetti(cx,cy){
   const count=Math.max(8,Math.round(22*_particleScale()));
   const frag=document.createDocumentFragment();
@@ -4493,10 +4629,14 @@ function spawnFirework(cx,cy){
   setTimeout(()=>{for(let i=0;i<sparkNodes.length;i++)sparkNodes[i].remove()},540);
   // 3. 트윙클(✦) 제거됨 — 폭탄 = 순수 화염/적색 통일성 유지
 }
-// ─── 구 라인 클리어 파티클 — v2.5.0에서 캔버스 시스템(_PK)으로 교체됨, no-op ───
+// ─── ⚠️ DEPRECATED: spawnLineSparkle ───────────────────────────────
+// 현재 미사용 (v7.1.4 기준) — 호출 사이트 모두 제거됨.
+// 캔버스 파티클 시스템(_PK.emitBurst)이 라인 클리어 빛가루 효과를 담당.
+// 관련 .line-sparkle CSS는 다른 곳에서 동일 클래스를 쓸 가능성에 대비해 보존.
+// 차후 라인별 추가 sparkle이 필요하면 이 함수 본체를 다시 활성화할 것.
 let _lineSparkleBudget=180;
 function spawnLineSparkle(cx,cy,tier){
-  return; // 캔버스 파티클 시스템(_PK.emitBurst)으로 대체
+  return; // ⚠️ 호출자 없음 (v7.1.4) — _PK.emitBurst로 대체
   if(typeof _particleScale!=='function') return;
   if(_lineSparkleBudget<=0) return;
   const scale=_particleScale();
@@ -4646,15 +4786,13 @@ const _PK = (function(){
   }
   function roundRect(c,x,y,wd,hd,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+wd,y,x+wd,y+hd,r);c.arcTo(x+wd,y+hd,x,y+hd,r);c.arcTo(x,y+hd,x,y,r);c.arcTo(x,y,x+wd,y,r);c.closePath();}
   // ── 성능 티어 ──
-  // _lowPerf: 자동감지 watchdog 결과 / _mobileReduce: iOS·Android 자동
-  // perfTier 0=고사양 / 1=모바일(블러 줄임) / 2=저사양(블러·shadow 0)
-  function perfTier(){
-    if(window._lowPerf) return 2;
-    if(window._mobileReduce) return 1;
-    return 0;
-  }
+  // v7.1.2: 단일 소스 위임 — window.getEffectivePerfTier만 본다.
+  //         (forcedPerfTier / sessionDowngraded / mobileReduce 모두 통합 처리됨)
+  function perfTier(){ return window.getEffectivePerfTier(); }
   // 파티클 상한 (성능 우선 — 부드러운 60fps 보장)
-  const PARTICLE_CAP=()=>perfTier()===2?25:(perfTier()===1?50:120);
+  // v7.1 PATCH: tier 1 cap 50 → 36 (균형 옵션, Telegram WebView 안정화)
+  //             tier 2 cap 25 → 22 (추가 보수)
+  const PARTICLE_CAP=()=>perfTier()===2?22:(perfTier()===1?36:120);
   function trim(){
     const cap=PARTICLE_CAP();
     if(particles.length>cap){
@@ -4666,29 +4804,29 @@ const _PK = (function(){
     opts=opts||{};
     // 흡인(target) 모드 — 황금감자 70% 비중 (은은한 황금빛)
     const typeIdx=opts.golden?2:(opts.target?(Math.random()<0.7?2:Math.floor(Math.random()*2)):(Math.random()<0.06?2:Math.floor(Math.random()*2)));
-    // 짧은 외부 폭발 후 점수쪽으로 빨려들어감 (200~280ms — cell burst 더 오래 보임)
-    const angle=Math.random()*Math.PI*2; // 360도 흩어짐
-    const speed=opts.speed||(60+Math.random()*60);
+    // ★ v7.1.4 LUXE CURVED SUCK: 짧은 미세 burst → 70~110ms 머무름 → 곡선 흡인 (직선 미사일 느낌 제거)
+    const angle=Math.random()*Math.PI*2;
+    const speed=opts.speed||(40+Math.random()*30); // 40~70 미세 burst
     particles.push({type:'potato',x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       rot:(Math.random()-0.5)*0.25,vrot:(Math.random()-0.5)*2.5,
-      size:opts.size||(7+Math.random()*3),sizeMul:1,fallTime:0, // 4-6 → 7-10 (시각 풍성함)
+      size:opts.size||(7+Math.random()*3),sizeMul:1,fallTime:0,
       life:1,decay:1.0+Math.random()*0.15,typeIdx,
       hasSprout:Math.random()<0.20,
       face:['happy','wow','wink','smile','dizzy','sleepy'][Math.floor(Math.random()*6)],
       bounceT:Math.random()*Math.PI,
-      target:opts.target,           // 점수 위치 — 빨려들어갈 목표
-      attractDelay:0.10+Math.random()*0.06}); // 100~160ms — cell에서 잠깐 부드럽게 머물고 부드럽게 흡인 시작
+      target:opts.target,
+      attractDelay:0.07+Math.random()*0.04}); // v7.1.3: 70~110ms — clear 시작 후 약간 머물다 흡인
   }
   function spawnMiniStar(x,y,opts){
     opts=opts||{};
     const angle=opts.angle!==undefined?opts.angle:(Math.random()*Math.PI*2);
-    const speed=opts.speed||(70+Math.random()*60);
+    const speed=opts.speed||(50+Math.random()*30); // 50~80
     particles.push({type:'ministar',x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,
       rot:0,vrot:(Math.random()-0.5)*8,
       size:opts.size||(4+Math.random()*2),life:1,decay:1.4+Math.random()*0.35,
       color:opts.color||'#FFE08C',
       target:opts.target,
-      attractDelay:0.10+Math.random()*0.06}); // 100~160ms 외부 퍼짐 후 부드러운 흡인
+      attractDelay:0.07+Math.random()*0.04}); // v7.1.3: 70~110ms 흡인
   }
   function spawnFlick(x,y,opts){
     opts=opts||{};
@@ -4942,22 +5080,44 @@ const _PK = (function(){
       if(!p._spawnTime) p._spawnTime=now;
       if(p.type==='potato'){
         if(p.target){
-          // ★ tween 기반 흡인 — 0.36s 안에 점수에 정확히 도달
+          // ★ v7.1.4 LUXE CURVED SUCK: 초반 30% 머무는 듯, 후반 70% 빨려 들어감 (easeInQuad)
+          //    + 미세 곡선 (수직 offset 6~14px, 랜덤 좌/우) — 직선 미사일 느낌 제거
           p.attractDelay-=dt;
           if(p.attractDelay>0){
-            p.vx*=0.85;p.vy*=0.85;
+            p.vx*=0.84;p.vy*=0.84;
             p.x+=p.vx*dt;p.y+=p.vy*dt;
           }else{
-            if(!p.attractStart){p.attractStart={x:p.x,y:p.y};p.attractTime=0;}
+            if(!p.attractStart){
+              p.attractStart={x:p.x,y:p.y};
+              p.attractTime=0;
+              // v7.1.4: quadratic bezier control point — 시작-target 중점에서 수직으로 6~14px offset
+              const dxA=p.target.x-p.x, dyA=p.target.y-p.y;
+              const lenA=Math.sqrt(dxA*dxA+dyA*dyA)||1;
+              // 수직 단위벡터 (90° 회전)
+              const perpX=-dyA/lenA, perpY=dxA/lenA;
+              // 6~14px 범위, 랜덤 좌우
+              const offMag=(Math.random()<0.5?-1:1)*(6+Math.random()*8);
+              p.curveCx=(p.attractStart.x+p.target.x)/2 + perpX*offMag;
+              p.curveCy=(p.attractStart.y+p.target.y)/2 + perpY*offMag;
+            }
             p.attractTime+=dt;
-            const t=Math.min(1,p.attractTime/0.36);
-            const eased=t*t*t; // easeInCubic — 처음 천천히, 끝에서 빠르게 (슈류룩)
-            p.x=p.attractStart.x+(p.target.x-p.attractStart.x)*eased;
-            p.y=p.attractStart.y+(p.target.y-p.attractStart.y)*eased;
-            // t>=0.92 시점에 도착 처리 (시각 도달 + 정확한 타이밍)
-            if(t>=0.92 && !p.arrived){
-              p.arrived=true;
-              if(p.target.onArrive)p.target.onArrive();
+            // travel 0.46s (460ms)
+            const t=Math.min(1,p.attractTime/0.46);
+            // easeInQuad — 초반 머물고 후반 가속 (suck-in feel)
+            const u=t*t;
+            // quadratic bezier: B(u) = (1-u)²·P0 + 2(1-u)u·P1 + u²·P2
+            const inv=1-u;
+            p.x=inv*inv*p.attractStart.x + 2*inv*u*p.curveCx + u*u*p.target.x;
+            p.y=inv*inv*p.attractStart.y + 2*inv*u*p.curveCy + u*u*p.target.y;
+            // v7.1.5: 도착 판정 hybrid — 실제 시각 거리 ≤10px 또는 t≥0.98 fallback
+            //   (이전 t≥0.92는 easeInQuad에서 실제 진행률 0.846에 불과해 시각보다 빠른 펄스 발생)
+            if(!p.arrived){
+              const ddx=p.target.x-p.x, ddy=p.target.y-p.y;
+              const nearTarget=(ddx*ddx+ddy*ddy)<=100; // 10px 이내
+              if(nearTarget || t>=0.98){
+                p.arrived=true;
+                if(p.target.onArrive)p.target.onArrive();
+              }
             }
             if(t>=1){p.life=0;}
           }
@@ -4971,17 +5131,36 @@ const _PK = (function(){
       }else if(p.type==='ministar'){
         if(p.target){
           p.attractDelay-=dt;
-          if(p.attractDelay>0){p.vx*=0.85;p.vy*=0.85;p.x+=p.vx*dt;p.y+=p.vy*dt;}
+          if(p.attractDelay>0){p.vx*=0.84;p.vy*=0.84;p.x+=p.vx*dt;p.y+=p.vy*dt;}
           else{
-            if(!p.attractStart){p.attractStart={x:p.x,y:p.y};p.attractTime=0;}
+            if(!p.attractStart){
+              p.attractStart={x:p.x,y:p.y};
+              p.attractTime=0;
+              // v7.1.4: 동일한 곡선 흡인 (별은 살짝 작은 offset 5~12px로 더 직선적)
+              const dxA=p.target.x-p.x, dyA=p.target.y-p.y;
+              const lenA=Math.sqrt(dxA*dxA+dyA*dyA)||1;
+              const perpX=-dyA/lenA, perpY=dxA/lenA;
+              const offMag=(Math.random()<0.5?-1:1)*(5+Math.random()*7);
+              p.curveCx=(p.attractStart.x+p.target.x)/2 + perpX*offMag;
+              p.curveCy=(p.attractStart.y+p.target.y)/2 + perpY*offMag;
+            }
             p.attractTime+=dt;
-            const t=Math.min(1,p.attractTime/0.32); // 별이 살짝 더 빠름
-            const eased=t*t*t;
-            p.x=p.attractStart.x+(p.target.x-p.attractStart.x)*eased;
-            p.y=p.attractStart.y+(p.target.y-p.attractStart.y)*eased;
-            if(t>=0.92 && !p.arrived){
-              p.arrived=true;
-              if(p.target.onArrive)p.target.onArrive();
+            // travel 0.44s (440ms, 별이 살짝 더 빠름)
+            const t=Math.min(1,p.attractTime/0.44);
+            // easeInQuad
+            const u=t*t;
+            // quadratic bezier
+            const inv=1-u;
+            p.x=inv*inv*p.attractStart.x + 2*inv*u*p.curveCx + u*u*p.target.x;
+            p.y=inv*inv*p.attractStart.y + 2*inv*u*p.curveCy + u*u*p.target.y;
+            // v7.1.5: 도착 판정 hybrid — 실제 거리 ≤10px 또는 t≥0.98 fallback
+            if(!p.arrived){
+              const ddx=p.target.x-p.x, ddy=p.target.y-p.y;
+              const nearTarget=(ddx*ddx+ddy*ddy)<=100; // 10px 이내
+              if(nearTarget || t>=0.98){
+                p.arrived=true;
+                if(p.target.onArrive)p.target.onArrive();
+              }
             }
             if(t>=1){p.life=0;}
           }
@@ -5127,12 +5306,21 @@ const _PK = (function(){
     // 외부 호출용 — 호출 즉시 tick loop 보장 (다른 파티클 없을 때도 단독 렌더)
     spawnShockwave:(x,y,color)=>{spawnShockwave(x,y,color); ensureLoop();},
     clear:()=>{particles.length=0;if(ctx&&w&&h)ctx.clearRect(0,0,w,h);},
+    // v7.1: perfStatus()에서 라이브 카운트 참조
+    _particles: particles,
     _debug:()=>({particleCount:particles.length, running:_running, w, h, hasCanvas:!!canvas})};
 })();
 
+// v7.1.2: 단일 소스 위임 — window.getEffectivePerfTier()만 사용
+window._PARTICLE_CAP_FN = ()=>{
+  const tier = window.getEffectivePerfTier();
+  return tier===2?22:(tier===1?36:120);
+};
+window._PK = _PK;
+
 function triggerBoardKick(numLines){
-  // 저사양 차단 — 절대 실행 안 함
-  if(window._lowPerf) return;
+  // tier 2 차단 — 절대 실행 안 함
+  if(window.getEffectivePerfTier()>=2) return;
   const el=document.getElementById('board-frame-el')||document.querySelector('.board-frame');
   if(!el) return;
   // 강도 분기 — 라인 수 기준 (CSS var로 transform만 조정)
@@ -5165,7 +5353,7 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
     });
   }
   // ═══ 클리어 micro kick — 2줄 전용 (3+ 는 위 shake가 처리, 충돌 방지) ═══
-  if(numLines===2 && !window._lowPerf){
+  if(numLines===2 && window.getEffectivePerfTier()<2){
     triggerBoardKick(numLines);
   }
 
@@ -5207,8 +5395,9 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
   }
 
   // ★ [1] emit source 제한 — 티어별 최대 개수로 샘플링
-  const tier=window._lowPerf?2:(window._mobileReduce?1:0);
-  const maxSources=tier===2?3:(tier===1?5:7);
+  const tier=window.getEffectivePerfTier();
+  // v7.1 PATCH: tier 1 maxSources 5 → 4 (Telegram WebView 클리어 FX 부담 감소)
+  const maxSources=tier===2?3:(tier===1?4:7);
   const sampled=[];
   const step=Math.max(1,Math.ceil(removed.length/maxSources));
   removed.forEach((cell,idx)=>{
@@ -5294,66 +5483,264 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
   // 콤보 폭죽 효과 제거됨 — 흡인 모션이 메인
 }
 
-// 성능 감지 — 초기 + 주기적 재측정
-// P1-A fix: 하드웨어 힌트 + 실측 2단계 (첫 ~100ms 동안 저사양도 경량 경로 적용)
+// ════════════════════════════════════════════════════════════
+// v7.1.1 PATCH — 성능 감지 (iOS Telegram WebView 대응 + QA 강제 모드)
+// ════════════════════════════════════════════════════════════
+//   분류 정책:
+//     · Android Telegram     → mobile-reduce (tier 1)
+//     · iOS Telegram         → mobile-reduce (tier 1)
+//     · 일반 iOS Safari      → high-perf (tier 0)
+//     · 일반 데스크톱        → high-perf (tier 0)
+//     · low-end hardware     → low-perf (tier 2)
+//
+//   Tier 결정 우선순위 (높음 → 낮음):
+//     1) URL ?perf=0|1|2  (forcedPerfTier — QA 강제, localStorage 저장 안 함)
+//     2) sessionDowngraded (watchdog 한 번 tier 2 → 세션 끝까지 latch)
+//     3) hwLowPerf (deviceMemory<2 또는 cpu<=2)
+//     4) mobileReduce (Android / iOS Telegram)
+//     5) 기본 high-perf
+//
+//   watchdog SLOW_THRESHOLD = 32ms (≈ 31fps 미만 감지)
+//   연속 2회 SLOW 시 sessionDowngraded = true (이후 세션 동안 latch)
+//   localStorage / sessionStorage 저장 없음 → 새로고침하면 다시 tier 1부터 판정
+// ────────────────────────────────────────────────────────────
 (function detectPerf(){
-  // P1-A: 하드웨어 힌트로 즉시 추정 — 첫 6프레임 실측 전에도 저사양 경로 적용됨
-  // deviceMemory: Chromium 한정 (Safari 미지원 — undefined로 건너뜀)
-  // hardwareConcurrency: Safari fingerprint 방어로 낮게 보고할 수 있음 → 임계값 보수적 (cpu<=2)
   const mem=navigator.deviceMemory;
   const cpu=navigator.hardwareConcurrency;
-  // ★ 진짜 저사양만 hwLowPerf — iPhone 16 Pro 같은 고사양이 잘못 잡히지 않도록
+  // 진짜 저사양만 hwLowPerf — iPhone 16 Pro 같은 고사양 오인 방지
   const hwLowPerf=(typeof mem==='number'&&mem<2)||(typeof cpu==='number'&&cpu<=2);
-  window._lowPerf=!!hwLowPerf;
-  document.body.classList.toggle('low-perf',window._lowPerf);
-  // ★ 모바일 감쇠 — iOS는 GPU/JIT 우수해서 기본 OFF (고사양 iPhone에서 풀 효과 보장)
-  //    Android만 보수적으로 ON (저사양 Android는 watchdog이 추가로 _lowPerf로 승격)
+
+  // ── URL 강제 모드 (QA 전용) ──
+  // ?perf=0 → 강제 high-perf, ?perf=1 → 강제 mobile-reduce, ?perf=2 → 강제 low-perf
+  // 자동 판정/watchdog/sessionDowngraded보다 항상 우선. localStorage 저장 안 함.
+  let forcedPerfTier = null;
+  try{
+    const raw = new URLSearchParams(location.search).get('perf');
+    if(raw==='0'||raw==='1'||raw==='2') forcedPerfTier = parseInt(raw,10);
+  }catch(_){}
+  window._forcedPerfTier = forcedPerfTier; // perfTier() / _PARTICLE_CAP_FN()이 참조
+
+  // ── 환경 감지 ──
   const ua=navigator.userAgent||'';
   const isAndroid=/Android/i.test(ua);
-  window._mobileReduce=isAndroid;
-  document.body.classList.toggle('mobile-reduce',isAndroid);
-  const SAMPLES=8,INTERVAL=4000;
-  // ★ 임계값 완화 (33→50ms): 진짜 끊김(20fps 이하)만 저사양으로 판정
-  //   Telegram WebView 초기 로딩 jank로 인한 오판 방지
-  const SLOW_THRESHOLD=50;
-  let samples=[],rafId=0,timer=0,measureCount=0,slowStreak=0;
+  // iOS / iPadOS 13+ 감지 (iPad는 desktop UA로 위장하므로 maxTouchPoints 보조)
+  const isIOS = /iP(hone|ad|od)/i.test(ua) ||
+                (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints||0) > 1);
+  // Telegram WebApp 객체 + UA의 'Telegram' 토큰 둘 다 확인 (위장 방지)
+  const isTelegramWebView = !!(window.Telegram && window.Telegram.WebApp) ||
+                            /Telegram/i.test(ua);
+  const isTelegramIOS = isIOS && isTelegramWebView;
+
+  // tierReason: 어떤 경로로 tier가 결정되었는지 추적 (QA용)
+  let tierReason = 'desktop-or-safari';
+  // ★ mobile-reduce 결정 로직
+  //   - Android (브라우저든 Telegram이든): 항상 reduce
+  //   - iOS: Telegram일 때만 reduce, 일반 Safari는 풀이펙트
+  let mobileReduce = false;
+  if(isAndroid){ mobileReduce=true; tierReason='android'; }
+  else if(isTelegramIOS){ mobileReduce=true; tierReason='telegram-ios'; }
+  else if(isIOS){ tierReason='ios-safari-highperf'; }
+
+  // forcedPerfTier가 있으면 reason 명시
+  if(forcedPerfTier!==null) tierReason = 'forced-perf-'+forcedPerfTier;
+
+  window._mobileReduce = mobileReduce;
+  // sessionDowngraded이 true가 될 때까지 _lowPerf는 hwLowPerf만 반영
+  window._lowPerf = !!hwLowPerf;
+
+  // ── body 클래스 동기화 ──
+  // v7.1.1: 누적 적용 정책 — tier 2면 low-perf + mobile-reduce 둘 다 ON
+  // (기존 .mobile-reduce 전용 CSS 규칙들이 tier 2에서도 계속 적용되도록 보장)
+  function applyBodyClasses(){
+    const eff = effectiveTier();
+    document.body.classList.toggle('low-perf',      eff>=2);
+    document.body.classList.toggle('mobile-reduce', eff>=1);
+  }
+
+  function effectiveTier(){ return window.getEffectivePerfTier(); }
+
+  applyBodyClasses();
+
+  // iOS Telegram 전용 클래스 (별 배경 SVG OFF용) — forcedPerfTier와 별개로 환경 표식
+  if(isTelegramIOS) document.body.classList.add('tg-ios');
+
+  // perfStatus / 디버그 노출 (다른 모듈이 참조)
+  window._perfEnv = {
+    isIOS, isTelegramWebView, isTelegramIOS, isAndroid, hwLowPerf
+  };
+
+  const SAMPLES=8, INTERVAL=4000;
+  // ★ SLOW_THRESHOLD 32ms (≈ 31fps 미만 감지)
+  //    연속 2회 SLOW 시 sessionDowngraded = true → 세션 끝까지 tier 2 latch
+  const SLOW_THRESHOLD = 32;
+
+  let samples=[], rafId=0, timer=0, measureCount=0, slowStreak=0;
+  let lastAvg = null;
+  // ★ v7.1.1: 한 번 tier 2로 내려가면 세션 동안 유지 (위/아래 깜빡임 방지)
+  //   localStorage 미사용 → 새로고침/재방문 시 false로 리셋되어 tier 1부터 다시 판정
+  let sessionDowngraded = false;
+
   function measure(){
-    // 백그라운드 탭에서는 측정 정지 (배터리/CPU 절약)
-    if(document.hidden){timer=setTimeout(measure,INTERVAL);return;}
-    let t=performance.now(),count=0;
+    if(document.hidden){ timer=setTimeout(measure,INTERVAL); return; }
+    let t=performance.now(), count=0;
     function tick(){
       const dt=performance.now()-t; t=performance.now();
-      samples.push(dt); if(samples.length>SAMPLES*2)samples.shift();
-      if(++count<SAMPLES)rafId=requestAnimationFrame(tick);
+      samples.push(dt); if(samples.length>SAMPLES*2) samples.shift();
+      if(++count<SAMPLES) rafId=requestAnimationFrame(tick);
       else{
         measureCount++;
-        // 첫 측정은 warm-up bias 무시 (Telegram WebView 초기 jank 방지)
-        if(measureCount<=1){timer=setTimeout(measure,INTERVAL);return;}
+        if(measureCount<=1){ timer=setTimeout(measure,INTERVAL); return; }
         const avg=samples.reduce((a,b)=>a+b,0)/samples.length;
-        // 연속 2회 SLOW 시에만 _lowPerf 승격 (일시적 jank 방어)
+        lastAvg = avg;
         if(avg>SLOW_THRESHOLD) slowStreak++; else slowStreak=0;
-        const measuredSlow=slowStreak>=2;
-        // 하드웨어 힌트로 저사양 판정된 기기는 실측 좋아도 유지
-        window._lowPerf=measuredSlow||hwLowPerf;
-        document.body.classList.toggle('low-perf',window._lowPerf);
+        const measuredSlow = slowStreak>=2;
+        // ★ latch: 한 번 sessionDowngraded이 true되면 절대 false로 안 떨어짐
+        if(measuredSlow) sessionDowngraded = true;
+        // forcedPerfTier가 있으면 watchdog 결과는 _lowPerf 토글에 영향 없음
+        window._lowPerf = sessionDowngraded || hwLowPerf;
+        if(measuredSlow && !/\+watchdog$/.test(tierReason) && forcedPerfTier===null){
+          tierReason += '+watchdog';
+        }
+        applyBodyClasses();
         timer=setTimeout(measure,INTERVAL);
       }
     }
     rafId=requestAnimationFrame(tick);
   }
   measure();
-  // ★ 실기기 디버그 — Telegram WebView에서 console.log(window.perfStatus()) 로 즉시 확인
-  window.perfStatus=()=>({
-    tier: window._lowPerf?2:(window._mobileReduce?1:0),
-    _lowPerf: window._lowPerf,
-    _mobileReduce: window._mobileReduce,
-    hwLowPerf,
-    cpu, mem,
-    measureCount, slowStreak,
-    avgFrameTime: samples.length?Math.round(samples.reduce((a,b)=>a+b,0)/samples.length*10)/10:null,
-    estimatedFps: samples.length?Math.round(1000/(samples.reduce((a,b)=>a+b,0)/samples.length)):null,
-    SLOW_THRESHOLD
-  });
+
+  // ────────────────────────────────────────────────────────────
+  // ★ window.perfStatus() — 실기기 디버그 (QA 콘솔에서 즉시 확인)
+  // ────────────────────────────────────────────────────────────
+  window.perfStatus=()=>{
+    const cap = (typeof window._PARTICLE_CAP_FN === 'function') ? window._PARTICLE_CAP_FN() : null;
+    const partLen = (window._PK && window._PK._particles) ? window._PK._particles.length : null;
+    const eff = effectiveTier();
+    const naturalTier = window._lowPerf?2:(window._mobileReduce?1:0);
+    return {
+      // ── 최종 적용 tier ──
+      effectiveTier: eff,
+      tierReason,
+      // ── 결정 입력 변수 ──
+      forcedPerfTier,
+      sessionDowngraded,
+      naturalTier,
+      _lowPerf: window._lowPerf,
+      _mobileReduce: window._mobileReduce,
+      hwLowPerf, cpu, mem,
+      // ── 환경 ──
+      isIOS, isTelegramWebView, isTelegramIOS, isAndroid,
+      // ── watchdog ──
+      measureCount, slowStreak,
+      avgFrameTime: samples.length? Math.round(samples.reduce((a,b)=>a+b,0)/samples.length*10)/10 : null,
+      estimatedFps: samples.length? Math.round(1000/(samples.reduce((a,b)=>a+b,0)/samples.length)) : null,
+      SLOW_THRESHOLD,
+      // ── 드래그/클리어 비용 ──
+      dragRafPending: !!window._dragRafPending,
+      lastDragFrameCost: window._lastDragFrameCost ?? null,
+      lastClearFxCost:   window._lastClearFxCost   ?? null,
+      // ── 파티클 ──
+      particleCap: cap,
+      particleCount: partLen
+    };
+  };
+
+  // ────────────────────────────────────────────────────────────
+  // ★ window.__testDragPerf(durationMs) — 드래그 frame cost 측정
+  //   사용법: 콘솔에 입력 후 즉시 블록을 드래그하면 평균/최대 비용 출력
+  // ────────────────────────────────────────────────────────────
+  window.__testDragPerf=function(durationMs){
+    const dur = durationMs||3000;
+    const start = performance.now();
+    const costs = [];
+    let frames = 0;
+    function tick(){
+      const dragCost = window._lastDragFrameCost;
+      if(typeof dragCost === 'number' && dragCost>=0) costs.push(dragCost);
+      frames++;
+      if(performance.now()-start < dur){
+        requestAnimationFrame(tick);
+      }else{
+        if(!costs.length){
+          console.log('[__testDragPerf] no drag activity detected — start a drag and rerun');
+          return;
+        }
+        const sum = costs.reduce((a,b)=>a+b,0);
+        const avg = sum/costs.length;
+        const max = Math.max.apply(null, costs);
+        console.log('[__testDragPerf]', {
+          samples: costs.length, frames,
+          avgCost: avg.toFixed(2)+'ms',
+          maxCost: max.toFixed(2)+'ms'
+        });
+      }
+    }
+    tick();
+    return 'measuring '+dur+'ms — drag a piece NOW (continuous touchmove required)';
+  };
+
+  // ────────────────────────────────────────────────────────────
+  // ★ window.__monitorClearPerf(durationMs) — 동기 clear FX 비용 monitor 모드
+  //
+  //   ⚠️ 측정 범위: clearLines() 함수의 동기 실행 비용만 추적한다.
+  //                 (lastClearFxCost = clearLines 진입~return 까지의 동기 시간)
+  //                 setTimeout 안의 cell DOM 정리, CSS 애니메이션 frame drop,
+  //                 canvas particle tick 비용은 포함되지 않는다.
+  //
+  //   사용법:
+  //     1) 콘솔에 __monitorClearPerf(15000) 입력
+  //     2) 게임 내에서 실제로 라인을 클리어 (1줄/2줄/3줄+ 다양하게)
+  //     3) 15초 후 콘솔에 결과 자동 출력
+  //
+  //   강제 클리어 호출은 게임 상태(점수/콤보/플로우)를 오염시킬 수 있어
+  //   monitor 모드만 제공한다.
+  //
+  //   ★ 최종 실기기 QA는 반드시 아래를 함께 확인:
+  //     · iPhone 16 Pro Telegram Mini App에서 직접 클리어
+  //     · perfStatus().avgFrameTime  — 16.6ms 근처면 60fps 안정
+  //     · perfStatus().estimatedFps   — 58~60 안정
+  //     · perfStatus().lastClearFxCost — < 10ms 권장
+  //     · perfStatus().particleCount  — particleCap 이하 유지 확인
+  //     · __testDragPerf(3000)          — 드래그 frame cost < 5ms 권장
+  //   동기 비용만 보고 통과시키면 안 된다 — 시각적 frame drop은 별개로 확인 필요.
+  // ────────────────────────────────────────────────────────────
+  window.__monitorClearPerf=function(durationMs){
+    const dur = durationMs||15000;
+    const start = performance.now();
+    const samples = [];
+    let lastSeen = window._lastClearFxCost;
+    console.log('[__monitorClearPerf] '+dur+'ms 동안 monitor 시작 — 게임에서 실제로 라인을 클리어하세요. 끝나면 자동 보고됩니다.');
+    function tick(){
+      const cur = window._lastClearFxCost;
+      // lastClearFxCost가 갱신될 때마다 새 클리어로 카운트
+      if(typeof cur==='number' && cur!==lastSeen){
+        samples.push(cur);
+        lastSeen = cur;
+      }
+      if(performance.now()-start < dur){
+        requestAnimationFrame(tick);
+      }else{
+        if(!samples.length){
+          console.log('[__monitorClearPerf] no clears detected during monitor window — try clearing some lines and rerun');
+          return;
+        }
+        const sum = samples.reduce((a,b)=>a+b,0);
+        const avg = sum/samples.length;
+        const max = Math.max.apply(null, samples);
+        console.log('[__monitorClearPerf]', {
+          clears: samples.length,
+          avgCost: avg.toFixed(2)+'ms',
+          maxCost: max.toFixed(2)+'ms',
+          allCosts: samples.map(v=>+v.toFixed(2))
+        });
+      }
+    }
+    requestAnimationFrame(tick);
+    return 'monitoring '+dur+'ms — trigger real clears in-game';
+  };
+
+  // 하위 호환성 — 이전 이름도 monitor로 별칭
+  window.__testClearPerf = window.__monitorClearPerf;
 })();
 
 
@@ -5461,7 +5848,7 @@ function showComboMultiplier(numLines){
   _comboMultTimer = setTimeout(()=>{
     if(_comboMultEl) _comboMultEl.style.display='none';
     _comboMultTimer = null;
-  }, window._lowPerf?600:900);
+  }, window.getEffectivePerfTier()>=2?600:900);
 }
 // ── 신기록 달성 팝업 (게임당 최초 1회만 노출) ──
 let _lastMilestoneEl=null;
@@ -5480,7 +5867,7 @@ function showNewRecordPopup(scoreValue){
   _lastMilestoneEl=el;
   haptic('heavy');
   if(Sound?.sfx?.extend) Sound.sfx.extend();
-  const dur = window._lowPerf?900:1600;
+  const dur = window.getEffectivePerfTier()>=2?900:1600;
   setTimeout(()=>{if(el.parentNode)el.remove();if(_lastMilestoneEl===el)_lastMilestoneEl=null}, dur);
 }
 // ── 위기 탈출 카운터 + 클러치 FX (영구 #fx-layer 재사용, DOM 노드 반복 생성 없음) ──
@@ -5515,8 +5902,9 @@ function _getBoardBitmap(){
   return bmp;
 }
 
-function showPreview(shape,sr,sc){
-  const valid=canPlace(shape,sr,sc);
+// v7.1 PATCH: validHint 파라미터 추가 — 호출자가 이미 canPlace를 계산했으면 중복 호출 회피
+function showPreview(shape,sr,sc,validHint){
+  const valid = (typeof validHint === 'boolean') ? validHint : canPlace(shape,sr,sc);
   const cls=valid?'preview-valid':'preview-invalid';
   const newCells=[];
   shape.forEach(([dr,dc])=>{const r=sr+dr,c=sc+dc;if(r>=0&&r<GRID&&c>=0&&c<GRID)newCells.push([r,c])});
@@ -5837,7 +6225,7 @@ function _ghostRenderLoop(){
   const dy=_ghostTargetY-_ghostRenderY;
   const dist=Math.sqrt(dx*dx+dy*dy);
   // v6-responsive-v2: Ghost 민감도 대폭 상향 (0.45 → 0.65)
-  const base=window._lowPerf?0.75:0.65;
+  const base=window.getEffectivePerfTier()>=2?0.75:0.65;
   const lerp=Math.min(1,base+Math.min(dist/60,1)*0.30);
   _ghostRenderX+=dx*lerp;
   _ghostRenderY+=dy*lerp;
@@ -5856,7 +6244,7 @@ function _ghostRenderLoop(){
     const poDx=_poTargetX-_poRenderX;
     const poDy=_poTargetY-_poRenderY;
     const poDist=Math.sqrt(poDx*poDx+poDy*poDy);
-    const poBase=window._lowPerf?0.60:0.50;
+    const poBase=window.getEffectivePerfTier()>=2?0.60:0.50;
     const poLerp=Math.min(1,poBase+Math.min(poDist/40,1)*0.35);
     _poRenderX+=poDx*poLerp;
     _poRenderY+=poDy*poLerp;
@@ -5878,8 +6266,9 @@ function _ghostRenderLoop(){
       _lastHitKey=hk;
       if(_ghostHit){
         const[hr2,hc2]=_ghostHit,[sr2,sc2]=shapeAnchor(_ghostShape,hr2,hc2);
-        showPreview(_ghostShape,sr2,sc2);
+        // v7.1 PATCH: canPlace를 1회만 호출하고 showPreview에 전달 (중복 계산 제거)
         const valid=canPlace(_ghostShape,sr2,sc2);
+        showPreview(_ghostShape,sr2,sc2,valid);
         showPreviewOverlay(sr2,sc2,valid);
       }
       else {clearPreview();hidePreviewOverlay();}
@@ -5925,19 +6314,49 @@ function hideGhost(){
   _ghostEl.classList.remove('visible','on-board','dropping','returning');
 }
 
+// ════════════════════════════════════════════════════════════
+// v7.1 PATCH — onMove를 rAF throttle (120Hz touchmove → 화면 프레임당 1회)
+// ════════════════════════════════════════════════════════════
+//   기존: 매 touchmove마다 cellAt + updateHoldTarget + moveGhost 직접 실행
+//   변경: 좌표만 저장 → rAF에서 1회 처리. 같은 프레임 내 중복 작업 차단.
+//   주의: e.preventDefault()는 onMove에서 즉시 실행 (rAF로 미루면 스크롤 발생)
+let _lastDragCX = 0, _lastDragCY = 0;
+window._dragRafPending = false;
+window._lastDragFrameCost = null;
+
 function onMove(e){
   if(!dragActive||dragIdx<0)return;
   e.preventDefault();
   const[cx,cy]=getClient(e);
+  _lastDragCX = cx;
+  _lastDragCY = cy;
+  // 이미 rAF 예약된 경우 좌표만 갱신 (가장 최신 좌표가 다음 프레임에서 처리됨)
+  if(window._dragRafPending) return;
+  window._dragRafPending = true;
+  requestAnimationFrame(processDragFrame);
+}
+
+function processDragFrame(){
+  window._dragRafPending = false;
+  if(!dragActive||dragIdx<0){ window._lastDragFrameCost = 0; return; }
+  const t0 = performance.now();
+  const cx = _lastDragCX, cy = _lastDragCY;
   const p=pieces[dragIdx];
+  if(!p){ window._lastDragFrameCost = performance.now()-t0; return; }
   const cw=Math.round(_strideW)||42,ch=Math.round(_strideH)||42;
   const ghostCenterX=cx+_dragAnchorOffX+_dragCols*cw/2;
   const ghostCenterY=cy+_dragAnchorOffY+_dragRows*ch/2;
   // 킵 슬롯 위에 있을 땐 보드 프리뷰 숨기고 타겟 하이라이트
   const overHold=updateHoldTarget(cx,cy);
-  if(overHold){clearPreview();moveGhost(cx,cy,p.shape,null);return}
+  if(overHold){
+    clearPreview();
+    moveGhost(cx,cy,p.shape,null);
+    window._lastDragFrameCost = performance.now()-t0;
+    return;
+  }
   const hit=cellAt(ghostCenterX,ghostCenterY);
   moveGhost(cx,cy,p.shape,hit);
+  window._lastDragFrameCost = performance.now()-t0;
 }
 
 function onUp(e){
@@ -5955,6 +6374,8 @@ function onUp(e){
     const storedIdx=dragIdx;
     _suppressClickUntil=performance.now()+350;
     document.querySelectorAll('.piece-slot.dragging').forEach(s=>s.classList.remove('dragging'));
+    // v7.1 PATCH: body.dragging OFF
+    document.body.classList.remove('dragging');
     dragActive=false;dragIdx=-1;selIdx=null;isTouchDrag=false;_lastPreviewKey='';
     hidePreviewOverlay();
     suckIntoHold(storedIdx);
@@ -5982,7 +6403,7 @@ function onUp(e){
     setTimeout(()=>{
       hideGhost();
       if(_ghostEl)_ghostEl.classList.remove('dropping');
-    }, window._lowPerf ? 80 : 120);
+    }, window.getEffectivePerfTier()>=2 ? 80 : 120);
   } else {
     hideGhost();
   }
@@ -5991,6 +6412,8 @@ function onUp(e){
   if(attemptedPlace)_suppressClickUntil=performance.now()+350;
   // ★ 모든 슬롯에서 dragging 클래스 제거 (트레이 블록 재표시)
   document.querySelectorAll('.piece-slot.dragging').forEach(s=>s.classList.remove('dragging'));
+  // v7.1 PATCH: body.dragging OFF
+  document.body.classList.remove('dragging');
   const hEl=document.getElementById('hold-slot');if(hEl)hEl.classList.remove('drop-target','drop-hover');
   dragActive=false;dragIdx=-1;selIdx=null;isTouchDrag=false;_lastPreviewKey='';renderTray();
   hidePreviewOverlay();
@@ -6001,6 +6424,8 @@ function onCancel(){
   hideGhost();clearPreview();hidePreviewOverlay();
   // ★ 모든 슬롯에서 dragging 클래스 제거
   document.querySelectorAll('.piece-slot.dragging').forEach(s=>s.classList.remove('dragging'));
+  // v7.1 PATCH: body.dragging OFF
+  document.body.classList.remove('dragging');
   const h=document.getElementById('hold-slot');if(h)h.classList.remove('drop-target','drop-hover');
   dragActive=false;dragIdx=-1;selIdx=null;isTouchDrag=false;_lastPreviewKey='';renderTray();
 }
@@ -6015,6 +6440,8 @@ function slotDown(e,idx){
   if(!gameActive||pieces[idx]?.used)return;
   e.preventDefault();
   dragIdx=idx;dragActive=true;selIdx=idx;renderTray();
+  // v7.1 PATCH: body.dragging 클래스 ON — CSS에서 무거운 filter/box-shadow 약화
+  document.body.classList.add('dragging');
   // 킵이 가능하면 타겟 표시
   if(isHoldAvailable()){const h=document.getElementById('hold-slot');if(h)h.classList.add('drop-target')}
   // ★ 드래그 중 표시 (CSS에서 opacity:0으로 원본 숨김, Ghost가 대신)
@@ -6295,7 +6722,7 @@ function confirmLineSelect(){
   closeLineSelectUI();
   // ★★ 카운트다운 먼저 표시, GO! 시점에 실제 클리어 실행
   runCountdown(()=>{
-    const coef=window._lowPerf?6:12;
+    const coef=window.getEffectivePerfTier()>=2?6:12;
     let maxDelay=0;
     const cellsToClear=[];
     const seen=new Set();
@@ -6399,7 +6826,7 @@ function extendAd(){if(!isGameOverExtendOpen())return;if(extendAdUsed)return;ext
       return;
     }
     // 6×6 구역 클리어 — 좌상 → 우하 stagger 파도
-    const coef=window._lowPerf?5:9;
+    const coef=window.getEffectivePerfTier()>=2?5:9;
     let maxDelay=0;
     const cellsToClear=[];
     for(let dr=0;dr<6;dr++){
