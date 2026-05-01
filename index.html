@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <!--
-  Potato POP v7.1.5 — 2026-05-01 (Score Suck 도착 펄스 정밀 보정)
+  Potato POP v7.1.6 — 2026-05-01 (TIER1 SAFE PARTICLE BOOST)
+
+  [v7.1.6 PATCH NOTE — iOS Telegram tier 1 체감 소폭 증가]
+  · 목표: PC tier 0와 iOS Telegram tier 1의 체감 차이를 좁히되, low-perf와 score barrier는 절대 보호
+  · PARTICLE_CAP tier 1: 36 → 46 (cap 90% 안전 게이트는 그대로 / 41.4 임계)
+    · _PK 모듈 내부 + window._PARTICLE_CAP_FN 양쪽 동기 적용
+  · maxSources tier 1: 4 → 5 (한 클리어 당 emitBurst 호출 source 수)
+  · emitBurst intensity 1/2/3+ 모두에 tier===1&&suckMode 분기 추가:
+    · sparks(decorative) 만 +2 — spawnSparkle은 target 없음, score barrier 무영향
+    · stars(target-bound)는 변경 없음 — expectedParticles 인플레이션 차단
+  · tier 0 (PC) / tier 2 (low-perf): 변경 없음
+    · low-perf + suckMode minimalLow: 감자 1 + 별 최대 1 + sparkle 0 보호 정책 그대로
+  · score-suck barrier flow: 변경 없음
+    · pendingScore → particle barrier → triggerScoreImpact → flushScore 단일 경로
+    · particleBarrierExpectedLocked / fallback 700ms / 1회 발사 보장 모두 유지
+  · v7.1.5 hybrid 도착 판정: 변경 없음
+    · potato/ministar 모두 nearTarget(≤10px) || t>=0.98
+  · DOM particle 추가 없음 / line-sparkle DOM 재활성화 없음
 
   [v7.1.5 PATCH NOTE — 최종 프리미엄 마감]
   · score-suck 도착 판정 hybrid 보정 (potato + ministar 둘 다)
@@ -4792,7 +4809,9 @@ const _PK = (function(){
   // 파티클 상한 (성능 우선 — 부드러운 60fps 보장)
   // v7.1 PATCH: tier 1 cap 50 → 36 (균형 옵션, Telegram WebView 안정화)
   //             tier 2 cap 25 → 22 (추가 보수)
-  const PARTICLE_CAP=()=>perfTier()===2?22:(perfTier()===1?36:120);
+  // v7.1.6 TIER1 BOOST: tier 1 cap 36 → 46 (iOS Telegram 체감 소폭 증가)
+  //                     tier 0/2는 그대로
+  const PARTICLE_CAP=()=>perfTier()===2?22:(perfTier()===1?46:120);
   function trim(){
     const cap=PARTICLE_CAP();
     if(particles.length>cap){
@@ -5236,18 +5255,21 @@ const _PK = (function(){
       let stars=Math.max(1,Math.round(2*m));
       let sparks=Math.max(0,Math.round(1*m));
       if(tier===0&&suckMode){stars+=3;sparks+=5;} // sparkle 추가 (셀 부근 풍성함)
+      else if(tier===1&&suckMode){sparks+=2;}     // v7.1.6 TIER1 BOOST: decorative sparkle만 +2 (target 없음 → barrier 무관)
       for(let i=0;i<stars;i++){spawnMiniStar(x,y,{target,speed:40+Math.random()*30}); if(suckMode) targetCount++;}
       for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*22,y+(Math.random()-0.5)*22);
     }else if(intensity===2){
       let stars=Math.max(2,Math.round(3*m));
       let sparks=Math.max(1,Math.round(2*m));
       if(tier===0&&suckMode){stars+=3;sparks+=5;}
+      else if(tier===1&&suckMode){sparks+=2;}     // v7.1.6 TIER1 BOOST: decorative sparkle만 +2
       for(let i=0;i<stars;i++){spawnMiniStar(x,y,{size:5+Math.random()*2,target,speed:50+Math.random()*30}); if(suckMode) targetCount++;}
       for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*28,y+(Math.random()-0.5)*28);
     }else{
       let stars=Math.max(3,Math.round(4*m));
       let sparks=Math.max(2,Math.round(3*m));
       if(tier===0&&suckMode){stars+=3;sparks+=5;}
+      else if(tier===1&&suckMode){sparks+=2;}     // v7.1.6 TIER1 BOOST: decorative sparkle만 +2
       for(let i=0;i<stars;i++){spawnMiniStar(x,y,{size:5.5+Math.random()*2.5,target,speed:55+Math.random()*40}); if(suckMode) targetCount++;}
       for(let i=0;i<sparks;i++)spawnSparkle(x+(Math.random()-0.5)*32,y+(Math.random()-0.5)*32);
     }
@@ -5312,9 +5334,10 @@ const _PK = (function(){
 })();
 
 // v7.1.2: 단일 소스 위임 — window.getEffectivePerfTier()만 사용
+// v7.1.6 TIER1 BOOST: tier 1 cap 36 → 46 (위 _PK 모듈 내부와 동기 유지 필수)
 window._PARTICLE_CAP_FN = ()=>{
   const tier = window.getEffectivePerfTier();
-  return tier===2?22:(tier===1?36:120);
+  return tier===2?22:(tier===1?46:120);
 };
 window._PK = _PK;
 
@@ -5397,7 +5420,8 @@ function triggerClearFX(cx, cy, numLines, removed, isSpecial=false){
   // ★ [1] emit source 제한 — 티어별 최대 개수로 샘플링
   const tier=window.getEffectivePerfTier();
   // v7.1 PATCH: tier 1 maxSources 5 → 4 (Telegram WebView 클리어 FX 부담 감소)
-  const maxSources=tier===2?3:(tier===1?4:7);
+  // v7.1.6 TIER1 BOOST: tier 1 maxSources 4 → 5 (iOS Telegram 체감 소폭 증가; tier 0/2 유지)
+  const maxSources=tier===2?3:(tier===1?5:7);
   const sampled=[];
   const step=Math.max(1,Math.ceil(removed.length/maxSources));
   removed.forEach((cell,idx)=>{
